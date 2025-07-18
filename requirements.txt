@@ -5,3 +5,4 @@ flask
 Pillow
 psutil
 cryptography
+PyInstaller
