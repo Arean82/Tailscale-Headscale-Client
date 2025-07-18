@@ -1,0 +1,7 @@
+tailscale
+requests
+pyyaml
+flask
+Pillow
+psutil
+cryptography
