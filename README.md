@@ -1,4 +1,4 @@
-## 🌐 Tailscale-Headscale-Client
+## 🌐 Tailscale + Headscale Client Application
 
 This repository is designed to facilitate the connection of **Tailscale clients** to a **self-hosted Headscale server**. While Tailscale offers a hosted control plane for managing your VPN network, Headscale provides an open-source alternative, giving users full control and privacy over their Tailscale-based network infrastructure.
 
