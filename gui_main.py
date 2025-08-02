@@ -1,5 +1,5 @@
 # gui_main.py
-# This module contains the main GUI application logic for the MAPView VPN Client.
+# This module contains the main GUI application logic for the Tailscale VPN Client.
 
 import tkinter as tk
 from tkinter import ttk, messagebox, PhotoImage
@@ -24,7 +24,7 @@ class TabbedClientApp:
         print(">> TabbedClientApp init start")
         self.master = master
         self.icon_image = getattr(master, 'icon_image', None)
-        self.master.title("MAPView VPN Client")
+        self.master.title("Tailscale VPN Client")
         
         # Set geometry based on OS
         if sys.platform == "win32":
@@ -45,7 +45,7 @@ class TabbedClientApp:
         # Acquire the mutex at application startup
         acquired = acquire_mutex()
         if acquired is False:
-            messagebox.showwarning("Already Running", "Another instance of MAPView VPN Client is already running.")
+            messagebox.showwarning("Already Running", "Another instance of Tailscale VPN Client is already running.")
             sys.exit(0)
         elif acquired is None:
             messagebox.showerror("Error", "Could not acquire system mutex (another instance might be running or error occurred).")
@@ -373,8 +373,8 @@ class TabbedClientApp:
 
         if messagebox.askyesno("Remove PROFILE", f"Are you sure you want to remove the profile '{current_tab_name}'?", parent=self.master):
             try:
-                url_file = get_file_path("MAPView_VPN_url", current_tab_name)
-                key_file = get_file_path("MAPView_VPN_key", current_tab_name)
+                url_file = get_file_path("Tailscale_VPN_url", current_tab_name)
+                key_file = get_file_path("Tailscale_VPN_key", current_tab_name)
                 if os.path.exists(url_file):
                     os.remove(url_file)
                 if os.path.exists(key_file):
@@ -530,7 +530,7 @@ def start_gui():
     print(">> storage initialized")
 
     root = tk.Tk()
-    root.title("MAPView VPN Client")
+    root.title("Tailscale VPN Client")
     root.geometry("400x300+100+100")  # Force the window on-screen
     print(">> root window created")
 

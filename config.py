@@ -1,5 +1,5 @@
 # config.py
-# This module defines the base directory and common paths for the MAPView VPN Client.
+# This module defines the base directory and common paths for the Tailscale VPN Client.
 # It ensures that the application can run on both Windows and Linux platforms without hardcoding paths.
 
 import os
@@ -7,11 +7,11 @@ import sys
 
 # Secure File Path Setup (OS-agnostic base directory)
 if sys.platform == "win32":
-    APP_BASE_DIR = os.path.join(os.environ.get('APPDATA'), "MAPView_VPN_Client")
+    APP_BASE_DIR = os.path.join(os.environ.get('APPDATA'), "Tailscale_VPN_Client")
 elif sys.platform.startswith("linux"):
-    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "MAPView_VPN_Client")
+    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
 else:
-    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), "MAPView_VPN_Client")
+    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), "Tailscale_VPN_Client")
 
 # Define common subdirectories relative to APP_BASE_DIR
 APP_DATA_DIR = os.path.join(APP_BASE_DIR, "data")

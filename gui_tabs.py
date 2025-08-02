@@ -41,7 +41,7 @@ class ClientTab(ttk.Frame):
 
         # Row 0: Headscale Login Server URL
         
-        ttk.Label(self, text="MAPView VPN URL    :").grid(row=0, column=0, sticky='w', pady=(5, 2))
+        ttk.Label(self, text="Tailscale VPN URL    :").grid(row=0, column=0, sticky='w', pady=(5, 2))
         self.Entry1 = ttk.Entry(self, textvariable=self.login_server_var, font="-family {Courier New} -size 10")
         self.Entry1.grid(row=0, column=1, sticky='ew', pady=(5, 2), padx=(0, 5))
         self.Entry1.configure(state='normal')

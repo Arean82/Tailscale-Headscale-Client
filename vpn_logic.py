@@ -32,11 +32,11 @@ fernet = Fernet(KEY)
 
 # Secure File Path Setup (OS-agnostic base directory)
 if sys.platform == "win32":
-    APP_BASE_DIR = os.path.join(os.environ.get('APPDATA'), "MAPView_VPN_Client")
+    APP_BASE_DIR = os.path.join(os.environ.get('APPDATA'), "Tailscale_VPN_Client")
 elif sys.platform.startswith("linux"):
-    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "MAPView_VPN_Client")
+    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
 else:
-    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), "MAPView_VPN_Client")
+    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), "Tailscale_VPN_Client")
 
 APP_DATA_DIR = os.path.join(APP_BASE_DIR, "data")
 LOG_DIR = os.path.join(APP_BASE_DIR, "log")
@@ -107,7 +107,7 @@ def decrypt_key(encrypted_key):
 def load_saved_url(tab_name):
     """Loads a URL specific to a tab's name."""
     try:
-        url_file = get_file_path("MAPView_VPN_url", tab_name)
+        url_file = get_file_path("Tailscale_VPN_url", tab_name)
         if os.path.exists(url_file):
             with open(url_file, 'r') as f:
                 return f.read().strip()
@@ -118,7 +118,7 @@ def load_saved_url(tab_name):
 def save_url(url, tab_name):
     """Saves a URL specific to a tab's name."""
     try:
-        url_file = get_file_path("MAPView_VPN_url", tab_name)
+        url_file = get_file_path("Tailscale_VPN_url", tab_name)
         with open(url_file, 'w') as f:
             f.write(url.strip())
     except Exception as e:
@@ -127,7 +127,7 @@ def save_url(url, tab_name):
 def load_saved_key(tab_name):
     """Loads an encrypted key specific to a tab's name."""
     try:
-        key_file = get_file_path("MAPView_VPN_key", tab_name)
+        key_file = get_file_path("Tailscale_VPN_key", tab_name)
         if os.path.exists(key_file):
             with open(key_file, 'r') as f:
                 encrypted = f.read().strip()
@@ -139,7 +139,7 @@ def load_saved_key(tab_name):
 def save_key(key, tab_name):
     """Saves an encrypted key specific to a tab's name."""
     try:
-        key_file = get_file_path("MAPView_VPN_key", tab_name)
+        key_file = get_file_path("Tailscale_VPN_key", tab_name)
         with open(key_file, 'w') as f:
             f.write(encrypt_key(key.strip()))
     except Exception as e:
