@@ -65,7 +65,6 @@ wmi==1.5.1
 xattr==1.2.0
 xmlrpclib==1.0.1
 zstandard==0.23.0
-tailscale==1.60.0
 requests
 pyyaml
 flask
