@@ -246,9 +246,9 @@ class TabbedClientApp:
         about_popup.grab_set()
 
 
-        ttk.Label(about_popup, text="MAPView VPN Client", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
-        ttk.Label(about_popup, text="Version 2.3").pack()
-        ttk.Label(about_popup, text="© 2025 MapView Geographical Solutions Pvt. Ltd").pack()
+        ttk.Label(about_popup, text="Tailscale VPN Client", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
+        ttk.Label(about_popup, text="Version 3.0").pack()
+        ttk.Label(about_popup, text="© 2025 Tailscale VPN Client (unofficial)").pack()
 
         ttk.Button(about_popup, text="Close", command=about_popup.destroy, style='ActionButton.TButton').pack(pady=10)
 
