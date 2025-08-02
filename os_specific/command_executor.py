@@ -1,42 +1,66 @@
-# os_specific/command_executor.py
-# This module provides a function to execute shell commands in a cross-platform manner.
-
 import sys
 import subprocess
+import webbrowser
+import re
+import os
+import platform
+
+print("[DEBUG] command_executor.py loaded")
+
+def open_browser(url):
+    try:
+        if platform.system() == "Windows":
+            try:
+                os.startfile(url)
+            except OSError:
+                subprocess.run(["cmd", "/c", "start", "", url], shell=True)
+        else:
+            webbrowser.open(url)
+    except Exception as e:
+        print(f"[ERROR] Failed to open browser: {e}")
 
 def execute_command(cmd, require_sudo=False, output_callback=None, error_log_callback=None):
-    """
-    Executes a shell command and returns its output.
-    Handles OS-specific process creation flags and elevation.
-
-    Args:
-        cmd (list): The command and its arguments as a list.
-        require_sudo (bool): If True, attempts to elevate privileges (pkexec on Linux).
-        output_callback (callable): A function to call for displaying command output.
-        error_log_callback (callable): A function to call for logging errors.
-    """
+    print("[DEBUG] execute_command called with:", cmd)
     startupinfo = None
     if sys.platform == "win32":
-        # On Windows, hide the console window for subprocesses
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    
+
     if require_sudo and sys.platform.startswith("linux"):
         if output_callback:
             output_callback("Elevated command: using pkexec.")
-        # For Linux, use pkexec to prompt for graphical password for sudo commands
         cmd = ["pkexec"] + cmd
     elif require_sudo and sys.platform == "win32":
-        # On Windows, Tailscale commands often require administrator privileges.
-        # We rely on Tailscale's internal elevation prompt or the user running
-        # the application with administrator rights. subprocess.run doesn't
-        # have a direct, cross-platform 'runas' equivalent that captures output.
         if output_callback:
             output_callback("Windows commands requiring elevation usually prompt or need an elevated terminal.")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, startupinfo=startupinfo)
-        return result.stdout + result.stderr
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, startupinfo=startupinfo)
+
+        output_lines = []
+        url_opened = False
+
+        for line in process.stdout:
+            print(f"[DEBUG] Line from Tailscale: {repr(line)}")
+            if output_callback:
+                output_callback(line.rstrip())
+            output_lines.append(line)
+
+            # Strip only leading/trailing whitespace for matching
+            trimmed_line = line.strip()
+
+            # Match a URL, even if it’s the only thing on a line with spaces
+            if not url_opened and "https://" in trimmed_line:
+                match = re.search(r'https://\S+', trimmed_line)
+                if match:
+                    url = match.group(0)
+                    print(f"[DEBUG] Detected URL: {url}")
+                    open_browser(url)
+                    url_opened = True  # Prevent opening more than once
+
+        process.wait()
+        return ''.join(output_lines)
+
     except FileNotFoundError:
         error_msg = "Error: Command not found. Ensure the executable is installed and in your PATH."
         if error_log_callback:

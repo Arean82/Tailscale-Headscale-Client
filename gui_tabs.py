@@ -7,9 +7,11 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
 import time
+import webbrowser
+from sso import run_sso_login
 from net_stats import get_tailscale_stats
 from vpn_logic import (
-    save_url, save_key, load_saved_url, load_saved_key, write_profile_log
+     get_auth_mode, is_sso_mode,save_url, save_key, load_saved_url, load_saved_key, write_profile_log
 )
 from tailscaleclient import TailscaleClient
 from datetime import datetime
@@ -181,7 +183,21 @@ class ClientTab(ttk.Frame):
             self.on_connect()
 
     def _print_output(self, text):
-        pass
+        text = text.strip()
+        if not text:
+            return
+
+        saved_url = load_saved_url(self.tab_name).strip()
+        if saved_url and saved_url in text:
+        #if saved_url and text.startswith(saved_url):
+            try:
+                webbrowser.open(text)
+            except Exception as e:
+                print(f"Failed to open browser: {e}")
+
+
+
+
 
     def _update_status_label(self, text, color):
         self.Label2.configure(text=text, foreground=color)
@@ -206,21 +222,36 @@ class ClientTab(ttk.Frame):
     def on_connect(self):
         server = self.login_server_var.get().strip()
         key = self.auth_key_var.get().strip()
-
+    
         self.Entry1.configure(state='disabled')
         self.Entry1_1.configure(state='disabled')
-        self.vpn_action_btn.configure(state='disabled')  # ✅ Prevent re-click
-        self.vpn_action_btn.update_idletasks()  # Optional: visually reflects the state immediately
-
+        self.vpn_action_btn.configure(state='disabled')  # prevent re-click
+        self.vpn_action_btn.update_idletasks()
         self._update_change_credentials_button_state()
-
-        # Start Tailscale connection
-        self.client.connect(key, server, self.tab_name)
-
+    
+        if is_sso_mode(self.tab_name):
+            # SSO path: run tailscale up with login-server and open browser automatically
+            cmd = ["tailscale", "up", f"--login-server={server}", "--accept-routes"]
+            run_sso_login(
+                cmd,
+                expected_url_part=server,
+                output_callback=self._print_output,
+                error_callback=lambda e: self._print_output(f"[SSO ERROR] {e}")
+            )
+            # NOTE: You need a mechanism to detect when the SSO login completes and the
+            # Tailscale connection is actually established (e.g., polling `tailscale status`
+            # or extending TailscaleClient to observe that). Once connected, call:
+            # self._post_connect_ui()
+        else:
+            # Auth-key path uses existing client logic
+            self.client.connect(key, server, self.tab_name)
+    
+        # Start traffic monitoring regardless (will no-op until connected)
         from net_stats import get_tailscale_stats
         self.prev_stats = get_tailscale_stats()
         self._monitoring = True
         threading.Thread(target=self._monitor_traffic_loop, daemon=True).start()
+
 
 
         

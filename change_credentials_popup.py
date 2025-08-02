@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from utils import center_window
 from PIL import Image, ImageTk 
+from vpn_logic import get_auth_mode, save_auth_mode
 
 def show_change_credentials_popup(master, tab_name, current_url, current_key, save_callback, bg_color="#f0f0f0", icon_image=None):
     popup_width = 200
@@ -29,7 +30,11 @@ def show_change_credentials_popup(master, tab_name, current_url, current_key, sa
     except Exception:
         key_icon = sso_icon = save_icon = cancel_icon = None
 
-    use_sso = tk.BooleanVar(value=False)
+    # Load previously saved auth mode
+    saved_mode = get_auth_mode(tab_name)
+    use_sso = tk.BooleanVar(value=(saved_mode == "google"))
+
+    #use_sso = tk.BooleanVar(value=False)
 
     # --- Layout using grid ---
     container = ttk.Frame(popup, padding=(10, 10))
@@ -43,7 +48,7 @@ def show_change_credentials_popup(master, tab_name, current_url, current_key, sa
     icon_label = ttk.Label(container, image=key_icon)
     icon_label.grid(row=1, column=0, sticky='w')
 
-    switch = ttk.Checkbutton(container, text="Use Google SSO", variable=use_sso, command=lambda: animate_transition())
+    switch = ttk.Checkbutton(container, text="Use SSO", variable=use_sso, command=lambda: animate_transition())
     switch.grid(row=1, column=1, sticky='w')
 
     # Frame holder with grid layout
@@ -77,7 +82,7 @@ def show_change_credentials_popup(master, tab_name, current_url, current_key, sa
     #url_entry_sso = ttk.Entry(sso_frame, width=45)
     url_entry_sso.insert(0, current_url)
     url_entry_sso.grid(row=1, column=0, sticky='we', pady=(0, 5))
-    ttk.Label(sso_frame, text="A browser will open for Google SSO login.", foreground="gray").grid(row=2, column=0, sticky='w')
+    ttk.Label(sso_frame, text="A browser will open for SSO login.", foreground="gray").grid(row=2, column=0, sticky='w')
 
     # Place the frames using .place (still for animation)
     auth_frame.place(x=0, y=0, relwidth=1, relheight=1)
@@ -190,9 +195,16 @@ def show_change_credentials_popup(master, tab_name, current_url, current_key, sa
 
         mode = "google" if use_sso.get() else "auth_key"
         save_callback(url, key, mode)
+        save_auth_mode(tab_name, mode)  # Save to tab-specific file
         popup.destroy()
         master.lift()
         messagebox.showinfo("Saved", f"Credentials saved for '{tab_name}'.")
+
+    if use_sso.get():
+        auth_frame.place_configure(x=popup_width)
+        sso_frame.place_configure(x=0)
+        icon_label.configure(image=sso_icon)    
+        
 
     popup.bind("<Return>", lambda e: save())
     popup.bind("<Escape>", lambda e: popup.destroy())
