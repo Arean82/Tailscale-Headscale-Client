@@ -1,5 +1,7 @@
 # tailscaleclient.py
 # This module defines the TailscaleClient class, which manages Tailscale VPN connections,
+# including connecting, disconnecting, and checking status. It also handles SSO login
+# and periodic traffic logging.
 
 import cmd
 import os
@@ -9,6 +11,7 @@ import subprocess
 import threading
 import time
 from tkinter import messagebox
+from statuscheck import wait_until_connected
 
 # Import necessary functions from vpn_logic.py
 from vpn_logic import save_key, save_url, write_profile_log, write_log
@@ -255,7 +258,37 @@ class TailscaleClient:
                     self._show_progress("Connected successfully!", 0)
 
 
+            # Fallback if no success message and in SSO mode
+            if auth_mode != "auth_key" and not self.connected:
+                self._print_output("[DEBUG] Waiting for Tailscale to connect via SSO polling...")
+                write_profile_log(profile_name, "Waiting for connection via status polling...")
 
+                if wait_until_connected():
+                    self.connected = True
+                    self.logged_in = True
+                    print("[DEBUG] GUI status will now be updated to CONNECTED")
+                    self._update_status("🟢 Connected", "green")
+                    self._notify_connected()
+                    write_profile_log(profile_name, "Connection successful via SSO (polled).")
+                    self._stop_periodic_logger()
+                    self._periodic_logger_running.set()
+                    self._periodic_logger_thread = threading.Thread(
+                        target=self._periodic_traffic_logger, args=(profile_name,), daemon=True
+                    )
+                    self._periodic_logger_thread.start()
+                    self._show_progress("Connected successfully!", 0)
+                else:
+                    self.connected = False
+                    self.logged_in = False
+                    self._update_status("🔴 Disconnected", "red")
+                    write_profile_log(profile_name, "SSO polling failed. Still not connected.")
+                    self._notify_logged_out()
+                    self._stop_periodic_logger()
+                    self._show_progress("Connection failed.", 0)
+                    try:
+                        messagebox.showerror("Connection Failed", "Login via SSO timed out. Please try again.")
+                    except:
+                        pass
 
             # If SSO mode, check for login URL
             if auth_mode != "auth_key":
@@ -305,26 +338,20 @@ class TailscaleClient:
         # Correct: call the thread with proper args
         threading.Thread(target=task, args=(key, server, tab_name), daemon=True).start()
 
-
     def disconnect(self, profile_name):
         def task():
-            self._print_output("Disconnecting from Tailscale...")
-    
+            self._print_output("Disconnecting from Tailscale...")  
             output = self.run_command(["tailscale", "logout"])
             write_profile_log(profile_name, f"Disconnect output:\n{output.strip()}")
-    
             self.connected = False
             self.logged_in = False
-    
             self._update_status("🔴 Disconnected", "red")
             self._notify_logged_out()
             self._notify_post_disconnect()
             self._notify_post_logout()
             self._stop_periodic_logger()
-    
             self._show_progress("Disconnected.", 0)
     
         threading.Thread(target=task, daemon=True).start()
-
 
     # (disconnect, logout, check_status remain unchanged)

@@ -10,6 +10,7 @@ import time
 import webbrowser
 from sso import run_sso_login
 from net_stats import get_tailscale_stats
+from statuscheck import check_connected, wait_until_connected
 from vpn_logic import (
      get_auth_mode, is_sso_mode,save_url, save_key, load_saved_url, load_saved_key, write_profile_log
 )
@@ -222,13 +223,13 @@ class ClientTab(ttk.Frame):
     def on_connect(self):
         server = self.login_server_var.get().strip()
         key = self.auth_key_var.get().strip()
-    
+
         self.Entry1.configure(state='disabled')
         self.Entry1_1.configure(state='disabled')
         self.vpn_action_btn.configure(state='disabled')  # prevent re-click
         self.vpn_action_btn.update_idletasks()
         self._update_change_credentials_button_state()
-    
+
         if is_sso_mode(self.tab_name):
             # SSO path: run tailscale up with login-server and open browser automatically
             cmd = ["tailscale", "up", f"--login-server={server}", "--accept-routes"]
@@ -238,10 +239,21 @@ class ClientTab(ttk.Frame):
                 output_callback=self._print_output,
                 error_callback=lambda e: self._print_output(f"[SSO ERROR] {e}")
             )
-            # NOTE: You need a mechanism to detect when the SSO login completes and the
-            # Tailscale connection is actually established (e.g., polling `tailscale status`
-            # or extending TailscaleClient to observe that). Once connected, call:
-            # self._post_connect_ui()
+
+            # Start a background thread to poll for successful connection
+            def poll_and_update_gui():
+                if wait_until_connected():
+                    self._print_output("[INFO] SSO login completed and connected.")
+                    self.client.connected = True  # Mark as connected manually
+                    self._post_connect_ui()
+                    self._update_status_label("🟢 Connected", "green")
+                else:
+                    self._print_output("[ERROR] SSO login timeout or failure.")
+                    self._update_status_label("❌ SSO login failed or timed out", "red")
+                    self.enable_tab_ui()
+
+            threading.Thread(target=poll_and_update_gui, daemon=True).start()
+
         else:
             # Auth-key path uses existing client logic
             self.client.connect(key, server, self.tab_name)
@@ -251,10 +263,7 @@ class ClientTab(ttk.Frame):
         self.prev_stats = get_tailscale_stats()
         self._monitoring = True
         threading.Thread(target=self._monitor_traffic_loop, daemon=True).start()
-
-
-
-        
+    
     def _post_disconnect_ui(self):
         self.vpn_action_btn.configure(state='normal')
         self.Entry1.configure(state='normal')
@@ -303,9 +312,20 @@ class ClientTab(ttk.Frame):
         if new_url and (new_key or mode == "google"):
             self.vpn_action_btn.configure(state='normal')
         else:
-            self.vpn_action_btn.configure(state='disabled')  # ✅ Prevent re-click
+            self.vpn_action_btn.configure(state='disabled')  #Prevent re-click
             self.vpn_action_btn.update_idletasks()  # Optional: visually reflects the state immediately
 
+    def _poll_connection_status_after_sso(self, timeout=60):
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if self.client.check_connected():  
+                self._post_connect_ui()
+                return
+            time.sleep(2)
+
+        # If it times out
+        self._update_status_label("❌ SSO login timed out", "red")
+        self.enable_tab_ui()
 
 
     def _update_change_credentials_button_state(self):
