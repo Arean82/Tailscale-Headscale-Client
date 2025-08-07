@@ -1,17 +1,12 @@
 # tailscaleclient.py
 # This module defines the TailscaleClient class, which manages Tailscale VPN connections,
-# including connecting, disconnecting, and checking status. It also handles SSO login
-# and periodic traffic logging.
 
-import cmd
 import os
-import re
 import sys
 import subprocess
 import threading
 import time
 from tkinter import messagebox
-from statuscheck import wait_until_connected
 
 # Import necessary functions from vpn_logic.py
 from vpn_logic import save_key, save_url, write_profile_log, write_log
@@ -115,34 +110,17 @@ class TailscaleClient:
         self._periodic_logger_running.clear()
 
     #def connect(self, key, server, tab_name, ping_ip=None):
-
-    def is_connected(self):
-        """
-        Check if the Tailscale client is connected.
-        Returns True if connected, False otherwise.
-        """
-        try:
-            output = self.run_command(["tailscale", "status"])
-            # Avoid false positives by checking for negative keywords first
-            if "logged out" in output.lower() or "disconnected" in output.lower():
-                return False
-            return "logged in" in output.lower() or "connected" in output.lower()
-        except Exception as e:
-            write_log(f"Error checking connection status: {e}", level="ERROR")
-            return False
-
-
     def connect(self, key, server, tab_name):
         def task(auth_key, login_server, profile_name):
             auth_key = auth_key.strip()
             login_server = login_server.strip()
-    
+
             # Save credentials
             save_key(auth_key, profile_name)
             save_url(login_server, profile_name)
-    
+
             self._show_progress("Starting Tailscale service...", 1)
-    
+
             # Start tailscale service
             if sys.platform == "win32":
                 self.run_command(["powershell", "-Command", "Start-Service Tailscale"], require_sudo=True)
@@ -150,19 +128,19 @@ class TailscaleClient:
             elif sys.platform.startswith("linux"):
                 self.run_command(["systemctl", "start", "tailscaled"], require_sudo=True)
                 time.sleep(2)
-    
+
             self._show_progress("Starting Tailscale service...", 2)
-    
+
             # Prepare base command
             cmd = ["tailscale", "up", f"--login-server={login_server}", "--accept-routes"]
-    
+
             from vpn_logic import get_file_path
             mode_file = get_file_path("auth_mode", profile_name)
             auth_mode = "auth_key"
             if os.path.exists(mode_file):
                 with open(mode_file, "r") as f:
                     auth_mode = f.read().strip()
-    
+
             if auth_mode == "auth_key":
                 if not auth_key:
                     self._print_output("Error: Auth key is missing.")
@@ -174,144 +152,20 @@ class TailscaleClient:
             else:
                 self._print_output("Using Google Login (SSO) mode.")
                 write_profile_log(profile_name, "Using Google Login (SSO) mode.")
-    
+
             # Safe display
             safe_cmd_display = [p if not p.startswith("--auth-key=") else "--auth-key=****" for p in cmd]
             self._print_output(f"Running: {' '.join(safe_cmd_display)}")
             write_profile_log(profile_name, f"Running: {' '.join(safe_cmd_display)}")
-    
-            self._show_progress("Waiting for SSO login...", 2)
-    
-            # Execute the 'tailscale up' command
-            # output = self.run_command(cmd, require_sudo=True)
-            output_lines = []
-            process = subprocess.Popen(
-                ["pkexec"] + cmd if sys.platform.startswith("linux") else cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True
-            )
 
-            for line in process.stdout:
-                line = line.strip()
-                output_lines.append(line)
-                self._print_output(line)
-                write_profile_log(profile_name, line)
-
-                if "https://" in line and "/a/" in line:
-                    login_url = line
-                    self._print_output(f"🔐 SSO Login URL: {login_url}")
-                    write_profile_log(profile_name, f"SSO login URL: {login_url}")
-                    if self.message_popup_callback:
-                        self.message_popup_callback("SSO Login Required", f"Please authenticate in your browser:\n\n{login_url}")
-                    try:
-                        import webbrowser
-                        webbrowser.open(login_url)
-                    except Exception as e:
-                        write_log(f"Failed to open browser: {e}")
-
-                #if line.strip() == "Success.":
-                if line.strip().lower() == "success.":
-                    self.connected = True
-                    self.logged_in = True
-                    self._update_status("🟢 Connected", "green")
-                    self._notify_connected()
-                    write_profile_log(profile_name, "Connection successful via SSO.")
-                    self._stop_periodic_logger()
-                    self._periodic_logger_running.set()
-                    self._periodic_logger_thread = threading.Thread(
-                        target=self._periodic_traffic_logger, args=(profile_name,), daemon=True
-                    )
-                    self._periodic_logger_thread.start()
-                    self._show_progress("Connected successfully!", 0)
-
-            process.wait()
-            output = "\n".join(output_lines)
-
-            # If "Success." was not detected during the loop
-            if not self.connected:
-                # Double-check if we're already connected
-                status_output = self.run_command(["tailscale", "status"])
-                self._print_output("Verifying connection...\n" + status_output)
-                
-                if "logged out" in status_output.lower() or "disconnected" in status_output.lower():
-                    self.connected = False
-                    self.logged_in = False
-                    self._update_status("🔴 Disconnected", "red")
-                    messagebox.showerror("Connection Failed", "Login failed. Check logs or try again.")
-                    self._notify_logged_out()
-                    write_profile_log(profile_name, "Connection failed.")
-                    self._stop_periodic_logger()
-                    self._show_progress("Connection failed.", 0)
-                else:
-                    self.connected = True
-                    self.logged_in = True
-                    self._update_status("🟢 Connected", "green")
-                    self._notify_connected()
-                    write_profile_log(profile_name, "Already connected (no auth prompt needed).")
-                    self._stop_periodic_logger()
-                    self._periodic_logger_running.set()
-                    self._periodic_logger_thread = threading.Thread(
-                        target=self._periodic_traffic_logger, args=(profile_name,), daemon=True
-                    )
-                    self._periodic_logger_thread.start()
-                    self._show_progress("Connected successfully!", 0)
-
-
-            # Fallback if no success message and in SSO mode
-            if auth_mode != "auth_key" and not self.connected:
-                self._print_output("[DEBUG] Waiting for Tailscale to connect via SSO polling...")
-                write_profile_log(profile_name, "Waiting for connection via status polling...")
-
-                if wait_until_connected():
-                    self.connected = True
-                    self.logged_in = True
-                    print("[DEBUG] GUI status will now be updated to CONNECTED")
-                    self._update_status("🟢 Connected", "green")
-                    self._notify_connected()
-                    write_profile_log(profile_name, "Connection successful via SSO (polled).")
-                    self._stop_periodic_logger()
-                    self._periodic_logger_running.set()
-                    self._periodic_logger_thread = threading.Thread(
-                        target=self._periodic_traffic_logger, args=(profile_name,), daemon=True
-                    )
-                    self._periodic_logger_thread.start()
-                    self._show_progress("Connected successfully!", 0)
-                else:
-                    self.connected = False
-                    self.logged_in = False
-                    self._update_status("🔴 Disconnected", "red")
-                    write_profile_log(profile_name, "SSO polling failed. Still not connected.")
-                    self._notify_logged_out()
-                    self._stop_periodic_logger()
-                    self._show_progress("Connection failed.", 0)
-                    try:
-                        messagebox.showerror("Connection Failed", "Login via SSO timed out. Please try again.")
-                    except:
-                        pass
-
-            # If SSO mode, check for login URL
-            if auth_mode != "auth_key":
-                for line in output.splitlines():
-                    if "https://" in line and "/a/" in line:
-                        login_url = line.strip()
-                        write_profile_log(profile_name, f"SSO login URL: {login_url}")
-                        self._print_output(f"🔐 SSO Login URL: {login_url}")
-                        if self.message_popup_callback:
-                            self.message_popup_callback("SSO Login Required", f"Please authenticate in your browser:\n\n{login_url}")
-                        try:
-                            import webbrowser
-                            webbrowser.open(login_url)
-                        except:
-                            pass
-                        break
-                    
-            # Verify connection
+            # Execute
+            output = self.run_command(cmd, require_sudo=True)
             write_profile_log(profile_name, "Attempting to connect...")
             write_profile_log(profile_name, f"Command output:\n{output.strip()}")
+
             status_output = self.run_command(["tailscale", "status"])
             self._print_output("Verifying connection...\n" + status_output)
-    
+
             if "Logged out" in status_output or "disconnected" in status_output.lower() or "failed" in output.lower():
                 self.connected = False
                 self.logged_in = False
@@ -334,24 +188,29 @@ class TailscaleClient:
                 )
                 self._periodic_logger_thread.start()
                 self._show_progress("Connected successfully!", 0)
-    
-        # Correct: call the thread with proper args
+
+        # Correct way: pass args to thread
         threading.Thread(target=task, args=(key, server, tab_name), daemon=True).start()
 
     def disconnect(self, profile_name):
         def task():
-            self._print_output("Disconnecting from Tailscale...")  
+            self._print_output("Disconnecting from Tailscale...")
+    
             output = self.run_command(["tailscale", "logout"])
             write_profile_log(profile_name, f"Disconnect output:\n{output.strip()}")
+    
             self.connected = False
             self.logged_in = False
+    
             self._update_status("🔴 Disconnected", "red")
             self._notify_logged_out()
             self._notify_post_disconnect()
             self._notify_post_logout()
             self._stop_periodic_logger()
+    
             self._show_progress("Disconnected.", 0)
     
         threading.Thread(target=task, daemon=True).start()
+
 
     # (disconnect, logout, check_status remain unchanged)

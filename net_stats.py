@@ -1,5 +1,4 @@
 # net_stats.py
-# This module provides functions to retrieve and log network statistics for the Tailscale interface.
 
 import psutil
 import os

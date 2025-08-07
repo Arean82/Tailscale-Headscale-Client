@@ -15,7 +15,6 @@ import threading
 import time
 from tkinter import messagebox
 
-
 # Import OS-specific mutex functions
 from os_specific.mutex_handler import acquire_mutex, release_mutex, set_lock_file_path
 
@@ -181,16 +180,6 @@ def save_last_selected_tab_id(tab_id):
             json.dump({"last_selected_tab_id": tab_id}, f)
     except Exception as e:
         write_log(f"Error saving last selected tab ID: {e}", level="ERROR")
-
-# vpn_logic.py (add near your other utils)
-def save_auth_mode(tab_name, mode):
-    """Saves the authentication mode (e.g., 'google' or 'auth_key') for a tab."""
-    try:
-        mode_file = get_file_path("auth_mode", tab_name)
-        with open(mode_file, 'w') as f:
-            f.write(mode.strip())
-    except Exception as e:
-        write_log(f"Error saving auth mode for tab '{tab_name}': {e}", level="ERROR")
 
 def get_auth_mode(tab_name):
     from vpn_logic import get_file_path  # or move this to top if already imported

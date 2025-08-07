@@ -1,5 +1,5 @@
 # gui_main.py
-# This module contains the main GUI application logic for the Tailscale VPN Client.
+# This module initializes the main GUI application, sets up the tabbed interface,
 
 import tkinter as tk
 from tkinter import ttk, messagebox, PhotoImage
@@ -246,9 +246,9 @@ class TabbedClientApp:
         about_popup.grab_set()
 
 
-        ttk.Label(about_popup, text="Tailscale VPN Client", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
+        ttk.Label(about_popup, text="Tailscalele VPN Client", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
         ttk.Label(about_popup, text="Version 3.0").pack()
-        ttk.Label(about_popup, text="© 2025 Tailscale VPN Client (unofficial)").pack()
+        ttk.Label(about_popup, text="© 2025 Tailscalelele Geographical Solutions Pvt. Ltd").pack()
 
         ttk.Button(about_popup, text="Close", command=about_popup.destroy, style='ActionButton.TButton').pack(pady=10)
 

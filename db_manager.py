@@ -1,6 +1,3 @@
-# db_manager.py
-# This module manages the database for storing traffic statistics.
-
 import sqlite3
 from datetime import datetime
 import os

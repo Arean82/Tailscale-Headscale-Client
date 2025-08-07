@@ -1,6 +1,3 @@
-# progress_popup.py
-# This module defines the ProgressPopup class, which displays a progress message in a popup window.
-
 import tkinter as tk
 from tkinter import ttk
 

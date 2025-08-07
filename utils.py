@@ -1,7 +1,4 @@
 # utils.py
-# This module provides utility functions for the application, such as centering windows,
-# formatting bytes, writing logs, and adding tooltips.
-
 import tkinter as tk
 import os
 from datetime import datetime
@@ -52,28 +49,3 @@ def write_log(entry, level="INFO"):
     except Exception as e:
         print(f"Failed to write log (fallback print): {e} - Original entry: {entry}")
 
-def add_tooltip(widget, text, parent=None):
-    tooltip = tk.Toplevel(parent or widget)
-    tooltip.withdraw()
-    tooltip.overrideredirect(True)
-    tooltip.attributes("-topmost", True)
-
-    label = tk.Label(
-        tooltip, text=text,
-        background="lightyellow", borderwidth=1,
-        relief="solid", font=("Segoe UI", 8)
-    )
-    label.pack()
-
-    def show_tooltip(event):
-        tooltip.geometry(f"+{event.x_root + 10}+{event.y_root + 10}")
-        tooltip.deiconify()
-
-    def hide_tooltip(event):
-        tooltip.withdraw()
-
-    widget.bind("<Enter>", show_tooltip)
-    widget.bind("<Leave>", hide_tooltip)
-
-    widget.tooltip_label = label  # Attach tooltip label for future updates
-    widget.tooltip_window = tooltip
