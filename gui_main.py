@@ -1,5 +1,5 @@
 # gui_main.py
-# This module initializes the main GUI application, sets up the tabbed interface,
+# This module contains the main GUI application logic for the Tailscale VPN Client.
 
 import tkinter as tk
 from tkinter import ttk, messagebox, PhotoImage
@@ -21,10 +21,12 @@ from gui_tabs import ClientTab # Ensure gui_tabs.py imports TailscaleClient from
 class TabbedClientApp:
     MAX_TABS = 5 # Maximum Profile Limit. To increase change the value
     def __init__(self, master):
-        print(">> TabbedClientApp init start")
+        print("[DEBUG] >> TabbedClientApp init start")
         self.master = master
         self.icon_image = getattr(master, 'icon_image', None)
         self.master.title("Tailscale VPN Client")
+        
+
         
         # Set geometry based on OS
         if sys.platform == "win32":
@@ -33,7 +35,7 @@ class TabbedClientApp:
             self.master.geometry("400x250+100+100") # Linux specific size (slightly larger)
         else:
             self.master.geometry("380x200")+100+100 # Default for other OS
-        print(">> Geometry set")
+        print("[DEBUG] >> Geometry set")
 
         self.master.resizable(False, False)
         self.master.protocol("WM_DELETE_WINDOW", self.on_close_app) # Corrected protocol call
@@ -50,16 +52,16 @@ class TabbedClientApp:
         elif acquired is None:
             messagebox.showerror("Error", "Could not acquire system mutex (another instance might be running or error occurred).")
             sys.exit(1)
-        print(">> Mutex acquired")
+        print("[DEBUG] >> Mutex acquired")
 
         if not check_tailscale_installed():
             messagebox.showerror("Error", "Tailscale CLI not found. Please install Tailscale.")
             sys.exit(1)
-        print(">> Tailscale check done")
+        print("[DEBUG] >> Tailscale check done")
 
         self.style = ttk.Style()
         self.style.theme_use('default') # Use default theme for better cross-platform look
-        print(">> Styles configured")
+        print("[DEBUG] >> Styles configured")
 
         # General TButton style (flat for most buttons)
         self.style.configure("TButton",
@@ -158,7 +160,7 @@ class TabbedClientApp:
         # Configure the TNotebook widget itself
         self.style.configure("TNotebook", background=self._bgcolor, borderwidth=0)
         self.style.layout("TNotebook", [("TNotebook.client", {"sticky": "nswe"})])
-        print(">> Notebook initialized")
+        print("[DEBUG] >> Notebook initialized")
         
         # Configure the individual tabs within the TNotebook
         self.style.configure("TNotebook.Tab",
@@ -188,9 +190,9 @@ class TabbedClientApp:
         self.notebook.pack(padx=10, pady=(10, 0), fill='both', expand=True) # Fill and expand with window
 
         self.tabs = {}
-        print(">> Loading tab names")
+        print("[DEBUG] >> Loading tab names")
         self.tab_id_to_name = load_tab_names()
-        print(f">> Loaded tab names: {self.tab_id_to_name}")
+        print(f"[DEBUG] >> Loaded tab names: {self.tab_id_to_name}")
         self.next_tab_id = 1
         if self.tab_id_to_name:
             self.next_tab_id = max(self.tab_id_to_name.keys()) + 1
@@ -198,12 +200,12 @@ class TabbedClientApp:
         self.connected_tab_id = None
 
         if not self.tab_id_to_name:
-            print(">> No tabs found, prompting for first tab name")
+            print("[DEBUG] >> No tabs found, prompting for first tab name")
             self._prompt_for_first_tab_name()
         else:
             for tab_id in sorted(self.tab_id_to_name.keys()):
                 tab_name = self.tab_id_to_name[tab_id]
-                print(f">> Loading tab: {tab_id} - {tab_name}")    
+                print(f"[DEBUG] >> Loading tab: {tab_id} - {tab_name}")    
                 self.add_new_tab(tab_name=tab_name, existing_tab_id=tab_id)
 
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
@@ -246,15 +248,15 @@ class TabbedClientApp:
         about_popup.grab_set()
 
 
-        ttk.Label(about_popup, text="Tailscalele VPN Client", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
+        ttk.Label(about_popup, text="Tailscale VPN Client", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
         ttk.Label(about_popup, text="Version 3.0").pack()
-        ttk.Label(about_popup, text="© 2025 Tailscalelele Geographical Solutions Pvt. Ltd").pack()
+        ttk.Label(about_popup, text="© 2025 Tailscale VPN Client").pack()
 
         ttk.Button(about_popup, text="Close", command=about_popup.destroy, style='ActionButton.TButton').pack(pady=10)
 
 
     def _prompt_for_first_tab_name(self):
-        print(">> _prompt_for_first_tab_name called")
+        print("[DEBUG] >> _prompt_for_first_tab_name called")
         popup_width = 200
         popup_height = 130
         popup = tk.Toplevel(self.master)
@@ -368,7 +370,7 @@ class TabbedClientApp:
         current_tab_name = self.tab_id_to_name[current_tab_id]
 
         if self.connected_tab_id == current_tab_id:
-            messagebox.showwarning("Not Allowed", f"Please logout from the currently active profile '{current_tab_name}' before removing it.")
+            messagebox.showwarning("WARNING !", f"Please logout from the currently active profile '{current_tab_name}' before removing it.")
             return
 
         if messagebox.askyesno("Remove PROFILE", f"Are you sure you want to remove the profile '{current_tab_name}'?", parent=self.master):
@@ -497,42 +499,56 @@ class TabbedClientApp:
             pass # No tab selected, or error getting widget
 
     def on_close_app(self):
-        for tab_instance in self.tabs.values():
+        print("[DEBUG] on_close_app triggered")
+
+        for tab_name, tab_instance in self.tabs.items():
+            print(f"[DEBUG] Checking connection status for tab: {tab_name}")
             if tab_instance.client.logged_in:
-                messagebox.showwarning("Not Allowed", "Please logout from all active connections before closing the application.")
+                print(f"[DEBUG] Tab '{tab_name}' is still connected. Blocking close.")
+                messagebox.showwarning("WARNING !", "Please logout from all active connections before closing the application.")
                 return
+
         try:
             for tab_id, tab_name in self.tab_id_to_name.items():
+                print(f"[DEBUG] Checking directory for tab: {tab_name}")
                 tab_dir = get_tab_dir(tab_name)
-                # Check if directory exists and is empty before attempting to remove
                 if os.path.exists(tab_dir) and not os.listdir(tab_dir):
                     try:
                         os.rmdir(tab_dir)
+                        print(f"[DEBUG] Removed empty directory: {tab_dir}")
                         write_log(f"Removed empty tab directory: {tab_dir}", level="INFO")
                     except Exception as e:
+                        print(f"[DEBUG] Error removing directory: {e}")
                         write_log(f"Error removing empty tab directory {tab_dir}: {e}", level="ERROR")
 
             if not self.tabs and os.path.exists(TAB_NAMES_FILE):
                 os.remove(TAB_NAMES_FILE)
+                print("[DEBUG] Removed tab_names.json file")
                 write_log(f"Removed empty tab_names.json file.", level="INFO")
 
-            # Release the mutex before destroying the master window
             release_mutex(None)
+            print("[DEBUG] Released mutex")
+
         except Exception as e:
+            print(f"[DEBUG] Exception during shutdown: {e}")
             write_log(f"Error during app shutdown: {e}", level="ERROR")
+
+        print("[DEBUG] Destroying GUI window")
         self.master.destroy()
 
 
 
+
+
 def start_gui():
-    print(">> start_gui called")
+    print("[DEBUG] >> start_gui called")
     initialize_app_storage()
-    print(">> storage initialized")
+    print("[DEBUG] >> storage initialized")
 
     root = tk.Tk()
     root.title("Tailscale VPN Client")
     root.geometry("400x300+100+100")  # Force the window on-screen
-    print(">> root window created")
+    print("[DEBUG] >> root window created")
 
     try:
         # Use absolute path relative to this script
@@ -550,7 +566,7 @@ def start_gui():
 
 
     app = TabbedClientApp(root)
-    print(">> TabbedClientApp initialized")
+    print("[DEBUG] >> TabbedClientApp initialized")
 
     last_tab_id = load_last_selected_tab_id()
     if last_tab_id is not None and last_tab_id in app.tabs:
@@ -566,7 +582,7 @@ def start_gui():
             app.update_tab_states()
 
     root.protocol("WM_DELETE_WINDOW", app.on_close_app)
-    print(">> Entering mainloop")
+    print("[DEBUG] >> Entering mainloop")
     root.mainloop()
-    print(">> GUI exited")
+    print("[DEBUG] >> GUI exited")
 
