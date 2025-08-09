@@ -1,29 +1,37 @@
-# main.py
-# This script serves as the entry point for the GUI application.
-
 import time
-import psutil  # pip install psutil
+import psutil
+import platform
 
 from gui_main import start_gui
 
 SERVICE_NAME = "Tailscale"
+PROCESS_NAME = "tailscaled"  # Linux/macOS service name
 
-def is_service_running(name):
-    try:
-        service = psutil.win_service_get(name)
-        return service.as_dict()['status'] == 'running'
-    except Exception:
+def is_service_running():
+    system = platform.system()
+
+    if system == "Windows":
+        try:
+            service = psutil.win_service_get(SERVICE_NAME)
+            return service.as_dict()['status'] == 'running'
+        except Exception:
+            return False
+
+    else:
+        # For Linux/macOS — check process name
+        for proc in psutil.process_iter(attrs=['name']):
+            if proc.info['name'] == PROCESS_NAME:
+                return True
         return False
 
-print("Checking if Tailscale service is running...")
+print("Checking if Tailscale is running...")
 
-# Wait for Tailscale to be running, with a timeout
 timeout = 60  # seconds
 start_time = time.time()
 
-while not is_service_running(SERVICE_NAME):
+while not is_service_running():
     if time.time() - start_time > timeout:
-        print("Tailscale service did not start within 60 seconds. Launching GUI anyway.")
+        print("Tailscale did not start within 60 seconds. Launching GUI anyway.")
         break
     print("Tailscale not running yet. Waiting 2 seconds...")
     time.sleep(2)
