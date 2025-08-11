@@ -1,8 +1,12 @@
 # styles.py
+
 import sys
 import tkinter.ttk as ttk
 
-def setup_styles(bgcolor='#d9d9d9'):
+def setup_styles(theme):
+    bgcolor = theme.get("bgcolor", "#d9d9d9")
+    fgcolor = theme.get("fgcolor", "black")
+
     style = ttk.Style()
     style.theme_use('default')
 

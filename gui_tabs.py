@@ -23,7 +23,6 @@ from change_credentials_popup import show_change_credentials_popup
 from progress_popup import ProgressPopup # Import the new ProgressPopup
 from utils import add_tooltip
 
-
 class ClientTab(ttk.Frame):
     def __init__(self, parent_notebook, app_instance, tab_id, tab_name):
         super().__init__(parent_notebook, padding=10) # ttk.Frame uses 'padding'

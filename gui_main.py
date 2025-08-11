@@ -8,7 +8,8 @@ import sys # Keep sys for sys._MEIPASS and sys.exit()
 # Removed: import win32event, win32api, win32con as their functionality is now in vpn_logic.py
 from utils import format_bytes, center_window
 from styles import setup_styles
-
+from darkstyle import setup_dark_styles 
+from themes import THEMES
 
 from vpn_logic import (
     acquire_mutex, release_mutex, check_tailscale_installed,
@@ -21,9 +22,14 @@ from gui_tabs import ClientTab # Ensure gui_tabs.py imports TailscaleClient from
 
 class TabbedClientApp:
     MAX_TABS = 5 # Maximum Profile Limit. To increase change the value
-    def __init__(self, master):
+    def __init__(self, master, theme_name=None):
         print("[DEBUG] >> TabbedClientApp init start")
         self.master = master
+    
+        if theme_name is None:
+            settings = load_settings()
+            theme_name = settings.get("theme", "light")
+        
         self.icon_image = getattr(master, 'icon_image', None)
         self.master.title("Tailscale VPN Client")
         print("[DEBUG] >> Title set to 'Tailscale VPN Client'")
@@ -40,8 +46,23 @@ class TabbedClientApp:
         self.master.resizable(False, False)
         self.master.protocol("WM_DELETE_WINDOW", self.on_close_app) # Corrected protocol call
 
-        self._bgcolor = '#d9d9d9' # Main application background color
-        self.master.configure(background=self._bgcolor) # Main window background
+        self.current_theme_name = theme_name
+        self.current_theme = THEMES.get(theme_name, THEMES["light"])
+
+        if theme_name == "dark":
+            self.style = setup_dark_styles(self.current_theme)
+        else:
+            self.style = setup_styles(self.current_theme)
+
+        
+        self._bgcolor = self.current_theme.get("bgcolor")
+        self._fgcolor = self.current_theme.get("fgcolor")
+
+        self.style = setup_styles(self.current_theme)
+        #self._bgcolor = '#d9d9d9' # Main application background color
+        #self.master.configure(background=self.current_theme) # Main window background
+        self.master.configure(background=self.current_theme["bgcolor"])
+
         self._create_menu_bar()  # Add the global menu here
         
         # Acquire the mutex at application startup
@@ -64,7 +85,7 @@ class TabbedClientApp:
         print("[DEBUG] >> Styles configured")
 
         # Initialize and apply styles
-        self.style = setup_styles(self._bgcolor)
+        self.style = setup_styles(self.current_theme)
 
         self.notebook = ttk.Notebook(self.master)
         self.notebook.pack(padx=10, pady=(10, 0), fill='both', expand=True) # Fill and expand with window
@@ -109,6 +130,12 @@ class TabbedClientApp:
         # Store buttons for enabling/disabling dynamically
         self.profile_menu = profile_menu
 
+        # Theme Menu
+        theme_menu = tk.Menu(menu_bar, tearoff=0)
+        theme_menu.add_command(label="Light Theme", command=lambda: self.change_theme("light"))
+        # theme_menu.add_command(label="Dark Theme", command=lambda: self.change_theme("dark")) #disabling temp
+        menu_bar.add_cascade(label="Theme", menu=theme_menu)
+
         # Help Menu
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="About Us", command=self.show_about)
@@ -139,6 +166,27 @@ class TabbedClientApp:
         # Close button
         #tk.Button(settings_win, text="Close", command=settings_win.destroy).pack()
         ttk.Button(settings_win, text="Close", command=settings_win.destroy, style='ActionButton.TButton').pack()
+
+    def change_theme(self, new_theme_name):
+        if new_theme_name not in THEMES:
+            print(f"Theme '{new_theme_name}' not found.")
+            return
+
+        self.current_theme_name = new_theme_name
+        self.current_theme = THEMES[new_theme_name]
+        self._bgcolor = self.current_theme["bgcolor"]
+        self._fgcolor = self.current_theme["fgcolor"]
+
+        self.style = setup_styles(self.current_theme)
+        self.master.configure(background=self._bgcolor)
+
+        # You may also need to refresh/redraw your widgets here
+        # or recreate UI elements that depend on colors
+
+        # Save the choice to settings JSON
+        settings = load_settings()
+        settings["theme"] = new_theme_name
+        save_settings(settings)
 
 
     def show_about(self):
