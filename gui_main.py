@@ -7,6 +7,8 @@ import os
 import sys # Keep sys for sys._MEIPASS and sys.exit()
 # Removed: import win32event, win32api, win32con as their functionality is now in vpn_logic.py
 from utils import format_bytes, center_window
+from styles import setup_styles
+
 
 from vpn_logic import (
     acquire_mutex, release_mutex, check_tailscale_installed,
@@ -24,7 +26,7 @@ class TabbedClientApp:
         self.master = master
         self.icon_image = getattr(master, 'icon_image', None)
         self.master.title("Tailscale VPN Client")
-        print("[DEBUG] >> Title set to 'Tailscalele VPN Client'")
+        print("[DEBUG] >> Title set to 'Tailscale VPN Client'")
         
         # Set geometry based on OS
         if sys.platform == "win32":
@@ -61,128 +63,8 @@ class TabbedClientApp:
         self.style.theme_use('default') # Use default theme for better cross-platform look
         print("[DEBUG] >> Styles configured")
 
-        # General TButton style (flat for most buttons)
-        self.style.configure("TButton",
-                            font=('Segoe UI', 9, 'bold'),
-                            padding=6,
-                            relief="flat",
-                            background=self._bgcolor,
-                            foreground='black'
-                           )
-        self.style.map("TButton",
-                       background=[('active', '#c9c9c9'), ('!disabled', self._bgcolor), ('disabled', '#cccccc')], # Added disabled state
-                       foreground=[('active', 'black'), ('!disabled', 'black'), ('disabled', '#888888')] # Added disabled state
-                      )
-
-        # Specific button styles for visual distinction (Connect, Disconnect, Logout)
-        self.style.configure("Connect.TButton", background='#4CAF50', foreground='white') # Green
-        self.style.map("Connect.TButton",
-                       background=[('active', '#45a049'), ('!disabled', '#4CAF50'), ('disabled', '#a5d6a7')], # Lighter green when disabled
-                       foreground=[('active', 'white'), ('!disabled', 'white'), ('disabled', '#ffffff')] # White text, potentially lighter for contrast
-                      )
-
-        self.style.configure("Disconnect.TButton", background='#f44336', foreground='white') # Red
-        self.style.map("Disconnect.TButton",
-                       background=[('active', '#da190b'), ('!disabled', '#f44336'), ('disabled', '#ef9a9a')], # Lighter red when disabled
-                       foreground=[('active', 'white'), ('!disabled', 'white'), ('disabled', '#ffffff')]
-                      )
-
-        self.style.configure("Logout.TButton", background='#FF9800', foreground='white') # Orange
-        self.style.map("Logout.TButton",
-                       background=[('active', '#fb8c00'), ('!disabled', '#FF9800'), ('disabled', '#ffcc80')], # Lighter orange when disabled
-                       foreground=[('active', 'white'), ('!disabled', 'white'), ('disabled', '#ffffff')]
-                      )
-        
-        # New style Click Button
-        self.style.configure("ClickButton.TButton",
-                            font=('Segoe UI', 7, 'normal'),
-                            padding=4,  # Slightly more padding
-                            relief="raised",  # Raised relief for a 3D/border effect
-                            background="#d0eaff",   # Light blue tint
-                            foreground="#003366",  # Dark blue text for contrast
-                            borderwidth=1  # Explicit border
-                            )
-
-        self.style.map("ClickButton.TButton",
-                    background=[
-                        ('active', '#707070'),   # On hover
-                        ('pressed', '#505050')   # On click
-                    ],
-                    foreground=[
-                        ('active', 'white'),
-                        ('pressed', 'white')
-                    ],
-                    relief=[
-                        ('pressed', 'sunken')
-                    ]
-                    )
-
-        # New style for "Add New Profile" and "Remove Current Profile" buttons
-        self.style.configure("ActionButton.TButton",
-                             font=('Segoe UI', 8, 'bold'),
-                             padding=6, # Slightly more padding
-                             relief="raised", # Raised relief for a 3D/border effect
-                             background="#a0a0a0", # A slightly darker grey
-                             foreground="black",
-                             borderwidth=1 # Explicit border
-                            )
-        self.style.map("ActionButton.TButton",
-                       background=[('active', '#707070'), # Darker when active (hover)
-                                   ('pressed', '#505050'), # Even darker when actually pressed for click effect
-                                   ('!disabled', "#a0a0a0"),
-                                   ('disabled', '#cccccc')], # Lighter grey when disabled
-                       foreground=[('active', 'white'), # White text on active/pressed
-                                   ('pressed', 'white'),
-                                   ('!disabled', 'black'),
-                                   ('disabled', '#888888')], # Lighter text for disabled
-                       relief=[('pressed', 'sunken'), ('disabled', 'flat')] # Flat relief when disabled
-                      )
-
-        # TEntry style
-        self.style.configure("TEntry",
-                            fieldbackground="white",
-                            foreground="black",
-                            relief="sunken"
-                           )
-        # Add disabled state for TEntry background
-        self.style.map("TEntry",
-                       fieldbackground=[('disabled', '#e0e0e0')] # Light grey background for disabled entry
-                      )
-
-        # TLabel style
-        self.style.configure("TLabel",
-                            background=self._bgcolor,
-                            foreground="black"
-                           )
-
-        # Configure the TNotebook widget itself
-        self.style.configure("TNotebook", background=self._bgcolor, borderwidth=0)
-        self.style.layout("TNotebook", [("TNotebook.client", {"sticky": "nswe"})])
-        print("[DEBUG] >> Notebook initialized")
-        
-        # Configure the individual tabs within the TNotebook
-        self.style.configure("TNotebook.Tab",
-                        background=self._bgcolor, # Tab background color
-                        foreground='black', # Tab text color
-                        padding=[6, 3], # Horizontal and vertical padding for tabs
-                        font=('Segoe UI', 9, 'bold'),
-                        borderwidth=0,
-                        relief="flat",
-                        focuscolor="none"
-                       )
-
-        # Map colors for different states of a TNotebook.Tab
-        self.style.map("TNotebook.Tab",
-                  background=[("selected", '#c9c9c9'), # Lighter grey for selected tab
-                              ("active", '#e0e0e0'),   # Slightly different hover background
-                              ("!disabled", self._bgcolor),
-                              ("disabled", '#f0f0f0')], # Even lighter grey for disabled tab
-                  foreground=[("selected", 'black'),
-                              ("active", 'black'),
-                              ("!disabled", 'black'),
-                              ("disabled", '#a0a0a0')] # Lighter text for disabled tab
-                 )
-
+        # Initialize and apply styles
+        self.style = setup_styles(self._bgcolor)
 
         self.notebook = ttk.Notebook(self.master)
         self.notebook.pack(padx=10, pady=(10, 0), fill='both', expand=True) # Fill and expand with window

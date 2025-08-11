@@ -15,6 +15,7 @@ import threading
 import time
 from tkinter import messagebox
 
+
 # Import OS-specific mutex functions
 from os_specific.mutex_handler import acquire_mutex, release_mutex, set_lock_file_path
 
@@ -250,7 +251,6 @@ def save_settings(settings):
 # and to attempt to connect to the last used tab if applicable.
 # It assumes that the application has a reference to the main app object and the last tab ID
 # is stored in LAST_TAB_FILE.
-
 def auto_connect_if_enabled(app, last_tab_id):
     """Auto-connect VPN on startup if enabled in settings."""
     settings = load_settings()
