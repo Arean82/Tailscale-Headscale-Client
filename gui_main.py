@@ -8,10 +8,9 @@ import sys # Keep sys for sys._MEIPASS and sys.exit()
 # Removed: import win32event, win32api, win32con as their functionality is now in vpn_logic.py
 from utils import format_bytes, center_window
 
-
 from vpn_logic import (
     acquire_mutex, release_mutex, check_tailscale_installed,
-    initialize_app_storage, get_tab_dir, load_tab_names,
+    initialize_app_storage, get_tab_dir, load_tab_names, auto_connect_if_enabled, load_settings, save_settings,
     save_tab_names, load_last_selected_tab_id, save_last_selected_tab_id,
     write_log, get_file_path, TAB_NAMES_FILE
 )
@@ -25,8 +24,7 @@ class TabbedClientApp:
         self.master = master
         self.icon_image = getattr(master, 'icon_image', None)
         self.master.title("Tailscale VPN Client")
-        
-
+        print("[DEBUG] >> Title set to 'Tailscalele VPN Client'")
         
         # Set geometry based on OS
         if sys.platform == "win32":
@@ -217,6 +215,7 @@ class TabbedClientApp:
         # File Menu
         file_menu = tk.Menu(menu_bar, tearoff=0)
         file_menu.add_command(label="Exit", command=self.on_close_app)
+        file_menu.add_command(label="Settings", command=self.open_settings_window)
         menu_bar.add_cascade(label="File", menu=file_menu)
 
         # Profile Menu
@@ -232,8 +231,33 @@ class TabbedClientApp:
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="About Us", command=self.show_about)
         menu_bar.add_cascade(label="Help", menu=help_menu)
-    
+
         self.master.config(menu=menu_bar)
+
+    def open_settings_window(self):
+        settings_win = tk.Toplevel(self.master)
+        settings_win.title("Settings")
+        settings_win.geometry("200x90")
+        settings_win.grab_set() 
+
+        # Load current setting
+        self.settings = load_settings()
+        # Create a BooleanVar for auto_connect
+        auto_connect_var = tk.BooleanVar(value=self.settings.get("auto_connect", False))    
+
+        def on_toggle():
+            self.settings["auto_connect"] = auto_connect_var.get()
+            save_settings(self.settings)
+    
+        # Label + Checkbox
+        # tk.Label(settings_win, text="Auto-connect on startup:").pack(pady=(20, 5))
+        chk = tk.Checkbutton(settings_win, text="Enable Auto-connect", variable=auto_connect_var, command=on_toggle)
+        chk.pack(pady=(0, 20))
+
+        # Close button
+        #tk.Button(settings_win, text="Close", command=settings_win.destroy).pack()
+        ttk.Button(settings_win, text="Close", command=settings_win.destroy, style='ActionButton.TButton').pack()
+
 
     def show_about(self):
         about_popup = tk.Toplevel(self.master)
@@ -535,54 +559,4 @@ class TabbedClientApp:
 
         print("[DEBUG] Destroying GUI window")
         self.master.destroy()
-
-
-
-
-
-def start_gui():
-    print("[DEBUG] >> start_gui called")
-    initialize_app_storage()
-    print("[DEBUG] >> storage initialized")
-
-    root = tk.Tk()
-    root.title("Tailscale VPN Client")
-    root.geometry("400x300+100+100")  # Force the window on-screen
-    print("[DEBUG] >> root window created")
-
-    try:
-        # Use absolute path relative to this script
-        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-        bundled_icon_path = os.path.join(base_dir, "icon.png")
-
-        if os.path.exists(bundled_icon_path):
-            icon_image = PhotoImage(file=bundled_icon_path)
-            root.iconphoto(False, icon_image)
-            root.icon_image = icon_image  # Preserve reference
-        else:
-            write_log(f"Icon file not found for Tkinter window: {bundled_icon_path}", level="WARNING")
-    except Exception as e:
-        write_log(f"Error setting Tkinter window icon: {e}", level="ERROR")
-
-
-    app = TabbedClientApp(root)
-    print("[DEBUG] >> TabbedClientApp initialized")
-
-    last_tab_id = load_last_selected_tab_id()
-    if last_tab_id is not None and last_tab_id in app.tabs:
-        for tab_index, tab_frame_id in enumerate(app.notebook.tabs()):
-            tab_widget = app.notebook.nametowidget(tab_frame_id)
-            if hasattr(tab_widget, 'tab_id') and tab_widget.tab_id == last_tab_id:
-                app.notebook.select(tab_frame_id)
-                app.update_tab_states()
-                break
-    else:
-        if app.notebook.tabs():
-            app.notebook.select(app.notebook.tabs()[0])
-            app.update_tab_states()
-
-    root.protocol("WM_DELETE_WINDOW", app.on_close_app)
-    print("[DEBUG] >> Entering mainloop")
-    root.mainloop()
-    print("[DEBUG] >> GUI exited")
 

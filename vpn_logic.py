@@ -43,6 +43,7 @@ TAB_NAMES_FILE = os.path.join(APP_DATA_DIR, "tab_names.json")
 LAST_TAB_FILE = os.path.join(APP_DATA_DIR, "last_tab.json")
 LOG_FILE = os.path.join(LOG_DIR, "app_log.txt")
 LOCK_FILE = os.path.join(APP_BASE_DIR, "app.lock") # Lock file in base directory
+SETTINGS_FILE = os.path.join(APP_BASE_DIR, "settings.json")
 
 # Set the lock file path for the mutex handler (important for Linux)
 set_lock_file_path(LOCK_FILE)
@@ -181,6 +182,16 @@ def save_last_selected_tab_id(tab_id):
     except Exception as e:
         write_log(f"Error saving last selected tab ID: {e}", level="ERROR")
 
+# vpn_logic.py (add near your other utils)
+def save_auth_mode(tab_name, mode):
+    """Saves the authentication mode (e.g., 'google' or 'auth_key') for a tab."""
+    try:
+        mode_file = get_file_path("auth_mode", tab_name)
+        with open(mode_file, 'w') as f:
+            f.write(mode.strip())
+    except Exception as e:
+        write_log(f"Error saving auth mode for tab '{tab_name}': {e}", level="ERROR")
+
 def get_auth_mode(tab_name):
     from vpn_logic import get_file_path  # or move this to top if already imported
     mode_file = get_file_path("auth_mode", tab_name)
@@ -211,3 +222,57 @@ def rotate_log():
 
 # Call log rotation once on startup
 rotate_log()
+
+# Load and save settings
+def load_settings():
+    """Load settings from JSON file or return defaults."""
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            write_log(f"Failed to load settings: {e}", level="ERROR")
+    # Default settings
+    return {
+        "auto_connect": False
+    }
+
+def save_settings(settings):
+    """Save settings dictionary to JSON file."""
+    try:
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(settings, f, indent=2)
+    except Exception as e:
+        write_log(f"Failed to save settings: {e}", level="ERROR")
+
+# Auto-connect logic
+# This function should be called at application startup to check if auto-connect is enabled
+# and to attempt to connect to the last used tab if applicable.
+# It assumes that the application has a reference to the main app object and the last tab ID
+# is stored in LAST_TAB_FILE.
+
+def auto_connect_if_enabled(app, last_tab_id):
+    """Auto-connect VPN on startup if enabled in settings."""
+    settings = load_settings()
+    if not settings.get("auto_connect", False):
+        return  # Do nothing if disabled
+
+    # Try to select last tab and auto-connect
+    if last_tab_id is not None and last_tab_id in app.tabs:
+        for tab_frame_id in app.notebook.tabs():
+            tab_widget = app.notebook.nametowidget(tab_frame_id)
+            if hasattr(tab_widget, 'tab_id') and tab_widget.tab_id == last_tab_id:
+                app.notebook.select(tab_frame_id)
+                app.update_tab_states()
+                if hasattr(tab_widget, "connect_vpn"):
+                    app.after(500, tab_widget.connect_vpn)
+                return
+    else:
+        # No last tab or not found: try first tab
+        if app.notebook.tabs():
+            first_tab_widget = app.notebook.nametowidget(app.notebook.tabs()[0])
+            app.notebook.select(app.notebook.tabs()[0])
+            app.update_tab_states()
+            if hasattr(first_tab_widget, "connect_vpn"):
+                app.after(500, first_tab_widget.connect_vpn)
+                

@@ -7,9 +7,12 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
 import time
+import webbrowser
+from sso import run_sso_login
 from net_stats import get_tailscale_stats
+from statuscheck import wait_until_connected
 from vpn_logic import (
-    save_url, save_key, load_saved_url, load_saved_key, write_profile_log
+     get_auth_mode, is_sso_mode,save_url, save_key, load_saved_url, load_saved_key, write_profile_log
 )
 from tailscaleclient import TailscaleClient
 from datetime import datetime
@@ -18,6 +21,8 @@ from utils import format_bytes, center_window
 import db_manager # Import the new database manager
 from change_credentials_popup import show_change_credentials_popup
 from progress_popup import ProgressPopup # Import the new ProgressPopup
+from utils import add_tooltip
+
 
 class ClientTab(ttk.Frame):
     def __init__(self, parent_notebook, app_instance, tab_id, tab_name):
@@ -26,7 +31,7 @@ class ClientTab(ttk.Frame):
         self.tab_id = tab_id
         self.tab_name = tab_name
 
-        self.login_server_var = tk.StringVar(value=load_saved_url(self.tab_name) or "https://sample.wikifarmer.in")
+        self.login_server_var = tk.StringVar(value=load_saved_url(self.tab_name))
         self.auth_key_var = tk.StringVar(value=load_saved_key(self.tab_name))
         
         # New: Input for Ping IP
@@ -63,7 +68,7 @@ class ClientTab(ttk.Frame):
                 self.login_server_var.get(), 
                 self.auth_key_var.get(), 
                 self._save_new_credentials,
-                bg_color=self.app_instance._bgcolor,
+                bg_color=self.app_instance._bgcolor, # Pass the current theme's background color
                 icon_image=getattr(self.app_instance, 'icon_image', None)
             ),
             style='ClickButton.TButton'
@@ -72,7 +77,7 @@ class ClientTab(ttk.Frame):
 
 
         # Row 4: Button Frame
-        self.button_frame = tk.Frame(self, background=self.app_instance._bgcolor)
+        self.button_frame = tk.Frame(self, background=self.app_instance._bgcolor) # Use app's _bgcolor
         self.button_frame.grid(row=4, column=0, columnspan=2, sticky='ew', pady=(5, 10))
 
         self.vpn_action_btn = ttk.Button(
@@ -98,6 +103,15 @@ class ClientTab(ttk.Frame):
         self.prev_stats = None
         self._monitoring = False
 
+        # Tooltips for entries and buttons
+        add_tooltip(self.Entry1, "Enter your VPN URL (e.g. https://vpn.example.com)", self)
+        add_tooltip(self.Entry1_1, "Enter the authentication key", self)
+        #add_tooltip(self.vpn_action_btn, "Connect or Logout from VPN", self)
+        add_tooltip(self.change_cred_btn, "Change VPN Settings", self)
+        add_tooltip(self.show_stats_btn, "View Network stats", self)
+        add_tooltip(self.Label2, "VPN connection status", self)
+        add_tooltip(self.traffic_label, "Live traffic data (updated every 3 seconds)", self)
+        add_tooltip(self.vpn_action_btn, "Connect to VPN", self)
 
         # Pass callbacks to TailscaleClient
         self.client = TailscaleClient(
@@ -115,7 +129,9 @@ class ClientTab(ttk.Frame):
         if self.auth_key_var.get() and self.login_server_var.get():
             self.vpn_action_btn.configure(state='normal')
         else:
-            self.vpn_action_btn.configure(state='disabled')
+            self.vpn_action_btn.configure(state='disabled')  # ✅ Prevent re-click
+            self.vpn_action_btn.update_idletasks()  # Optional: visually reflects the state immediately
+
         
         self._update_change_credentials_button_state()
 
@@ -140,7 +156,7 @@ class ClientTab(ttk.Frame):
         import os
     
         mode_file = get_file_path("auth_mode", self.tab_name)
-        if os.path.exists(mode_file):
+        if os.out_exists(mode_file):
             with open(mode_file, "r") as f:
                 return f.read().strip() == "google"
         return False  # Default to auth key mode
@@ -168,10 +184,25 @@ class ClientTab(ttk.Frame):
             self.on_connect()
 
     def _print_output(self, text):
-        pass
+        text = text.strip()
+        if not text:
+            return
+
+        saved_url = load_saved_url(self.tab_name).strip()
+        if saved_url and saved_url in text:
+        #if saved_url and text.startswith(saved_url):
+            try:
+                webbrowser.open(text)
+            except Exception as e:
+                print(f"Failed to open browser: {e}")
+
 
     def _update_status_label(self, text, color):
         self.Label2.configure(text=text, foreground=color)
+        
+        # Re-enable Connect button on any state change
+        if any(x in text.lower() for x in ["connected", "disconnected", "error", "failed"]):
+            self.vpn_action_btn.configure(state='normal')
 
     def _update_progress_label(self, message, step):
         """Updates the progress popup with message and adds a checkmark if step is complete."""
@@ -179,6 +210,7 @@ class ClientTab(ttk.Frame):
 
     def _post_connect_ui(self):
         self.vpn_action_btn.configure(text="Logout", style='Logout.TButton')
+        self.vpn_action_btn.tooltip_label.config(text="Disconnect and Logout from VPN")
         self.Entry1.configure(state='disabled')
         self.Entry1_1.configure(state='disabled')
         #self.ping_ip_entry.configure(state='disabled') # Keep disabled after connect
@@ -191,19 +223,53 @@ class ClientTab(ttk.Frame):
 
         self.Entry1.configure(state='disabled')
         self.Entry1_1.configure(state='disabled')
-        self.vpn_action_btn.configure(state='disabled')
+        self.vpn_action_btn.configure(state='disabled')  # prevent re-click
+        self.vpn_action_btn.update_idletasks()
         self._update_change_credentials_button_state()
 
-        # Start Tailscale connection
-        self.client.connect(key, server, self.tab_name)
+        if is_sso_mode(self.tab_name):
+            # SSO path: run tailscale up with login-server and open browser automatically
+            cmd = ["tailscale", "up", f"--login-server={server}", "--accept-routes"]
 
+            def on_sso_connected():
+                self.client.logged_in = True  # ✅ Block app exit
+                self.client.connected = True  # Optional: mark as connected
+                self._post_connect_ui()
+                self._print_output("[INFO] SSO login completed and connected.")
+                self._update_status_label("🟢 Connected", "green")
+
+            run_sso_login(
+                cmd,
+                expected_url_part=server,
+                output_callback=self._print_output,
+                error_callback=lambda e: self._print_output(f"[SSO ERROR] {e}"),
+                success_callback=on_sso_connected 
+            )
+
+            # Start a background thread to poll for successful connection
+            def poll_and_update_gui():
+                if wait_until_connected():
+                    self._print_output("[INFO] SSO login completed and connected.")
+                    self.client.connected = True  # Mark as connected manually
+                    self._post_connect_ui()
+                    self._update_status_label("🟢 Connected", "green")
+                else:
+                    self._print_output("[ERROR] SSO login timeout or failure.")
+                    self._update_status_label("❌ SSO login failed or timed out", "red")
+                    self.enable_tab_ui()
+
+            threading.Thread(target=poll_and_update_gui, daemon=True).start()
+
+        else:
+            # Auth-key path uses existing client logic
+            self.client.connect(key, server, self.tab_name)
+    
+        # Start traffic monitoring regardless (will no-op until connected)
         from net_stats import get_tailscale_stats
         self.prev_stats = get_tailscale_stats()
         self._monitoring = True
         threading.Thread(target=self._monitor_traffic_loop, daemon=True).start()
-
-
-        
+    
     def _post_disconnect_ui(self):
         self.vpn_action_btn.configure(state='normal')
         self.Entry1.configure(state='normal')
@@ -218,11 +284,14 @@ class ClientTab(ttk.Frame):
         self.on_disconnect_and_cleanup()
 
     def on_disconnect_and_cleanup(self):
-        self.vpn_action_btn.configure(state='disabled')
+        self.vpn_action_btn.configure(state='disabled')  # ✅ Prevent re-click
+        self.vpn_action_btn.update_idletasks()  # Optional: visually reflects the state immediately
+
         self.client.disconnect(self.tab_name)
 
     def _post_logout_ui(self):
         self.vpn_action_btn.configure(text="Connect", style='Connect.TButton')
+        self.vpn_action_btn.tooltip_label.config(text="Connect to VPN")
         self.Entry1.configure(state='normal')
         self.Entry1_1.configure(state='normal')
         #self.ping_ip_entry.configure(state='normal') # Enable ping IP entry on logout
@@ -249,7 +318,20 @@ class ClientTab(ttk.Frame):
         if new_url and (new_key or mode == "google"):
             self.vpn_action_btn.configure(state='normal')
         else:
-            self.vpn_action_btn.configure(state='disabled')
+            self.vpn_action_btn.configure(state='disabled')  #Prevent re-click
+            self.vpn_action_btn.update_idletasks()  # Optional: visually reflects the state immediately
+
+    def _poll_connection_status_after_sso(self, timeout=60):
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if self.client.check_connected():  
+                self._post_connect_ui()
+                return
+            time.sleep(2)
+
+        # If it times out
+        self._update_status_label("❌ SSO login timed out", "red")
+        self.enable_tab_ui()
 
 
     def _update_change_credentials_button_state(self):
@@ -270,7 +352,9 @@ class ClientTab(ttk.Frame):
         self.Entry1.configure(state='disabled')
         self.Entry1_1.configure(state='disabled')
         #self.ping_ip_entry.configure(state='disabled') # Disable ping IP entry
-        self.vpn_action_btn.configure(state='disabled')
+        self.vpn_action_btn.configure(state='disabled')  # ✅ Prevent re-click
+        self.vpn_action_btn.update_idletasks()  # Optional: visually reflects the state immediately
+
         self._update_change_credentials_button_state()
 
     def enable_tab_ui(self):
@@ -311,9 +395,9 @@ class ClientTab(ttk.Frame):
             messagebox.showinfo("VPN Status", "VPN is not connected.")
             return
 
+        # Pass the current app's background color to the popup
         TrafficPopup(self.master.master, self.prev_stats, self.tab_name)
         self.prev_stats = get_tailscale_stats()
-
 
     def _monitor_traffic_loop(self):
         while self._monitoring:

@@ -5,7 +5,7 @@ import platform
 import time
 import psutil
 
-from gui_main import start_gui
+from gui_start import start_gui
 
 if platform.system() == "Windows":
     SERVICE_NAME = "Tailscale"
@@ -29,4 +29,3 @@ if platform.system() == "Windows":
 
 print("Launching GUI...")
 start_gui()
-
