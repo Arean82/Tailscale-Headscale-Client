@@ -73,3 +73,4 @@ def run_sso_login(
                 output_callback(f"SSO login error: {e}")
 
     threading.Thread(target=runner, daemon=True).start()
+
