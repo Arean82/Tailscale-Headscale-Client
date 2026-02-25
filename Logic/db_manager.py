@@ -9,7 +9,7 @@ import sys # Import sys for platform detection
 
 # Import APP_BASE_DIR from vpn_logic for consistent pathing
 from config import APP_BASE_DIR
-from utils import write_log
+from gui.utils import write_log
 
 # Use the dynamically determined APP_BASE_DIR
 APP_DIR = APP_BASE_DIR
