@@ -155,7 +155,7 @@ class ClientTab(ttk.Frame):
         )
 
     def is_sso_mode(self):
-        from vpn_logic import get_file_path
+        from logic.vpn_logic import get_file_path
         import os
     
         mode_file = get_file_path("auth_mode", self.tab_name)
@@ -166,7 +166,7 @@ class ClientTab(ttk.Frame):
 
 
     def _save_credentials(self, url, key, mode):
-        from vpn_logic import save_url, save_key, write_log, get_file_path
+        from logic.vpn_logic import save_url, save_key, write_log, get_file_path
 
         save_url(url, self.tab_name)
         save_key(key, self.tab_name)
@@ -268,7 +268,7 @@ class ClientTab(ttk.Frame):
             self.client.connect(key, server, self.tab_name)
     
         # Start traffic monitoring regardless (will no-op until connected)
-        from net_stats import get_tailscale_stats
+        from logic.net_stats import get_tailscale_stats
         self.prev_stats = get_tailscale_stats()
         self._monitoring = True
         threading.Thread(target=self._monitor_traffic_loop, daemon=True).start()
@@ -310,7 +310,7 @@ class ClientTab(ttk.Frame):
         self.auth_key_var.set(new_key)
 
         # Save auth mode (google or auth_key)
-        from vpn_logic import get_file_path, write_log
+        from logic.vpn_logic import get_file_path, write_log
         try:
             mode_file = get_file_path("auth_mode", self.tab_name)
             with open(mode_file, "w") as f:
