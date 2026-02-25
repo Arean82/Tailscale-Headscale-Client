@@ -194,7 +194,7 @@ def save_auth_mode(tab_name, mode):
         write_log(f"Error saving auth mode for tab '{tab_name}': {e}", level="ERROR")
 
 def get_auth_mode(tab_name):
-    from vpn_logic import get_file_path  # or move this to top if already imported
+    from logic.vpn_logic import get_file_path  # or move this to top if already imported
     mode_file = get_file_path("auth_mode", tab_name)
     if os.path.exists(mode_file):
         with open(mode_file, "r") as f:

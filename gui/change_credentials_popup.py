@@ -5,9 +5,9 @@ import os
 import sys
 import tkinter as tk
 from tkinter import ttk, messagebox
-from utils import center_window
+from gui.utils import center_window
 from PIL import Image, ImageTk 
-from vpn_logic import get_auth_mode, save_auth_mode
+from logic.vpn_logic import get_auth_mode, save_auth_mode
 
 def resource_path(relative_path): 
     """Get absolute path to resource, works for dev and PyInstaller EXE"""

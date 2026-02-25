@@ -6,10 +6,10 @@ from tkinter import ttk, messagebox, PhotoImage
 import os
 import sys # Keep sys for sys._MEIPASS and sys.exit()
 # Removed: import win32event, win32api, win32con as their functionality is now in vpn_logic.py
-from utils import format_bytes, center_window
-from styles import setup_styles
-from darkstyle import setup_dark_styles 
-from themes import THEMES
+from gui.utils import format_bytes, center_window
+from gui.styles import setup_styles
+from gui.darkstyle import setup_dark_styles 
+from gui.themes import THEMES
 from .gui_tabs import ClientTab 
 from .license_viewer import LicenseViewer
 from .readme_viewer import ReadmeViewer
