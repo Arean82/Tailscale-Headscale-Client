@@ -19,8 +19,8 @@ from datetime import datetime
 from traffic_popup import TrafficPopup
 from utils import format_bytes, center_window
 import db_manager # Import the new database manager
-from change_credentials_popup import show_change_credentials_popup
-from progress_popup import ProgressPopup # Import the new ProgressPopup
+from .change_credentials_popup import show_change_credentials_popup
+from .progress_popup import ProgressPopup # Import the new ProgressPopup
 from utils import add_tooltip
 
 class ClientTab(ttk.Frame):
