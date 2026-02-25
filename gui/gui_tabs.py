@@ -186,8 +186,8 @@ class ClientTab(ctk.CTkFrame): # Changed from ttk.Frame
                 print(f"Failed to open browser: {e}")
 
 
-    def _update_status_label(self, text, color):
-        self.Label2.configure(text=text, foreground=color)
+    def _update_status_label(self, text, color):     # CustomTkinter uses text_color instead of foreground
+        self.Label2.configure(text=text, text_color=color)
         
         # Re-enable Connect button on any state change
         if any(x in text.lower() for x in ["connected", "disconnected", "error", "failed"]):
@@ -198,11 +198,20 @@ class ClientTab(ctk.CTkFrame): # Changed from ttk.Frame
         self.progress_popup.show_progress(message, step)
 
     def _post_connect_ui(self):
-        self.vpn_action_btn.configure(text="Logout", style='Logout.TButton')
-        self.vpn_action_btn.tooltip_label.config(text="Disconnect and Logout from VPN")
+        # FIXED: Removed 'style' argument which caused ValueError
+        # Used colors from your original styles.py: Logout is #f44336 (Red)
+        self.vpn_action_btn.configure(
+            text="Logout", 
+            fg_color='#f44336', 
+            hover_color='#da190b'
+        )
+        
+        # Original logic preserved for tooltips and state
+        if hasattr(self.vpn_action_btn, "tooltip_label"):
+            self.vpn_action_btn.tooltip_label.configure(text="Disconnect and Logout from VPN")
+            
         self.Entry1.configure(state='disabled')
         self.Entry1_1.configure(state='disabled')
-        #self.ping_ip_entry.configure(state='disabled') # Keep disabled after connect
         self.app_instance.set_connected_tab(self.tab_id)
         self._update_change_credentials_button_state()
 
@@ -279,12 +288,19 @@ class ClientTab(ctk.CTkFrame): # Changed from ttk.Frame
         self.client.disconnect(self.tab_name)
 
     def _post_logout_ui(self):
-        self.vpn_action_btn.configure(text="Connect", style='Connect.TButton')
-        self.vpn_action_btn.tooltip_label.config(text="Connect to VPN")
+        # Removed 'style' and 'Connect.TButton'
+        self.vpn_action_btn.configure(
+            text="Connect", 
+            fg_color='#4CAF50', 
+            hover_color='#45a049'
+        )
+        if hasattr(self.vpn_action_btn, "tooltip_label"):
+            self.vpn_action_btn.tooltip_label.configure(text="Connect to VPN") # Use configure, not config
+            
         self.Entry1.configure(state='normal')
         self.Entry1_1.configure(state='normal')
-        #self.ping_ip_entry.configure(state='normal') # Enable ping IP entry on logout
-        self.Label2.configure(text="🔴 Disconnected", foreground="red")
+        self.Label2.configure(text="🔴 Disconnected", text_color="red") # Use text_color, not foreground
+        
         if self.app_instance.connected_tab_id == self.tab_id:
             self.app_instance.clear_connected_tab()
         self._update_change_credentials_button_state()
@@ -350,28 +366,27 @@ class ClientTab(ctk.CTkFrame): # Changed from ttk.Frame
         if self.client.connected:
             self.vpn_action_btn.configure(
                 text='Logout',
-                style='Logout.TButton',
+                fg_color='#f44336',     # Red for Logout
+                hover_color='#da190b',
                 state='normal'
             )
-
         elif self.client.logged_in:
             self.vpn_action_btn.configure(
                 text='Connect',
-                style='Connect.TButton',
+                fg_color='#4CAF50',     # Green for Connect
+                hover_color='#45a049',
                 state='normal'
             )
-
         else:
             self.vpn_action_btn.configure(
                 text='Connect',
-                style='Connect.TButton',
+                fg_color='#4CAF50',
+                hover_color='#45a049',
                 state='normal'
             )
             # Only enable these if not connected/logged in
             self.Entry1.configure(state='normal')
             self.Entry1_1.configure(state='normal')
-            #self.ping_ip_entry.configure(state='normal')
-
 
         self._update_change_credentials_button_state()
 
@@ -394,5 +409,5 @@ class ClientTab(ctk.CTkFrame): # Changed from ttk.Frame
             if stats and self.prev_stats:
                 sent = stats.bytes_sent - self.prev_stats.bytes_sent
                 recv = stats.bytes_recv - self.prev_stats.bytes_recv
-                self.traffic_label.config(text=f"Traffic: Sent {format_bytes(sent)} / Received {format_bytes(recv)}")
+                self.traffic_label.configure(text=f"Traffic: Sent {format_bytes(sent)} / Received {format_bytes(recv)}")
             time.sleep(3)
