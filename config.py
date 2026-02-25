@@ -1,4 +1,7 @@
 # config.py
+# This module defines the base directory and common paths for the Tailscale VPN Client.
+# It ensures that the application can run on both Windows and Linux platforms without hardcoding paths.
+
 import os
 import sys
 

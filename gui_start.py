@@ -1,3 +1,5 @@
+# gui_start.py
+
 from tkinter import Tk, PhotoImage
 import tkinter as tk
 import sys 
@@ -13,14 +15,14 @@ def start_gui():
     print("[DEBUG] >> storage initialized")
 
     root = tk.Tk()
-    root.title("Tailscale VPN Client")
+    root.title("MAPView VPN Client")
     root.geometry("400x300+100+100")  # Force the window on-screen
     print("[DEBUG] >> root window created")
 
     try:
         # Use absolute path relative to this script
         base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-        bundled_icon_path = os.path.join(base_dir, "icon.png")
+        bundled_icon_path = os.path.join(base_dir, "assets", "icon.png")
 
         if os.path.exists(bundled_icon_path):
             icon_image = PhotoImage(file=bundled_icon_path)

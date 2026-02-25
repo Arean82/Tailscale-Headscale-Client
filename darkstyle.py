@@ -1,4 +1,5 @@
 # darkstyle.py
+
 import tkinter.ttk as ttk
 
 def setup_dark_styles(theme):

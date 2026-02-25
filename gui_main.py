@@ -1,5 +1,5 @@
 # gui_main.py
-# This module contains the main GUI application logic for the Tailscale VPN Client.
+# This module contains the main GUI application logic for the MAPView VPN Client.
 
 import tkinter as tk
 from tkinter import ttk, messagebox, PhotoImage
@@ -31,8 +31,8 @@ class TabbedClientApp:
             theme_name = settings.get("theme", "light")
         
         self.icon_image = getattr(master, 'icon_image', None)
-        self.master.title("Tailscale VPN Client")
-        print("[DEBUG] >> Title set to 'Tailscale VPN Client'")
+        self.master.title("MAPView VPN Client")
+        print("[DEBUG] >> Title set to 'MAPView VPN Client'")
         
         # Set geometry based on OS
         if sys.platform == "win32":
@@ -68,7 +68,7 @@ class TabbedClientApp:
         # Acquire the mutex at application startup
         acquired = acquire_mutex()
         if acquired is False:
-            messagebox.showwarning("Already Running", "Another instance of Tailscale VPN Client is already running.")
+            messagebox.showwarning("Already Running", "Another instance of MAPView VPN Client is already running.")
             sys.exit(0)
         elif acquired is None:
             messagebox.showerror("Error", "Could not acquire system mutex (another instance might be running or error occurred).")
@@ -202,9 +202,9 @@ class TabbedClientApp:
         about_popup.grab_set()
 
 
-        ttk.Label(about_popup, text="Tailscale VPN Client", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
+        ttk.Label(about_popup, text="MAPView VPN Client", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
         ttk.Label(about_popup, text="Version 3.0").pack()
-        ttk.Label(about_popup, text="© 2025 Tailscale VPN Client").pack()
+        ttk.Label(about_popup, text="© 2025 MAPView VPN Client").pack()
 
         ttk.Button(about_popup, text="Close", command=about_popup.destroy, style='ActionButton.TButton').pack(pady=10)
 

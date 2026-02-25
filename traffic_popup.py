@@ -1,3 +1,6 @@
+# traffic_popup.py
+# This module defines the TrafficPopup class, which displays traffic statistics in a popup window.
+
 import tkinter as tk
 from tkinter import ttk
 from net_stats import get_tailscale_stats
@@ -6,7 +9,6 @@ from datetime import datetime
 import db_manager # Import the new database manager
 
 class TrafficPopup(tk.Toplevel):
-    #def __init__(self, master, prev_stats):
     def __init__(self, master, prev_stats, profile_name): # Add profile_name here
         super().__init__(master)
         if hasattr(master, 'icon_image'):
@@ -16,14 +18,16 @@ class TrafficPopup(tk.Toplevel):
         self.geometry("220x198") # Increased height to accommodate daily total
         self.resizable(False, False)
 
-        # Set a uniform background color
-        bg_color = "#f0f0f0"
+        # Get the current background color from the master app instance
+        # Assumes master.master is the root window, and it has _bgcolor attribute
+        bg_color = getattr(master, '_bgcolor', "#f0f0f0") 
         self.configure(background=bg_color)
 
         style = ttk.Style(self)
-        style.theme_use('default')
+        style.theme_use(style.theme_use()) # Re-apply current theme to this Toplevel
+                                           # This ensures Custom.TLabel style is picked up
 
-        # Customize ttk.Label style
+        # Customize ttk.Label style (will be picked up from the active theme)
         style.configure("Custom.TLabel", background=bg_color)
 
         self.prev_stats = prev_stats
@@ -56,7 +60,6 @@ class TrafficPopup(tk.Toplevel):
             return
 
         # Log current cumulative stats to the database
-        #db_manager.insert_traffic_data(self.current_stats.bytes_sent, self.current_stats.bytes_recv)
         db_manager.insert_traffic_data(self.profile_name, self.current_stats.bytes_sent, self.current_stats.bytes_recv)
 
         if not self.prev_stats:
@@ -73,7 +76,6 @@ class TrafficPopup(tk.Toplevel):
         formatted_total_recv = format_bytes(self.current_stats.bytes_recv)
 
         # Get daily total from DB
-        #daily_sent, daily_recv = db_manager.get_daily_total_traffic()
         daily_sent, daily_recv = db_manager.get_daily_total_traffic(self.profile_name)
         formatted_daily_sent = format_bytes(daily_sent)
         formatted_daily_recv = format_bytes(daily_recv)
@@ -91,4 +93,3 @@ class TrafficPopup(tk.Toplevel):
             f"Daily Recv    : {formatted_daily_recv}"
         )
         self.daily_total_label.config(text=daily_total_text)
-
