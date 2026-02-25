@@ -2,7 +2,7 @@
 # This module contains the main GUI application logic for the MAPView VPN Client.
 
 import tkinter as tk
-from tkinter import ttk, messagebox, PhotoImage
+from tkinter import ttk, messagebox
 import customtkinter as ctk 
 import os
 import sys
@@ -15,6 +15,8 @@ from gui.themes import THEMES
 from gui.gui_tabs import ClientTab 
 from gui.license_viewer import LicenseViewer
 from gui.readme_viewer import ReadmeViewer
+from gui.settings import show_settings  # Added import for the new settings module
+from gui.about import show_about # Add this alongside your other imports
 
 from logic.vpn_logic import (
     acquire_mutex, release_mutex, check_tailscale_installed,
@@ -47,7 +49,7 @@ class TabbedClientApp:
         print("[DEBUG] >> Geometry set")
 
         self.master.resizable(False, False)
-        self.master.protocol("WM_DELETE_WINDOW", self.on_close_app) # Corrected protocol call
+        self.master.protocol("WM_DELETE_WINDOW", self.on_close_app)
 
         self.current_theme_name = theme_name
         self.current_theme = THEMES.get(theme_name, THEMES["light"])
@@ -60,10 +62,9 @@ class TabbedClientApp:
         self._bgcolor = self.current_theme.get("bgcolor")
         self._fgcolor = self.current_theme.get("fgcolor")
 
-        self.style = setup_styles(self.current_theme)
         self.master.configure(background=self.current_theme["bgcolor"])
 
-        self._create_menu_bar()  # Add the global menu here
+        self._create_menu_bar()  
         
         # Acquire the mutex at application startup
         acquired = acquire_mutex()
@@ -109,8 +110,6 @@ class TabbedClientApp:
                 print(f"[DEBUG] >> Loading tab: {tab_id} - {tab_name}")    
                 self.add_new_tab(tab_name=tab_name, existing_tab_id=tab_id)
 
-        # Connect internal CTk events to logic
-        # self.tabview._segmented_button.bind("<<NotebookTabChanged>>", self.on_tab_changed) # Example binding
         self.update_tab_states()
 
     def _create_menu_bar(self):
@@ -119,7 +118,8 @@ class TabbedClientApp:
         # File Menu
         file_menu = tk.Menu(menu_bar, tearoff=0)
         file_menu.add_command(label="Exit", command=self.on_close_app)
-        file_menu.add_command(label="Settings", command=self.open_settings_window)
+        # Updated to use external Settings module
+        file_menu.add_command(label="Settings", command=lambda: show_settings(self.master, self.icon_image))
         menu_bar.add_cascade(label="File", menu=file_menu)
 
         # Profile Menu
@@ -137,30 +137,12 @@ class TabbedClientApp:
 
         # Help Menu
         help_menu = tk.Menu(menu_bar, tearoff=0)
-        help_menu.add_command(label="About Us", command=self.show_about)
+        help_menu.add_command(label="About Us", command=lambda: show_about(self.master, self.icon_image))
         menu_bar.add_cascade(label="Help", menu=help_menu)
         help_menu.add_command(label="View License", command=self.show_license)
         help_menu.add_command(label="Readme", command=self.show_readme)
         
         self.master.config(menu=menu_bar)
-
-    def open_settings_window(self):
-        settings_win = tk.Toplevel(self.master)
-        settings_win.title("Settings")
-        settings_win.geometry("200x90")
-        settings_win.grab_set() 
-
-        self.settings = load_settings()
-        auto_connect_var = tk.BooleanVar(value=self.settings.get("auto_connect", False))    
-
-        def on_toggle():
-            self.settings["auto_connect"] = auto_connect_var.get()
-            save_settings(self.settings)
-    
-        chk = tk.Checkbutton(settings_win, text="Enable Auto-connect", variable=auto_connect_var, command=on_toggle)
-        chk.pack(pady=(0, 20))
-
-        ttk.Button(settings_win, text="Close", command=settings_win.destroy, style='ActionButton.TButton').pack()
 
     def change_theme(self, new_theme_name):
         if new_theme_name not in THEMES:
@@ -190,27 +172,6 @@ class TabbedClientApp:
             self.read_win = ReadmeViewer(self.master)
         else:
             self.read_win.focus()
-
-    def show_about(self):
-        about_popup = tk.Toplevel(self.master)
-        about_popup.attributes("-topmost", True)
-        if hasattr(self.master, 'icon_image'):
-            about_popup.iconphoto(False, self.master.icon_image)
-
-        about_popup.title("About Us")
-        about_popup.geometry("300x140")
-        about_popup.resizable(False, False)
-        about_popup.configure(background="#d9d9d9")
-        about_popup.wm_attributes('-topmost', True)
-        about_popup.grab_set()
-
-
-        ttk.Label(about_popup, text="MAPView VPN Client", font=("Segoe UI", 11, "bold")).pack(pady=(15, 5))
-        ttk.Label(about_popup, text="Version 3.0").pack()
-        ttk.Label(about_popup, text="© 2025 MAPView VPN Client").pack()
-
-        ttk.Button(about_popup, text="Close", command=about_popup.destroy, style='ActionButton.TButton').pack(pady=10)
-
 
     def _prompt_for_first_tab_name(self):
         print("[DEBUG] >> _prompt_for_first_tab_name called")

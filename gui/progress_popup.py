@@ -1,50 +1,49 @@
-# progress_popup.py
-# This module defines the ProgressPopup class, which displays a progress message in a popup window.
+# gui/progress_popup.py
 
 import tkinter as tk
-from tkinter import ttk
+import customtkinter as ctk # Migrate to CustomTkinter
 
-class ProgressPopup(tk.Toplevel):
+class ProgressPopup(ctk.CTkToplevel): # Inherit from CTkToplevel
     def __init__(self, parent):
         super().__init__(parent)
-        self.overrideredirect(True)  # Remove window decorations (title bar, borders)
-        self.attributes("-topmost", True)  # Keep the window on top of others
+        self.overrideredirect(True)
+        self.attributes("-topmost", True)
 
-        self.geometry("+0+0") # Initial position, will be updated later
+        self.geometry("+0+0") 
 
-        self.frame = ttk.Frame(self, padding="5 5 5 5", relief="raised")
+        # CTkFrame handles colors via fg_color, not styles
+        self.frame = ctk.CTkFrame(self, corner_radius=10, border_width=2)
         self.frame.pack(expand=True, fill="both")
 
-        self.label = ttk.Label(self.frame, text="", font=("Segoe UI", 9), foreground="blue")
+        # Use text_color instead of foreground
+        self.label = ctk.CTkLabel(self.frame, text="", font=("Segoe UI", 11), text_color="#3b8ed0")
         self.label.pack(padx=10, pady=5)
 
-        self.update_id = None # To store the ID for after method to clear text
+        self.update_id = None 
 
-        self.withdraw() # Hide initially
+        self.withdraw() 
 
     def show_progress(self, message, step):
         """
         Updates the progress popup with a message and a checkmark if done.
-        :param message: The message to display.
-        :param step: 1 for in-progress (dot), 2 for complete (checkmark), 0 to clear.
         """
         if self.update_id:
             self.after_cancel(self.update_id)
             self.update_id = None
 
-        if step == 0: # Clear message
-            self.label.config(text="", foreground="blue")
-            self.withdraw() # Hide the popup
+        if step == 0: 
+            # Use configure instead of config
+            self.label.configure(text="", text_color="#3b8ed0")
+            self.withdraw() 
             return
 
-        self.deiconify() # Show the popup
-        self.lift() # Bring to front
+        self.deiconify() 
+        self.lift() 
 
         if step == 1: # In progress
-            self.label.config(text=f"• {message}", foreground="blue")
+            self.label.configure(text=f"• {message}", text_color="#3b8ed0")
         elif step == 2: # Completed
-            self.label.config(text=f"✔ {message}", foreground="green")
-            # Automatically hide the popup after a short delay for completed messages
+            self.label.configure(text=f"✔ {message}", text_color="#2eb82e")
             self.update_id = self.after(2000, self.withdraw)
 
         self._position_popup()
@@ -56,14 +55,14 @@ class ProgressPopup(tk.Toplevel):
         parent_width = self.master.winfo_width()
         parent_height = self.master.winfo_height()
 
-        self.update_idletasks() # Ensure geometry is calculated
+        self.update_idletasks() 
 
         popup_width = self.winfo_width()
         popup_height = self.winfo_height()
 
         # Position in bottom-right of the parent
-        x = parent_x + parent_width - popup_width - 20 # 20 pixels padding from right
-        y = parent_y + parent_height - popup_height - 20 # 20 pixels padding from bottom
+        x = parent_x + parent_width - popup_width - 20 
+        y = parent_y + parent_height - popup_height - 20 
 
         self.geometry(f"+{x}+{y}")
 

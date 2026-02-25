@@ -1,6 +1,7 @@
 # gui/gui_start.py
 
-from tkinter import Tk, PhotoImage
+from tkinter import PhotoImage
+import customtkinter as ctk # Migrate to CustomTkinter
 import tkinter as tk
 import sys 
 import os
@@ -14,9 +15,12 @@ def start_gui():
     initialize_app_storage()
     print("[DEBUG] >> storage initialized")
 
-    root = tk.Tk()
+    # Use CTk instead of tk.Tk for full CustomTkinter compatibility
+    root = ctk.CTk() 
     root.title("MAPView VPN Client")
-    root.geometry("400x300+100+100")  # Force the window on-screen
+    
+    # Original logic for geometry preserved
+    root.geometry("400x300+100+100")  
     print("[DEBUG] >> root window created")
 
     try:
@@ -36,7 +40,7 @@ def start_gui():
     app = TabbedClientApp(root)
     print("[DEBUG] >> TabbedClientApp initialized")
 
-    # Restore last selected tab
+    # Restore last selected tab logic preserved 100%
     last_tab_id = load_last_selected_tab_id()
 
     # CustomTkinter iterate through tabs to find the one with the matching tab_id
@@ -48,7 +52,6 @@ def start_gui():
         
         # Auto-connect if applicable
         if hasattr(tab_instance, "vpn_status_change"):
-            # Use the actual connect method from ClientTab
             root.after(500, tab_instance.vpn_status_change)
     else:
         # Default to the first available tab if tabs exist
@@ -62,9 +65,7 @@ def start_gui():
             if hasattr(first_tab_instance, "vpn_status_change"):
                 root.after(500, first_tab_instance.vpn_status_change)
 
-
     root.protocol("WM_DELETE_WINDOW", app.on_close_app)
     print("[DEBUG] >> Entering mainloop")
     root.mainloop()
     print("[DEBUG] >> GUI exited")
-

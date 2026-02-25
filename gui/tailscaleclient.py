@@ -156,7 +156,7 @@ class TailscaleClient:
             # Prepare base command
             cmd = ["tailscale", "up", f"--login-server={login_server}", "--accept-routes"]
     
-            from vpn_logic import get_file_path
+            from logic.vpn_logic import get_file_path
             mode_file = get_file_path("auth_mode", profile_name)
             auth_mode = "auth_key"
             if os.path.exists(mode_file):
