@@ -19,7 +19,7 @@ LOG_FILE = os.path.join(LOG_DIR, "net_stats_log.txt") # Separate log file
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Import insert_traffic_data from db_manager here, after db_manager has its imports sorted
-from db_manager import insert_traffic_data
+from logic.db_manager import insert_traffic_data
 
 def get_tailscale_stats():
     """

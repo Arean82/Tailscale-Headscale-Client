@@ -20,8 +20,8 @@ from tkinter import messagebox
 from os_specific.mutex_handler import acquire_mutex, release_mutex, set_lock_file_path
 
 # Assuming net_stats.py is available and handles its own platform specifics
-from net_stats import log_tailscale_stats
-from utils import write_log
+from logic.net_stats import log_tailscale_stats
+from gui.utils import write_log
 
 from config import APP_BASE_DIR, APP_DATA_DIR, LOG_DIR
 

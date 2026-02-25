@@ -3,10 +3,10 @@
 
 import tkinter as tk
 from tkinter import ttk
-from net_stats import get_tailscale_stats
-from utils import format_bytes
+from logic.net_stats import get_tailscale_stats
+from gui.utils import format_bytes
 from datetime import datetime
-import db_manager # Import the new database manager
+from logic import db_manager # Import the new database manager
 
 class TrafficPopup(tk.Toplevel):
     def __init__(self, master, prev_stats, profile_name): # Add profile_name here

@@ -8,3 +8,4 @@ PyInstaller==5.12.0
 aiohttp ==3.9.1
 tailscale==1.36.0
 pycryptodome==3.18.0
+customtkinter

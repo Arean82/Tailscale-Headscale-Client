@@ -1,6 +1,8 @@
 # gui/gui_tabs.py
 # This module defines the ClientTab class for managing VPN connections in a GUI application.
 
+# gui/gui_tabs.py
+
 import os
 import sys
 import tkinter as tk
@@ -8,20 +10,22 @@ from tkinter import ttk, messagebox
 import threading
 import time
 import webbrowser
-from sso import run_sso_login
-from net_stats import get_tailscale_stats
-from statuscheck import wait_until_connected
-from vpn_logic import (
+
+# UPDATE THESE LINES:
+from gui.sso import run_sso_login
+from logic.net_stats import get_tailscale_stats
+from logic.statuscheck import wait_until_connected
+from logic.vpn_logic import (
      get_auth_mode, is_sso_mode,save_url, save_key, load_saved_url, load_saved_key, write_profile_log
 )
-from tailscaleclient import TailscaleClient
+from gui.tailscaleclient import TailscaleClient
 from datetime import datetime
-from traffic_popup import TrafficPopup
-from utils import format_bytes, center_window
-import db_manager # Import the new database manager
+from gui.traffic_popup import TrafficPopup
+from gui.utils import format_bytes, center_window, add_tooltip
+import logic.db_manager as db_manager 
+
 from .change_credentials_popup import show_change_credentials_popup
-from .progress_popup import ProgressPopup # Import the new ProgressPopup
-from utils import add_tooltip
+from .progress_popup import ProgressPopup
 
 class ClientTab(ttk.Frame):
     def __init__(self, parent_notebook, app_instance, tab_id, tab_name):

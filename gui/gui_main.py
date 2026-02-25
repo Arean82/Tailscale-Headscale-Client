@@ -14,7 +14,7 @@ from .gui_tabs import ClientTab
 from .license_viewer import LicenseViewer
 from .readme_viewer import ReadmeViewer
 
-from vpn_logic import (
+from logic.vpn_logic import (
     acquire_mutex, release_mutex, check_tailscale_installed,
     initialize_app_storage, get_tab_dir, load_tab_names, auto_connect_if_enabled, load_settings, save_settings,
     save_tab_names, load_last_selected_tab_id, save_last_selected_tab_id,

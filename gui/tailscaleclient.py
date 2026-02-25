@@ -11,11 +11,11 @@ import subprocess
 import threading
 import time
 from tkinter import messagebox
-from statuscheck import wait_until_connected
+from logic.statuscheck import wait_until_connected
 
 # Import necessary functions from vpn_logic.py
-from vpn_logic import save_key, save_url, write_profile_log, write_log
-from net_stats import log_tailscale_stats # Assuming net_stats.py is available
+from logic.vpn_logic import save_key, save_url, write_profile_log, write_log
+from logic.net_stats import log_tailscale_stats # Assuming net_stats.py is available
 
 class TailscaleClient:
     def __init__(
