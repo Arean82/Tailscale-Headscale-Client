@@ -1,4 +1,4 @@
-# gui_tabs.py
+# gui/gui_tabs.py
 # This module defines the ClientTab class for managing VPN connections in a GUI application.
 
 import os

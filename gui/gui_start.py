@@ -1,4 +1,4 @@
-# gui_start.py
+# gui/gui_start.py
 
 from tkinter import Tk, PhotoImage
 import tkinter as tk
@@ -7,7 +7,7 @@ import os
 from config import APP_DATA_DIR, LOG_DIR
 from utils import write_log, center_window
 from vpn_logic import load_last_selected_tab_id, initialize_app_storage
-from gui_main import TabbedClientApp
+from .gui_main import TabbedClientApp
 
 def start_gui():
     print("[DEBUG] >> start_gui called")

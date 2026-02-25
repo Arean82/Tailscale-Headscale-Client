@@ -1,4 +1,4 @@
-# gui_main.py
+# gui/gui_main.py
 # This module contains the main GUI application logic for the MAPView VPN Client.
 
 import tkinter as tk
@@ -10,6 +10,9 @@ from utils import format_bytes, center_window
 from styles import setup_styles
 from darkstyle import setup_dark_styles 
 from themes import THEMES
+from .gui_tabs import ClientTab 
+from .license_viewer import LicenseViewer
+from .readme_viewer import ReadmeViewer
 
 from vpn_logic import (
     acquire_mutex, release_mutex, check_tailscale_installed,
@@ -17,8 +20,6 @@ from vpn_logic import (
     save_tab_names, load_last_selected_tab_id, save_last_selected_tab_id,
     write_log, get_file_path, TAB_NAMES_FILE
 )
-
-from gui_tabs import ClientTab # Ensure gui_tabs.py imports TailscaleClient from tailscaleclient.py
 
 class TabbedClientApp:
     MAX_TABS = 5 # Maximum Profile Limit. To increase change the value
@@ -140,7 +141,10 @@ class TabbedClientApp:
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="About Us", command=self.show_about)
         menu_bar.add_cascade(label="Help", menu=help_menu)
-
+        # ADD THESE TWO LINES:
+        help_menu.add_command(label="View License", command=self.show_license)
+        help_menu.add_command(label="Readme", command=self.show_readme)
+        
         self.master.config(menu=menu_bar)
 
     def open_settings_window(self):
@@ -188,9 +192,22 @@ class TabbedClientApp:
         settings["theme"] = new_theme_name
         save_settings(settings)
 
+    # Inside TabbedClientApp class:
+    def show_license(self):
+        if not hasattr(self, "lic_win") or not self.lic_win.winfo_exists():
+            self.lic_win = LicenseViewer(self.master)
+        else:
+            self.lic_win.focus()
+
+    def show_readme(self):
+        if not hasattr(self, "read_win") or not self.read_win.winfo_exists():
+            self.read_win = ReadmeViewer(self.master)
+        else:
+            self.read_win.focus()
 
     def show_about(self):
         about_popup = tk.Toplevel(self.master)
+        about_popup.attributes("-topmost", True)
         if hasattr(self.master, 'icon_image'):
             about_popup.iconphoto(False, self.master.icon_image)
 
