@@ -10,7 +10,6 @@ class LicenseViewer(ctk.CTkToplevel):
         self.title("License")
         self.geometry("500x400")
         self.resizable(False, False)
-        self.attributes("-topmost", True)
         
         self.lift()
         self.focus_force()

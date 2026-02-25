@@ -1,40 +1,94 @@
-## 🌐 Tailscale + Headscale Client Application
+# 🌐 MAPView VPN Client
+### *Cross-Platform Tailscale + Headscale Mesh Orchestration*
 
-This repository is designed to facilitate the connection of **Tailscale clients** to a **self-hosted Headscale server**. While Tailscale offers a hosted control plane for managing your VPN network, Headscale provides an open-source alternative, giving users full control and privacy over their Tailscale-based network infrastructure.
+![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python) ![UI](https://img.shields.io/badge/UI-CustomTkinter-orange) ![Security](https://img.shields.io/badge/Security-WireGuard-green) ![OS](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)
 
-### ✨ Overview
 
-**Tailscale** is a modern VPN service built on the WireGuard protocol, creating secure, point-to-point connections between your devices. It simplifies network configuration by automatically handling firewalls and IP addresses.
+**MAPView VPN Client** is a professional GUI orchestration tool designed to connect Tailscale nodes to a self-hosted **Headscale** server. It replaces the standard cloud-hosted control plane with a local, private interface, offering enhanced privacy and multi-profile management.
 
-**Headscale** is an independent, open-source implementation of the Tailscale control server. It enables you to run your own network coordination server, allowing you to manage your Tailscale network without relying on the official Tailscale cloud service.
+---
 
-This project likely provides scripts, configurations, or documentation to streamline the process of making your Tailscale clients communicate with your Headscale instance.
+## 📂 Project Structure
 
-### 🚀 Getting Started
+The repository is organized into modular packages to separate UI rendering from core VPN logic:
 
-To use Tailscale clients with a Headscale server, you generally need to:
+```text
+C:.
+├── main.py                # 🚀 Entry point: Checks service status and boots GUI
+├── LICENSE                # ⚖️ Application legal terms
+├── README.md              # 📖 Documentation (this file)
+├── vpn_logic.py           # 🧠 Core connection and profile orchestration logic
+├── tailscaleclient.py     # 🛠️ Tailscale CLI wrapper for backend commands
+├── db_manager.py          # 🗄️ SQLite handler for persistent traffic logs
+├── net_stats.py           # 📊 Low-level network interface monitoring
+├── sso.py                 # 🔑 OIDC/Google SSO browser handshake logic
+├── styles.py              # 🎨 Light theme TTK widget configurations
+├── darkstyle.py           # 🌙 Dark theme TTK widget configurations
+├── themes.py              # 🎨 Shared color palette definitions
+├── utils.py               # 🔧 Formatting, window centering, and UI helpers
+├── assets/                # 🖼️ Graphical assets
+│   ├── icon.png           # Main application icon
+│   ├── key_icon.png       # Auth-key authentication icon
+│   └── google_icon.png    # SSO login icon
+└── gui/                   # 🖥️ GUI Package (Modular Components)
+    ├── common.py          # Shared UI constants (COLORS, FONTS)
+    ├── gui_main.py        # Main Window (TabbedClientApp class)
+    ├── gui_start.py       # Tkinter root initialization
+    ├── gui_tabs.py        # Individual profile tab logic (ClientTab class)
+    ├── license_viewer.py  # 📜 Always-on-top LICENSE viewer
+    ├── readme_viewer.py   # 📄 Always-on-top markdown viewer
+    └── progress_popup.py  # 🔔 Bottom-right status notifications
 
-1.  **Set up your Headscale server:** Deploy a Headscale instance on your preferred server. Refer to the official [Headscale Documentation](https://headscale.net/) for detailed installation and configuration instructions.
-2.  **Configure your Tailscale client:** Tailscale clients need to be directed to your Headscale server instead of the default Tailscale control plane.
-
-### 💻 Usage
-
-Tailscale clients can be configured to connect to a custom control server (your Headscale instance) using various methods, typically involving the `--login-server` flag with the Tailscale CLI or through specific settings in the GUI clients.
-
-**Example using Tailscale CLI:**
-
-```bash
-tailscale login --login-server=http://<your-headscale-server-ip-or-domain>:8080
 ```
 
-*Replace `<your-headscale-server-ip-or-domain>:8080` with the actual address and port of your Headscale server.*
+---
 
-For specific client configuration details, consult the [Tailscale documentation on custom control servers](https://tailscale.com/kb/1507/custom-control-server).
+## ✨ Key Features
 
-### 🤝 Contributing
+* **🚀 Multi-Profile Tabs**: Manage up to 5 unique Headscale environments simultaneously via a clean tabbed interface.
+* **📊 Live Traffic Monitoring**: Real-time Sent/Received data tracking with persistent daily totals stored in a local database.
+* **🔐 Dual Authentication**: Native support for pre-generated **Auth-Keys** and automated **OIDC (Google SSO)** login flows.
+* **📌 Always-on-Top Viewers**: Documentation and License popups remain focused over the main app for easy configuration.
+* **🎨 Dynamic Theming**: Toggle between high-contrast Dark and Light themes with consistent widget styling.
+* **⚙️ Intelligent Boot**: Automatically monitors and waits for the Tailscale Windows service to initialize before opening.
+* **🔔 Progress Tracking**: Real-time step-by-step progress notifications for connection handshakes.
 
-Contributions to this project are welcome\! If you have improvements, bug fixes, or new features that enhance the integration between Tailscale clients and Headscale, please consider submitting a pull request.
+---
 
-### ⚠️ Disclaimer
+## 🚀 Getting Started
 
-This project is an independent effort and is not officially affiliated with Tailscale Inc. or the Headscale project (juanfont/headscale). Use at your own risk. Always ensure you understand the security implications when self-hosting network infrastructure.
+### 📋 Prerequisites
+
+* **Tailscale**: The Tailscale backend engine must be installed and the service should be enabled.
+* **Headscale Server**: A reachable URL for your private network coordinator.
+
+### 🛠️ Installation & Usage
+
+1. **Clone the Repo**: `git clone https://github.com/user/Tailscale-Headscale-Client.git`
+2. **Install Dependencies**: `pip install -r requirements.txt`
+3. **Launch**: Run `python main.py` or the compiled `.exe` in the `dist/` folder.
+4. **Connect**:
+* Navigate to `Profile > Add New Profile`.
+* Enter your **MAPView VPN URL** and **Auth Key**.
+* Click **Connect**.
+
+---
+
+## 🛠 Configuration
+
+* **Auto-Connect**: Enable via `File > Settings` to automatically reconnect the last active profile on launch.
+* **Profile Storage**: Profiles and logs are stored locally in `%AppData%/MAPView_VPN_Client` to ensure data persistence.
+* **Credentials**: Use the **Change Credentials** button within any tab to update server URLs or security keys on the fly.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Whether it's adding support for new Tailscale CLI flags or enhancing the CustomTkinter UI, please feel free to submit a Pull Request.
+
+---
+
+## ⚠️ Disclaimer
+
+This project is an independent effort and is **not** officially affiliated with Tailscale Inc. or the Headscale project. Use this software at your own risk. Always ensure you understand the security implications of self-hosting network infrastructure.
+
