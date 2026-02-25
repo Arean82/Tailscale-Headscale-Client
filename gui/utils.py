@@ -1,14 +1,13 @@
-# utils.py
+# gui/utils.py
 # This module provides utility functions for the application, such as centering windows,
 # formatting bytes, writing logs, and adding tooltips.
 
 import tkinter as tk
 import os
 from datetime import datetime
-
+import customtkinter as ctk
 
 # Define the path for the main application log file
-# This needs to be consistent with config.py's LOG_DIR
 from config import LOG_DIR
 
 # Ensure the log directory exists for write_log
@@ -54,6 +53,7 @@ def write_log(entry, level="INFO"):
         print(f"Failed to write log (fallback print): {e} - Original entry: {entry}")
 
 def add_tooltip(widget, text, parent=None):
+    # Maintaining your exact logic but compatible with ctk windows
     tooltip = tk.Toplevel(parent or widget)
     tooltip.withdraw()
     tooltip.overrideredirect(True)

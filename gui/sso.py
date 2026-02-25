@@ -5,7 +5,7 @@
 import subprocess
 import threading
 import webbrowser
-from statuscheck import wait_until_connected  # 👈 import the polling function
+from logic.statuscheck import wait_until_connected  # 👈 import the polling function
 
 def run_sso_login(cmd, expected_url_part, output_callback=None, error_callback=None, success_callback=None):
     """

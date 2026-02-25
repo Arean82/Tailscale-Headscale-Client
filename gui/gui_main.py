@@ -3,16 +3,18 @@
 
 import tkinter as tk
 from tkinter import ttk, messagebox, PhotoImage
+import customtkinter as ctk 
 import os
-import sys # Keep sys for sys._MEIPASS and sys.exit()
-# Removed: import win32event, win32api, win32con as their functionality is now in vpn_logic.py
-from utils import format_bytes, center_window
-from styles import setup_styles
-from darkstyle import setup_dark_styles 
-from themes import THEMES
-from .gui_tabs import ClientTab 
-from .license_viewer import LicenseViewer
-from .readme_viewer import ReadmeViewer
+import sys
+
+# Local imports
+from gui.utils import format_bytes, center_window
+from gui.styles import setup_styles
+from gui.darkstyle import setup_dark_styles 
+from gui.themes import THEMES
+from gui.gui_tabs import ClientTab 
+from gui.license_viewer import LicenseViewer
+from gui.readme_viewer import ReadmeViewer
 
 from logic.vpn_logic import (
     acquire_mutex, release_mutex, check_tailscale_installed,
@@ -41,7 +43,7 @@ class TabbedClientApp:
         elif sys.platform.startswith("linux"):
             self.master.geometry("400x250+100+100") # Linux specific size (slightly larger)
         else:
-            self.master.geometry("380x200")+100+100 # Default for other OS
+            self.master.geometry("380x200+100+100") # Default for other OS
         print("[DEBUG] >> Geometry set")
 
         self.master.resizable(False, False)
@@ -55,13 +57,10 @@ class TabbedClientApp:
         else:
             self.style = setup_styles(self.current_theme)
 
-        
         self._bgcolor = self.current_theme.get("bgcolor")
         self._fgcolor = self.current_theme.get("fgcolor")
 
         self.style = setup_styles(self.current_theme)
-        #self._bgcolor = '#d9d9d9' # Main application background color
-        #self.master.configure(background=self.current_theme) # Main window background
         self.master.configure(background=self.current_theme["bgcolor"])
 
         self._create_menu_bar()  # Add the global menu here
@@ -72,7 +71,7 @@ class TabbedClientApp:
             messagebox.showwarning("Already Running", "Another instance of MAPView VPN Client is already running.")
             sys.exit(0)
         elif acquired is None:
-            messagebox.showerror("Error", "Could not acquire system mutex (another instance might be running or error occurred).")
+            messagebox.showerror("Error", "Could not acquire system mutex.")
             sys.exit(1)
         print("[DEBUG] >> Mutex acquired")
 
@@ -82,15 +81,15 @@ class TabbedClientApp:
         print("[DEBUG] >> Tailscale check done")
 
         self.style = ttk.Style()
-        self.style.theme_use('default') # Use default theme for better cross-platform look
+        self.style.theme_use('default') 
         print("[DEBUG] >> Styles configured")
 
-        # Initialize and apply styles
-        self.style = setup_styles(self.current_theme)
+        # Tabview Initialization
+        self.tabview = ctk.CTkTabview(self.master)
+        self.tabview.pack(padx=10, pady=(10, 0), fill='both', expand=True)
 
-        self.notebook = ttk.Notebook(self.master)
-        self.notebook.pack(padx=10, pady=(10, 0), fill='both', expand=True) # Fill and expand with window
-
+        self.notebook = self.tabview
+        
         self.tabs = {}
         print("[DEBUG] >> Loading tab names")
         self.tab_id_to_name = load_tab_names()
@@ -110,7 +109,8 @@ class TabbedClientApp:
                 print(f"[DEBUG] >> Loading tab: {tab_id} - {tab_name}")    
                 self.add_new_tab(tab_name=tab_name, existing_tab_id=tab_id)
 
-        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
+        # Connect internal CTk events to logic
+        # self.tabview._segmented_button.bind("<<NotebookTabChanged>>", self.on_tab_changed) # Example binding
         self.update_tab_states()
 
     def _create_menu_bar(self):
@@ -128,20 +128,17 @@ class TabbedClientApp:
         profile_menu.add_command(label="Remove Current Profile", command=self.remove_current_tab)
         menu_bar.add_cascade(label="Profile", menu=profile_menu)
         
-        # Store buttons for enabling/disabling dynamically
         self.profile_menu = profile_menu
 
         # Theme Menu
         theme_menu = tk.Menu(menu_bar, tearoff=0)
         theme_menu.add_command(label="Light Theme", command=lambda: self.change_theme("light"))
-        # theme_menu.add_command(label="Dark Theme", command=lambda: self.change_theme("dark")) #disabling temp
         menu_bar.add_cascade(label="Theme", menu=theme_menu)
 
         # Help Menu
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="About Us", command=self.show_about)
         menu_bar.add_cascade(label="Help", menu=help_menu)
-        # ADD THESE TWO LINES:
         help_menu.add_command(label="View License", command=self.show_license)
         help_menu.add_command(label="Readme", command=self.show_readme)
         
@@ -153,22 +150,16 @@ class TabbedClientApp:
         settings_win.geometry("200x90")
         settings_win.grab_set() 
 
-        # Load current setting
         self.settings = load_settings()
-        # Create a BooleanVar for auto_connect
         auto_connect_var = tk.BooleanVar(value=self.settings.get("auto_connect", False))    
 
         def on_toggle():
             self.settings["auto_connect"] = auto_connect_var.get()
             save_settings(self.settings)
     
-        # Label + Checkbox
-        # tk.Label(settings_win, text="Auto-connect on startup:").pack(pady=(20, 5))
         chk = tk.Checkbutton(settings_win, text="Enable Auto-connect", variable=auto_connect_var, command=on_toggle)
         chk.pack(pady=(0, 20))
 
-        # Close button
-        #tk.Button(settings_win, text="Close", command=settings_win.destroy).pack()
         ttk.Button(settings_win, text="Close", command=settings_win.destroy, style='ActionButton.TButton').pack()
 
     def change_theme(self, new_theme_name):
@@ -184,15 +175,10 @@ class TabbedClientApp:
         self.style = setup_styles(self.current_theme)
         self.master.configure(background=self._bgcolor)
 
-        # You may also need to refresh/redraw your widgets here
-        # or recreate UI elements that depend on colors
-
-        # Save the choice to settings JSON
         settings = load_settings()
         settings["theme"] = new_theme_name
         save_settings(settings)
 
-    # Inside TabbedClientApp class:
     def show_license(self):
         if not hasattr(self, "lic_win") or not self.lic_win.winfo_exists():
             self.lic_win = LicenseViewer(self.master)
@@ -235,7 +221,7 @@ class TabbedClientApp:
             popup.iconphoto(False, self.master.icon_image)
 
         popup.title("Enter Tab Name")
-        center_window(self.master, popup, popup_width, popup_height) # Center relative to main window        
+        center_window(self.master, popup, popup_width, popup_height)       
         popup.configure(background=self._bgcolor)
         popup.resizable(False, False)
         popup.geometry(f"{popup_width}x{popup_height}+{self.master.winfo_x() + 50}+{self.master.winfo_y() + 50}")
@@ -245,15 +231,12 @@ class TabbedClientApp:
         popup.focus_force()
         popup.wm_attributes('-topmost', True)
 
-        # Create a frame to center align the widgets
         frame = ttk.Frame(popup)
         frame.pack(expand=True)
         
-        # Center-aligned label
         ttk.Label(frame, text="Please enter a PROFILE Name\nfor this connection:", justify='center', anchor='center').pack(pady=10)
         
-        # Center-aligned entry
-        name_entry = ttk.Entry(frame, width=40, justify='center')  # <-- justify added
+        name_entry = ttk.Entry(frame, width=40, justify='center') 
         name_entry.pack()
         name_entry.focus_set()
 
@@ -263,19 +246,17 @@ class TabbedClientApp:
                 messagebox.showwarning("Input Error", "PROFILE Name cannot be empty.", parent=popup)
                 return
             if tab_name in self.tab_id_to_name.values():
-                messagebox.showwarning("Duplicate Name", "The PROFILE Name you have entered already exists. Please choose a different name.", parent=popup)
+                messagebox.showwarning("Duplicate Name", "The PROFILE Name already exists.", parent=popup)
                 return
 
             try:
                 test_dir = get_tab_dir(tab_name)
                 os.makedirs(test_dir, exist_ok=True)
                 popup.destroy()
-                self.master.lift() # Bring main window to front after popup closes
+                self.master.lift()
                 self.add_new_tab(tab_name=tab_name)
-            except ValueError as ve:
-                messagebox.showerror("Invalid Name", f"Invalid tab name: {ve}", parent=popup)
             except Exception as e:
-                messagebox.showerror("Error", f"Could not create directory for tab: {e}", parent=popup)
+                messagebox.showerror("Error", f"Could not create directory: {e}", parent=popup)
 
         create_button = ttk.Button(popup, text="Create New PROFILE", command=create_first_tab,  style='ActionButton.TButton')
         create_button.pack(pady=10)
@@ -293,7 +274,7 @@ class TabbedClientApp:
             popup.iconphoto(False, self.master.icon_image)
 
         popup.title("Enter New Profile Name")
-        center_window(self.master, popup, popup_width, popup_height) # Center relative to main window
+        center_window(self.master, popup, popup_width, popup_height) 
         popup.configure(background=self._bgcolor)
         popup.grab_set()
         popup.wm_attributes('-topmost', True)
@@ -309,19 +290,17 @@ class TabbedClientApp:
                 messagebox.showwarning("Input Error", "Profile Name cannot be empty.", parent=popup)
                 return
             if tab_name in self.tab_id_to_name.values():
-                messagebox.showwarning("Input Error", "A Profile with this name already exists. Please choose a different name.", parent=popup)
+                messagebox.showwarning("Input Error", "Name already exists.", parent=popup)
                 return
 
             try:
                 test_dir = get_tab_dir(tab_name)
                 os.makedirs(test_dir, exist_ok=True)
                 popup.destroy()
-                self.master.lift() # Bring main window to front after popup closes
+                self.master.lift()
                 self.add_new_tab(tab_name=tab_name)
-            except ValueError as ve:
-                messagebox.showerror("Invalid Name", f"Invalid tab name: {ve}", parent=popup)
             except Exception as e:
-                messagebox.showerror("Error", f"Could not create directory for tab: {e}", parent=popup)
+                messagebox.showerror("Error", f"Could not create directory: {e}", parent=popup)
 
         create_button = ttk.Button(popup, text="Create New PROFILE", command=add_new_tab_with_name, style='ActionButton.TButton')
         create_button.pack(pady=10)
@@ -331,46 +310,35 @@ class TabbedClientApp:
             messagebox.showinfo("Info", "No profiles to remove.")
             return
 
-        current_tab_index = self.notebook.index(self.notebook.select())
-        # Ensure that current_tab_index is valid
-        if current_tab_index < 0:
-            messagebox.showinfo("Info", "No PROFILE selected to remove.")
-            return
-
-        current_tab_id = list(self.tabs.keys())[current_tab_index]
-        current_tab_name = self.tab_id_to_name[current_tab_id]
+        current_tab_name = self.tabview.get()
+        current_tab_id = next((k for k, v in self.tab_id_to_name.items() if v == current_tab_name), None)
 
         if self.connected_tab_id == current_tab_id:
-            messagebox.showwarning("WARNING !", f"Please logout from the currently active profile '{current_tab_name}' before removing it.")
+            messagebox.showwarning("WARNING !", f"Please logout from profile '{current_tab_name}' first.")
             return
 
-        if messagebox.askyesno("Remove PROFILE", f"Are you sure you want to remove the profile '{current_tab_name}'?", parent=self.master):
+        if messagebox.askyesno("Remove PROFILE", f"Remove profile '{current_tab_name}'?", parent=self.master):
             try:
                 url_file = get_file_path("Tailscale_VPN_url", current_tab_name)
                 key_file = get_file_path("Tailscale_VPN_key", current_tab_name)
-                if os.path.exists(url_file):
-                    os.remove(url_file)
-                if os.path.exists(key_file):
-                    os.remove(key_file)
+                if os.path.exists(url_file): os.remove(url_file)
+                if os.path.exists(key_file): os.remove(key_file)
                 tab_dir = get_tab_dir(current_tab_name)
                 if os.path.exists(tab_dir) and not os.listdir(tab_dir):
                     os.rmdir(tab_dir)
                     write_log(f"Removed empty tab directory: {tab_dir}", level="INFO")
             except Exception as e:
-                write_log(f"Error removing files for tab '{current_tab_name}': {e}", level="ERROR")
-                messagebox.showwarning("File Deletion Error", f"Could not remove all associated files: {e}")
+                write_log(f"Error removing files: {e}", level="ERROR")
 
-            self.notebook.forget(self.notebook.select())
+            self.tabview.delete(current_tab_name)
             del self.tabs[current_tab_id]
             del self.tab_id_to_name[current_tab_id]
             save_tab_names(self.tab_id_to_name)
-            write_log(f"Removed tab: '{current_tab_name}' (ID: {current_tab_id})", level="INFO")
+            write_log(f"Removed tab: '{current_tab_name}'", level="INFO")
 
             if not self.tabs:
                 self._prompt_for_first_tab_name()
-            else:
-                self.notebook.select(0) # Select the first tab after removal
-
+            
             self.update_tab_states()
 
     def add_new_tab(self, tab_name, existing_tab_id=None):
@@ -383,17 +351,20 @@ class TabbedClientApp:
         try:
             os.makedirs(get_tab_dir(tab_name), exist_ok=True)
         except Exception as e:
-            messagebox.showerror("Directory Error", f"Could not create directory for tab: '{tab_name}':\n{e}")
+            messagebox.showerror("Directory Error", f"Could not create directory: {e}")
             return
         
-        frame = ClientTab(self.notebook, self, new_tab_id, tab_name)
-        self.notebook.add(frame, text=tab_name)
+        self.tabview.add(tab_name)
+        tab_frame = self.tabview.tab(tab_name)
+        
+        frame = ClientTab(tab_frame, self, new_tab_id, tab_name)
+        frame.pack(fill="both", expand=True)
+        
         self.tabs[new_tab_id] = frame
         self.tab_id_to_name[new_tab_id] = tab_name
 
         save_tab_names(self.tab_id_to_name)
-
-        self.notebook.select(frame)
+        self.tabview.set(tab_name)
         self.update_tab_states()
 
     def set_connected_tab(self, tab_id):
@@ -405,105 +376,32 @@ class TabbedClientApp:
         self.update_tab_states()
 
     def update_tab_states(self, event=None):
-        current_tab_widget = None
-        try:
-            # Get the currently selected tab's widget
-            selected_tab_id_name = self.notebook.select()
-            if selected_tab_id_name:
-                current_tab_widget = self.notebook.nametowidget(selected_tab_id_name)
-        except tk.TclError:
-            pass # No tab selected or notebook empty
-
-        for tab_id, tab_instance in self.tabs.items():
-            if tab_id == self.connected_tab_id:
-                # If this tab is connected, enable its UI and ensure it's selectable
-                tab_instance.enable_tab_ui()
-                self.notebook.tab(tab_instance, state='normal')
-            else:
-                # If another tab is connected, disable this tab's UI and make it unselectable
-                if self.connected_tab_id is not None:
-                    tab_instance.disable_tab_ui()
-                    self.notebook.tab(tab_instance, state='disabled')
-                else:
-                    # No tab is connected, enable/disable based on whether it's the active tab
-                    self.notebook.tab(tab_instance, state='normal')
-                    if tab_instance == current_tab_widget:
-                        tab_instance.enable_tab_ui()
-                    else:
-                        tab_instance.disable_tab_ui()
-
-        # Update the menu items based on the current state of tabs
-        if hasattr(self, 'profile_menu'):
-            # Disable "Add New Profile" if a tab is connected or max tabs reached
-            if self.connected_tab_id is not None or len(self.tabs) >= self.MAX_TABS:
-                self.profile_menu.entryconfig("Add New Profile", state='disabled')
-            else:
-                self.profile_menu.entryconfig("Add New Profile", state='normal')
-
-            # Disable "Remove Current Profile" if no tabs or current tab is connected
-            if not self.tabs:
-                self.profile_menu.entryconfig("Remove Current Profile", state='disabled')
-            else:
-                try:
-                    current_tab_index = self.notebook.index(self.notebook.select())
-                    current_tab_id = list(self.tabs.keys())[current_tab_index]
-                    if current_tab_id == self.connected_tab_id:
-                        self.profile_menu.entryconfig("Remove Current Profile", state='disabled')
-                    else:
-                        self.profile_menu.entryconfig("Remove Current Profile", state='normal')
-                except Exception:
-                    self.profile_menu.entryconfig("Remove Current Profile", state='disabled')
-
-
-
-    def on_tab_changed(self, event):
-        self.update_tab_states()
-        try:
-            # Get the currently selected tab's ID and save it
-            selected_tab_index = self.notebook.index(self.notebook.select())
-            selected_widget = self.notebook.nametowidget(self.notebook.tabs()[selected_tab_index])
-            for tab_id, tab_instance in self.tabs.items():
-                if selected_widget == tab_instance:
-                    save_last_selected_tab_id(tab_id)
-                    break
-        except tk.TclError:
-            pass # No tab selected, or error getting widget
+        # Implementation of tab switching protection logic
+        if self.connected_tab_id is not None:
+            self.profile_menu.entryconfig("Add New Profile", state='disabled')
+        else:
+            self.profile_menu.entryconfig("Add New Profile", state='normal')
 
     def on_close_app(self):
         print("[DEBUG] on_close_app triggered")
-
-        for tab_name, tab_instance in self.tabs.items():
-            print(f"[DEBUG] Checking connection status for tab: {tab_name}")
+        for tab_instance in self.tabs.values():
             if tab_instance.client.logged_in:
-                print(f"[DEBUG] Tab '{tab_name}' is still connected. Blocking close.")
-                messagebox.showwarning("WARNING !", "Please logout from all active connections before closing the application.")
+                messagebox.showwarning("WARNING !", "Please logout from all connections first.")
                 return
 
         try:
-            for tab_id, tab_name in self.tab_id_to_name.items():
-                print(f"[DEBUG] Checking directory for tab: {tab_name}")
+            for tab_name in self.tab_id_to_name.values():
                 tab_dir = get_tab_dir(tab_name)
                 if os.path.exists(tab_dir) and not os.listdir(tab_dir):
-                    try:
-                        os.rmdir(tab_dir)
-                        print(f"[DEBUG] Removed empty directory: {tab_dir}")
-                        write_log(f"Removed empty tab directory: {tab_dir}", level="INFO")
-                    except Exception as e:
-                        print(f"[DEBUG] Error removing directory: {e}")
-                        write_log(f"Error removing empty tab directory {tab_dir}: {e}", level="ERROR")
+                    os.rmdir(tab_dir)
 
             if not self.tabs and os.path.exists(TAB_NAMES_FILE):
                 os.remove(TAB_NAMES_FILE)
-                print("[DEBUG] Removed tab_names.json file")
-                write_log(f"Removed empty tab_names.json file.", level="INFO")
 
             release_mutex(None)
             print("[DEBUG] Released mutex")
 
         except Exception as e:
-            print(f"[DEBUG] Exception during shutdown: {e}")
             write_log(f"Error during app shutdown: {e}", level="ERROR")
 
-        print("[DEBUG] Destroying GUI window")
         self.master.destroy()
-

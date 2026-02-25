@@ -1,35 +1,33 @@
 # gui/gui_tabs.py
 # This module defines the ClientTab class for managing VPN connections in a GUI application.
 
-# gui/gui_tabs.py
-
 import os
 import sys
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+import customtkinter as ctk # New UI Library
 import threading
 import time
 import webbrowser
 
-# UPDATE THESE LINES:
+# Local imports
 from gui.sso import run_sso_login
 from logic.net_stats import get_tailscale_stats
 from logic.statuscheck import wait_until_connected
 from logic.vpn_logic import (
-     get_auth_mode, is_sso_mode,save_url, save_key, load_saved_url, load_saved_key, write_profile_log
+     get_auth_mode, is_sso_mode, save_url, save_key, load_saved_url, load_saved_key, write_profile_log
 )
 from gui.tailscaleclient import TailscaleClient
-from datetime import datetime
-from gui.traffic_popup import TrafficPopup
 from gui.utils import format_bytes, center_window, add_tooltip
 import logic.db_manager as db_manager 
+from gui.change_credentials_popup import show_change_credentials_popup
+from gui.progress_popup import ProgressPopup
+from gui.traffic_popup import TrafficPopup
 
-from .change_credentials_popup import show_change_credentials_popup
-from .progress_popup import ProgressPopup
-
-class ClientTab(ttk.Frame):
+class ClientTab(ctk.CTkFrame): # Changed from ttk.Frame
     def __init__(self, parent_notebook, app_instance, tab_id, tab_name):
-        super().__init__(parent_notebook, padding=10) # ttk.Frame uses 'padding'
+        # ctk.CTkFrame uses fg_color="transparent" to blend in
+        super().__init__(parent_notebook, fg_color="transparent") 
         self.app_instance = app_instance
         self.tab_id = tab_id
         self.tab_name = tab_name
@@ -37,66 +35,54 @@ class ClientTab(ttk.Frame):
         self.login_server_var = tk.StringVar(value=load_saved_url(self.tab_name))
         self.auth_key_var = tk.StringVar(value=load_saved_key(self.tab_name))
         
-        # New: Input for Ping IP
-        #self.ping_ip_var = tk.StringVar(value="100.64.0.3") # Default value
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
 
-        self.grid_columnconfigure(0, weight=0) # Label column, no extra space
-        self.grid_columnconfigure(1, weight=1) # Entry column, takes extra space
-
-        # Row 0: Headscale Login Server URL
-        
-        ttk.Label(self, text="MAPView VPN URL    :").grid(row=0, column=0, sticky='w', pady=(5, 2))
-        self.Entry1 = ttk.Entry(self, textvariable=self.login_server_var, font="-family {Courier New} -size 10")
+        # Row 0: URL - Swapped to CTkLabel and CTkEntry
+        ctk.CTkLabel(self, text="MAPView VPN URL    :").grid(row=0, column=0, sticky='w', pady=(5, 2), padx=5)
+        self.Entry1 = ctk.CTkEntry(self, textvariable=self.login_server_var, font=("Courier New", 12))
         self.Entry1.grid(row=0, column=1, sticky='ew', pady=(5, 2), padx=(0, 5))
-        self.Entry1.configure(state='normal')
 
-        # Row 1: Authentication Key
-        self.Entry1_1 = ttk.Entry(self, textvariable=self.auth_key_var, font="-family {Courier New} -size 10", show="*")
+        # Row 1: Auth Key (Hidden Entry)
+        self.Entry1_1 = ctk.CTkEntry(self, textvariable=self.auth_key_var, font=("Courier New", 12), show="*")
+        # Hidden by default in your logic, but initialized here
 
-        # Row 2: Ping IP
-        #ttk.Label(self, text="Ping Test IP        :").grid(row=2, column=0, sticky='w', pady=2)
-        #self.ping_ip_entry = ttk.Entry(self, textvariable=self.ping_ip_var, font="-family {Courier New} -size 10")
-        #self.ping_ip_entry.grid(row=2, column=1, sticky='ew', pady=2, padx=(0, 5))
+        # Row 3: Status Label - Changed foreground to text_color
+        self.Label2 = ctk.CTkLabel(self, text="🔴 Disconnected", text_color="red", font=("Segoe UI", 13, "bold"), anchor='w')
+        self.Label2.grid(row=3, column=0, sticky='w', pady=(5, 5), padx=5)
 
-        # Row 3: Status Label and Change Credentials Button
-        self.Label2 = ttk.Label(self, text="🔴 Disconnected", foreground="red", font="-family {Segoe UI} -size 10 -weight bold", anchor='w')
-        self.Label2.grid(row=3, column=0, sticky='w', pady=(5, 5))
-
-        self.change_cred_btn = ttk.Button(
+        self.change_cred_btn = ctk.CTkButton(
             self,
             text="Change Credentials",
-            command=lambda: show_change_credentials_popup(
-                self, 
-                self.tab_name, 
-                self.login_server_var.get(), 
-                self.auth_key_var.get(), 
-                self._save_new_credentials,
-                bg_color=self.app_instance._bgcolor, # Pass the current theme's background color
-                icon_image=getattr(self.app_instance, 'icon_image', None)
-            ),
-            style='ClickButton.TButton'
+            command=self.on_change_credentials_click, # Logic preserved
+            width=140
         )
         self.change_cred_btn.grid(row=3, column=1, sticky='e', pady=(5, 5), padx=(0, 5))
 
-
         # Row 4: Button Frame
-        self.button_frame = tk.Frame(self, background=self.app_instance._bgcolor) # Use app's _bgcolor
+        self.button_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.button_frame.grid(row=4, column=0, columnspan=2, sticky='ew', pady=(5, 10))
 
-        self.vpn_action_btn = ttk.Button(
+        self.vpn_action_btn = ctk.CTkButton(
             self.button_frame,
             text="Connect",
             command=self.vpn_status_change,
-            style='Connect.TButton'
+            fg_color="#4CAF50", # Green preserved
+            hover_color="#45a049"
         )
         self.vpn_action_btn.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
-        self.show_stats_btn = ttk.Button(self.button_frame, text="Show Traffic Stats", command=self.open_traffic_popup, style='ActionButton.TButton')
+        self.show_stats_btn = ctk.CTkButton(
+            self.button_frame, 
+            text="Show Traffic Stats", 
+            command=self.open_traffic_popup,
+            fg_color="#666666" # Grey preserved
+        )
         self.show_stats_btn.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
-        # Status labels for traffic
-        self.traffic_label = ttk.Label(self, text="Traffic: Sent 0 B / Received 0 B", font="-family {Courier New} -size 9", anchor='w')
-        self.traffic_label.grid(row=5, column=0, columnspan=2, sticky='w')
+        # Row 5: Traffic Label
+        self.traffic_label = ctk.CTkLabel(self, text="Traffic: Sent 0 B / Received 0 B", font=("Courier New", 11), anchor='w')
+        self.traffic_label.grid(row=5, column=0, columnspan=2, sticky='w', padx=5)
 
         # Initialize the progress popup
         self.progress_popup = ProgressPopup(self.master.master)
@@ -159,7 +145,7 @@ class ClientTab(ttk.Frame):
         import os
     
         mode_file = get_file_path("auth_mode", self.tab_name)
-        if os.out_exists(mode_file):
+        if os.path.exists(mode_file):
             with open(mode_file, "r") as f:
                 return f.read().strip() == "google"
         return False  # Default to auth key mode
@@ -341,7 +327,7 @@ class ClientTab(ttk.Frame):
         if not self.client.connected and not self.client.logged_in:
             self.change_cred_btn.grid(row=3, column=1, sticky='e', pady=(5, 5), padx=(0, 5))
             self.change_cred_btn.configure(state='normal')
-            self.Entry1.configure(state='disabled')
+            #self.Entry1.configure(state='disabled')
             self.Entry1_1.configure(state='normal')
             #self.ping_ip_entry.configure(state='normal') # Keep enabled when change creds is shown
         else:

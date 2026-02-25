@@ -38,24 +38,30 @@ def start_gui():
 
     # Restore last selected tab
     last_tab_id = load_last_selected_tab_id()
+
+    # CustomTkinter iterate through tabs to find the one with the matching tab_id
     if last_tab_id is not None and last_tab_id in app.tabs:
-        for tab_index, tab_frame_id in enumerate(app.notebook.tabs()):
-            tab_widget = app.notebook.nametowidget(tab_frame_id)
-            if hasattr(tab_widget, 'tab_id') and tab_widget.tab_id == last_tab_id:
-                app.notebook.select(tab_frame_id)
-                app.update_tab_states()
-                # Auto-connect if the tab has connect_vpn
-                if hasattr(tab_widget, "connect_vpn"):
-                    root.after(500, tab_widget.connect_vpn)
-                break
+        tab_instance = app.tabs[last_tab_id]
+        tab_name = tab_instance.tab_name
+        app.tabview.set(tab_name) # Select the tab
+        app.update_tab_states()
+        
+        # Auto-connect if applicable
+        if hasattr(tab_instance, "vpn_status_change"):
+            # Use the actual connect method from ClientTab
+            root.after(500, tab_instance.vpn_status_change)
     else:
-        if app.notebook.tabs():
-            first_tab_widget = app.notebook.nametowidget(app.notebook.tabs()[0])
-            app.notebook.select(app.notebook.tabs()[0])
+        # Default to the first available tab if tabs exist
+        if app.tab_id_to_name:
+            first_id = sorted(app.tab_id_to_name.keys())[0]
+            first_name = app.tab_id_to_name[first_id]
+            app.tabview.set(first_name)
             app.update_tab_states()
-            # Auto-connect on first tab
-            if hasattr(first_tab_widget, "connect_vpn"):
-                root.after(500, first_tab_widget.connect_vpn)
+            
+            first_tab_instance = app.tabs[first_id]
+            if hasattr(first_tab_instance, "vpn_status_change"):
+                root.after(500, first_tab_instance.vpn_status_change)
+
 
     root.protocol("WM_DELETE_WINDOW", app.on_close_app)
     print("[DEBUG] >> Entering mainloop")

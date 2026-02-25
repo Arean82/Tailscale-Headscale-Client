@@ -193,13 +193,15 @@ def save_auth_mode(tab_name, mode):
     except Exception as e:
         write_log(f"Error saving auth mode for tab '{tab_name}': {e}", level="ERROR")
 
-def get_auth_mode(tab_name):
-    from vpn_logic import get_file_path  # or move this to top if already imported
+def get_auth_mode(tab_name):     # FIXED: Removed the internal import that caused the crash
     mode_file = get_file_path("auth_mode", tab_name)
     if os.path.exists(mode_file):
-        with open(mode_file, "r") as f:
-            return f.read().strip()
-    return "auth_key"  # default fallback
+        try:
+            with open(mode_file, "r") as f:
+                return f.read().strip()
+        except:
+            return "auth_key"
+    return "auth_key"
 
 def is_sso_mode(tab_name):
     return get_auth_mode(tab_name).lower() == "google"
