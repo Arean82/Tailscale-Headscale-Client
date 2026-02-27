@@ -18,12 +18,12 @@ VSVersionInfo(
   kids=[
     StringFileInfo([
       StringTable('040904B0', [
-        StringStruct('Tailscale-Client', 'MAPView_VPN_Client'),
-        StringStruct('FileDescription', 'MAPView_VPN_Client'),
+        StringStruct('Tailscale-Client', 'TAILSCALE_VPN_Client'),
+        StringStruct('FileDescription', 'TAILSCALE_VPN_Client'),
         StringStruct('FileVersion', '3.0'),
-        StringStruct('InternalName', 'MAPView_VPN_Client'),
-        StringStruct('OriginalFilename', 'MAPView_VPN_Client.exe'),
-        StringStruct('ProductName', 'MAPView VPN Client'),
+        StringStruct('InternalName', 'TAILSCALE_VPN_Client'),
+        StringStruct('OriginalFilename', 'TAILSCALE_VPN_Client.exe'),
+        StringStruct('ProductName', 'TAILSCALE VPN Client'),
         StringStruct('ProductVersion', '3.0')
       ])
     ]),

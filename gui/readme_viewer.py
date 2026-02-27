@@ -1,99 +1,89 @@
 # gui/readme_viewer.py
-# This module defines the ReadmeViewer class, which displays the contents of the README.md file in a simple window. It reads the README.md file from the root of the project and shows it in a scrollable text area with basic formatting for headers and code blocks.  
-
-import customtkinter as ctk
-import tkinter as tk
 import os
-import re
-from .common import COLORS, FONTS
+import markdown
+import webview
+import multiprocessing
 
-class ReadmeViewer(ctk.CTkToplevel):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.title("README")
-        self.geometry("800x600")
+def _launch_readme_window(html_content):
+    """
+    Launch the webview in a dedicated process.
+    Window size is set here: width=1000, height=800.
+    """
+    window = webview.create_window(
+        "README - TAILSCALE VPN Client", 
+        html=html_content, 
+        width=800, 
+        height=600,
+        resizable=True
+    )
+    webview.start()
+
+class ReadmeViewer:
+    def __init__(self, parent=None):
+        self.show_readme()
+
+    def show_readme(self):
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        path = os.path.join(base_dir, "README.md")
         
-        # Ensure window stays on top
-        self.attributes("-topmost", True)
-        self.lift()
-        self.focus_force()
-        self.after(10, lambda: self.transient(parent))
-
-        # Container Frame
-        frame = ctk.CTkFrame(self, fg_color=COLORS["bg_dark"])
-        frame.pack(fill="both", expand=True, padx=10, pady=(10, 5))
-
-        self.text_area = tk.Text(
-            frame, 
-            bg=COLORS["bg_dark"], 
-            fg=COLORS["fg_light"], 
-            font=FONTS["body"], 
-            wrap="word",
-            bd=0, highlightthickness=0, padx=20, pady=20
-        )
-        self.text_area.pack(side="left", fill="both", expand=True)
-        
-        scrollbar = ctk.CTkScrollbar(frame, command=self.text_area.yview)
-        scrollbar.pack(side="right", fill="y")
-        self.text_area.configure(yscrollcommand=scrollbar.set)
-
-        self._setup_tags()
-        self.load_readme()
-        
-        ctk.CTkButton(self, text="Close", command=self.destroy, width=120, fg_color=COLORS["accent"]).pack(pady=10)
-
-    def _setup_tags(self):
-        base_font = FONTS["body"][0]
-        base_size = FONTS["body"][1]
-        # Header Tags
-        self.text_area.tag_configure("h1", font=(base_font, base_size + 12, "bold"), foreground=COLORS["blue"])
-        self.text_area.tag_configure("h2", font=(base_font, base_size + 6, "bold"), foreground=COLORS["green"])
-        self.text_area.tag_configure("h3", font=(base_font, base_size + 2, "bold"), foreground=COLORS["gold"])
-        # Body and Inline Tags
-        self.text_area.tag_configure("bold", font=(base_font, base_size, "bold"), foreground="#FFFFFF")
-        self.text_area.tag_configure("code_block", font=FONTS["mono"], background="#252526", foreground=COLORS["orange"])
-
-    def load_readme(self):
-        # Correct path to root from gui/ folder
-        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "README.md"))
         if not os.path.exists(path):
-            self.text_area.insert("1.0", "README.md not found.")
             return
 
         with open(path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+            md_content = f.read()
 
-        for line in lines:
-            stripped = line.strip()
-            if stripped.startswith("### "):
-                self.text_area.insert("end", stripped[4:] + "\n", "h3")
-            elif stripped.startswith("## "):
-                self.text_area.insert("end", stripped[3:] + "\n", "h2")
-            elif stripped.startswith("# "):
-                self.text_area.insert("end", stripped[2:] + "\n", "h1")
-            elif stripped.startswith("* "):
-                self.text_area.insert("end", " • " + stripped[2:] + "\n")
-            else:
-                self.text_area.insert("end", line)
+        html_body = markdown.markdown(md_content, extensions=["fenced_code", "tables"])
 
-        # Apply bold formatting for **text**
-        self._parse_bold_tags()
-        self.text_area.configure(state="disabled")
+        # YOUR EXACT CSS + Added Fixed Close Button Styling
+        full_html = f"""
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial;
+                    margin: 40px;
+                    margin-bottom: 100px; /* Space for button */
+                    max-width: 900px;
+                }}
+                h1, h2, h3 {{ border-bottom: 1px solid #ddd; padding-bottom: 5px; }}
+                pre {{ background: #f6f8fa; padding: 12px; border-radius: 6px; overflow-x: auto; }}
+                code {{ background: #f6f8fa; padding: 3px 6px; border-radius: 4px; }}
+                table {{ border-collapse: collapse; width: 100%; }}
+                th, td {{ border: 1px solid #ddd; padding: 8px; }}
+                
+                /* Fixed Close Button Logic */
+                .footer {{
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    width: 100%;
+                    background: white;
+                    padding: 20px 0;
+                    border-top: 1px solid #ddd;
+                    text-align: center;
+                }}
+                .close-btn {{
+                    background-color: #007acc;
+                    color: white;
+                    border: none;
+                    padding: 10px 30px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-family: sans-serif;
+                }}
+                .close-btn:hover {{ background-color: #005a9e; }}
+            </style>
+        </head>
+        <body>
+            {html_body}
+            <div class="footer">
+                <button class="close-btn" onclick="window.close()">Close README</button>
+            </div>
+        </body>
+        </html>
+        """
 
-    def _parse_bold_tags(self):
-        """Finds **text** patterns and applies the 'bold' tag while removing the asterisks."""
-        while True:
-            idx = self.text_area.search(r"\*\*(.*?)\*\*", "1.0", stopindex="end", regexp=True)
-            if not idx: break
-            
-            # Find exact end of the match
-            match_text = self.text_area.get(idx, f"{idx} lineend")
-            match_obj = re.search(r"\*\*(.*?)\*\*", match_text)
-            if not match_obj: break
-            
-            content = match_obj.group(1)
-            full_match_len = len(match_obj.group(0))
-            
-            # Delete the **content** and insert content with bold tag
-            self.text_area.delete(idx, f"{idx}+{full_match_len}c")
-            self.text_area.insert(idx, content, "bold")
+        p = multiprocessing.Process(target=_launch_readme_window, args=(full_html,))
+        p.start()

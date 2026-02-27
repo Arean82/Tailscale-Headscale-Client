@@ -1,5 +1,5 @@
 # gui/about.py
-# This module provides a dedicated About window for the MAPView VPN Client using CustomTkinter.
+# This module provides a dedicated About window for the TAILSCALE VPN Client using CustomTkinter.
 
 import tkinter as tk
 import customtkinter as ctk
@@ -34,7 +34,7 @@ class AboutWindow(ctk.CTkToplevel):
         # Replaces ttk.Label with CTkLabel
         ctk.CTkLabel(
             self, 
-            text="MAPView VPN Client", 
+            text="TAILSCALE VPN Client", 
             font=("Segoe UI", 11, "bold"),
             text_color="black"
         ).pack(pady=(15, 5))
@@ -47,7 +47,7 @@ class AboutWindow(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             self, 
-            text="© 2025 MAPView VPN Client",
+            text="© 2025 TAILSCALE VPN Client",
             text_color="black"
         ).pack()
 

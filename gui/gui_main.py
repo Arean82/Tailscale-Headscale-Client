@@ -1,5 +1,5 @@
 # gui/gui_main.py
-# This module contains the main GUI application logic for the MAPView VPN Client.
+# This module contains the main GUI application logic for the TAILSCALE VPN Client.
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -37,8 +37,8 @@ class TabbedClientApp:
             theme_name = settings.get("theme", "light")
         
         self.icon_image = getattr(master, 'icon_image', None)
-        self.master.title("MAPView VPN Client")
-        print("[DEBUG] >> Title set to 'MAPView VPN Client'")
+        self.master.title("TAILSCALE VPN Client")
+        print("[DEBUG] >> Title set to 'TAILSCALE VPN Client'")
         
         # Set geometry based on OS
         if sys.platform == "win32":
@@ -70,7 +70,7 @@ class TabbedClientApp:
         # Acquire the mutex at application startup
         acquired = acquire_mutex()
         if acquired is False:
-            messagebox.showwarning("Already Running", "Another instance of MAPView VPN Client is already running.")
+            messagebox.showwarning("Already Running", "Another instance of TAILSCALE VPN Client is already running.")
             sys.exit(0)
         elif acquired is None:
             messagebox.showerror("Error", "Could not acquire system mutex.")
@@ -176,10 +176,14 @@ class TabbedClientApp:
             self.lic_win.focus()
 
     def show_readme(self):
-        if not hasattr(self, "read_win") or not self.read_win.winfo_exists():
-            self.read_win = ReadmeViewer(self.master)
-        else:
-            self.read_win.focus()
+        """Restored logic to launch the standalone ReadmeViewer."""
+        try:
+            from gui.readme_viewer import ReadmeViewer
+            # Simply initialize it; our new logic handles the process launch
+            ReadmeViewer(self.master)
+        except Exception as e:
+            from gui.utils import write_log
+            write_log(f"Failed to launch README: {e}", level="ERROR")
 
     def _prompt_for_first_tab_name(self):
         print("[DEBUG] >> _prompt_for_first_tab_name called")

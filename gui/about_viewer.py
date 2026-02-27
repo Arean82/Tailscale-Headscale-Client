@@ -1,5 +1,5 @@
 # gui/about_viewer.py
-# This module defines the AboutViewer class, which displays information about the MAPView VPN Client in a simple window.    
+# This module defines the AboutViewer class, which displays information about the TAILSCALE VPN Client in a simple window.    
 
 import customtkinter as ctk
 from gui.common import COLORS, FONTS
@@ -19,7 +19,7 @@ class AboutViewer(ctk.CTkToplevel):
         # Center Content
         self.logo_label = ctk.CTkLabel(
             self, 
-            text="MAPView VPN", 
+            text="TAILSCALE VPN", 
             font=(FONTS["body"][0], 24, "bold"),
             text_color=COLORS["blue"]
         )

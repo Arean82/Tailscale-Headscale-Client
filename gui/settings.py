@@ -1,5 +1,5 @@
 # gui/settings.py
-# This module provides a dedicated settings window for the MAPView VPN Client using CustomTkinter.
+# This module provides a dedicated settings window for the TAILSCALE VPN Client using CustomTkinter.
 
 import tkinter as tk
 import customtkinter as ctk

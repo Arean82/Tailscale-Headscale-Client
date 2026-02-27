@@ -41,7 +41,7 @@ class ClientTab(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=0)
         self.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(self, text="MAPView VPN URL    :").grid(row=0, column=0, sticky='w', pady=(5, 2), padx=5)
+        ctk.CTkLabel(self, text="TAILSCALE VPN URL    :").grid(row=0, column=0, sticky='w', pady=(5, 2), padx=5)
         self.Entry1 = ctk.CTkEntry(self, textvariable=self.login_server_var, font=("Courier New", 12))
         self.Entry1.grid(row=0, column=1, sticky='ew', pady=(5, 2), padx=(0, 5))
 

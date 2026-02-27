@@ -18,7 +18,7 @@ def start_gui():
 
     # Use CTk instead of tk.Tk for full CustomTkinter compatibility
     root = ctk.CTk() 
-    root.title("MAPView VPN Client")
+    root.title("TAILSCALE VPN Client")
     
     # Original logic for geometry preserved
     root.geometry("400x300+100+100")  

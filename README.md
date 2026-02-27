@@ -1,9 +1,9 @@
-# 🌐 MAPView VPN Client
+# 🌐 TAILSCALE VPN Client
 ### *Cross-Platform Tailscale + Headscale Mesh Orchestration*
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python) ![UI](https://img.shields.io/badge/UI-CustomTkinter-orange) ![Security](https://img.shields.io/badge/Security-WireGuard-green) ![OS](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 
-**MAPView VPN Client** is a professional GUI orchestration tool designed to connect Tailscale nodes to a self-hosted **Headscale** server. It replaces the standard cloud-hosted control plane with a local, private interface, offering enhanced privacy, multi-profile management, and real-time traffic analytics.
+**TAILSCALE VPN Client** is a professional GUI orchestration tool designed to connect Tailscale nodes to a self-hosted **Headscale** server. It replaces the standard cloud-hosted control plane with a local, private interface, offering enhanced privacy, multi-profile management, and real-time traffic analytics.
 
 ---
 
@@ -100,7 +100,7 @@ C:.
 3. **Launch**: Run `python main.py` (or compile to a standalone `.exe` using PyInstaller).
 4. **Connect**:
 * Navigate to `Profile > Add New Profile`.
-* Enter your **MAPView VPN URL** and **Auth Key** (or select SSO).
+* Enter your **TAILSCALE VPN URL** and **Auth Key** (or select SSO).
 * Click **Connect**.
 
 
@@ -118,7 +118,7 @@ C:.
 
 ## 📜 Logging & Diagnostics
 
-MAPView VPN Client includes a powerful, opt-in diagnostic logging engine to help troubleshoot VPN handshakes, routing issues, and UI events.
+TAILSCALE VPN Client includes a powerful, opt-in diagnostic logging engine to help troubleshoot VPN handshakes, routing issues, and UI events.
 
 * **Enable/Disable**: Navigate to `File > Settings` and check **Enable Global App Logs**. Disabling this feature will safely prompt you to delete all existing diagnostic files to save space.
 * **Log Types**: When enabled, the app automatically generates the following files inside a dedicated `GlobalLogs` directory:

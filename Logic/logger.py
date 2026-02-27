@@ -1,5 +1,5 @@
 # logic/logger.py
-# This module manages all logging functionality for the MAPView VPN Client, including global loggers and dynamic profile loggers.  It uses Python's built-in logging library to create loggers that write to files in a dedicated GlobalLogs directory. The loggers are configured to only write to files if the user has enabled logging in the settings, ensuring that logs are generated according to user preferences.  The module also provides a function to refresh all loggers when the user toggles the logging setting, allowing for dynamic enabling/disabling of logs without needing to restart the application.  
+# This module manages all logging functionality for the TAILSCALE VPN Client, including global loggers and dynamic profile loggers.  It uses Python's built-in logging library to create loggers that write to files in a dedicated GlobalLogs directory. The loggers are configured to only write to files if the user has enabled logging in the settings, ensuring that logs are generated according to user preferences.  The module also provides a function to refresh all loggers when the user toggles the logging setting, allowing for dynamic enabling/disabling of logs without needing to restart the application.  
 
 import os
 import sys
