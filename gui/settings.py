@@ -10,7 +10,7 @@ import subprocess
 from logic.vpn_logic import load_settings, save_settings
 
 # Import both the directory getter AND the setup function we just created
-from logic.logger import get_global_log_dir, setup_global_logger 
+from logic.logger import get_global_log_dir, refresh_all_loggers
 
 class SettingsWindow(ctk.CTkToplevel):
     def __init__(self, master, icon_image=None):
@@ -97,7 +97,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self._update_log_ui()
         
         # 3. Reload the global logger immediately so it starts/stops writing right now
-        setup_global_logger()
+        refresh_all_loggers()
 
     def _update_log_ui(self):
         if self.enable_logs_var.get():

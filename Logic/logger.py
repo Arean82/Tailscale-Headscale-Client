@@ -1,47 +1,78 @@
 # logic/logger.py
+# This module manages all logging functionality for the MAPView VPN Client, including global loggers and dynamic profile loggers.  It uses Python's built-in logging library to create loggers that write to files in a dedicated GlobalLogs directory. The loggers are configured to only write to files if the user has enabled logging in the settings, ensuring that logs are generated according to user preferences.  The module also provides a function to refresh all loggers when the user toggles the logging setting, allowing for dynamic enabling/disabling of logs without needing to restart the application.  
 
 import os
+import json
 import logging
 from logging.handlers import RotatingFileHandler
 from config import APP_BASE_DIR
-from logic.vpn_logic import load_settings
 
-# Define the global log directory
 GLOBAL_LOG_DIR = os.path.join(APP_BASE_DIR, "GlobalLogs")
+SETTINGS_FILE = os.path.join(APP_BASE_DIR, "settings.json")
 
 def get_global_log_dir():
-    """Returns the path to the global log directory, creating it if it doesn't exist."""
     os.makedirs(GLOBAL_LOG_DIR, exist_ok=True)
     return GLOBAL_LOG_DIR
 
-def setup_global_logger():
-    """Configures and returns the global app logger based on user settings."""
-    logger = logging.getLogger("MAPView_Global_Logger")
+def _is_logging_enabled():
+    """Reads settings.json directly to check if global logs are enabled."""
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                settings = json.load(f)
+                return settings.get("enable_logs", False)
+        except Exception:
+            pass
+    return False
+
+def setup_logger(logger_name, log_filename):
+    """Creates a specific logger that writes to a file only if enabled."""
+    logger = logging.getLogger(logger_name)
     
-    # Prevent adding multiple handlers if the logger is called multiple times
     if logger.hasHandlers():
         logger.handlers.clear()
+        
+    logger.setLevel(logging.DEBUG)
 
-    # Always set level to DEBUG or INFO so it catches messages
-    logger.setLevel(logging.DEBUG) 
-
-    # Check if logs are enabled in settings
-    settings = load_settings()
-    if settings.get("enable_logs", False):
+    if _is_logging_enabled():
         log_dir = get_global_log_dir()
-        log_file = os.path.join(log_dir, "app_debug.log")
+        log_file = os.path.join(log_dir, log_filename)
         
-        # Use a rotating file handler to keep log files from getting too huge (max 5MB, keep 3 backups)
-        file_handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3)
+        handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
-        file_handler.setFormatter(formatter)
-        
-        logger.addHandler(file_handler)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
     else:
-        # If disabled, attach a NullHandler so logging calls don't crash, but do nothing
         logger.addHandler(logging.NullHandler())
 
     return logger
 
-# Create a convenient instance to import across the app
-app_logger = setup_global_logger()
+# --- Pre-configure Static Loggers ---
+app_logger = setup_logger("AppLogger", "app.log")
+db_logger  = setup_logger("DBLogger", "database.log")
+net_logger = setup_logger("NetLogger", "network.log")
+
+# --- Dynamic Profile Loggers ---
+def get_profile_logger(profile_name):
+    """
+    Dynamically creates or retrieves a logger for a specific profile.
+    Generates a file like 'Profile1_connection.log' in the GlobalLogs directory.
+    """
+    safe_profile_name = "".join(c for c in profile_name if c.isalnum() or c in (' ', '.', '_', '-')).strip()
+    safe_profile_name = safe_profile_name.replace(' ', '_')
+    
+    logger_name = f"ProfileLogger_{safe_profile_name}"
+    log_filename = f"{safe_profile_name}_connection.log"
+    
+    return setup_logger(logger_name, log_filename)
+
+def refresh_all_loggers():
+    """Called by settings.py when the user toggles the checkbox."""
+    global app_logger, db_logger, net_logger
+    
+    # Refresh static loggers
+    app_logger = setup_logger("AppLogger", "app.log")
+    db_logger  = setup_logger("DBLogger", "database.log")
+    net_logger = setup_logger("NetLogger", "network.log")
+    
+    # Note: Profile loggers will naturally refresh the next time get_profile_logger is called

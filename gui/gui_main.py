@@ -135,6 +135,13 @@ class TabbedClientApp:
         theme_menu.add_command(label="Light Theme", command=lambda: self.change_theme("light"))
         menu_bar.add_cascade(label="Theme", menu=theme_menu)
 
+        # Logs Menu
+        logs_menu = tk.Menu(menu_bar, tearoff=0)
+        # 'postcommand' makes it read the folder dynamically every time you click "Global Logs"
+        self.global_logs_menu = tk.Menu(logs_menu, tearoff=0, postcommand=self._populate_global_logs_menu)
+        logs_menu.add_cascade(label="Global logs", menu=self.global_logs_menu)
+        menu_bar.add_cascade(label="Logs", menu=logs_menu)
+
         # Help Menu
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="About Us", command=lambda: show_about(self.master, self.icon_image))
@@ -366,3 +373,33 @@ class TabbedClientApp:
             write_log(f"Error during app shutdown: {e}", level="ERROR")
 
         self.master.destroy()
+    
+    def _populate_global_logs_menu(self):
+        """Dynamically populates the Global logs submenu with files from the log directory."""
+        from logic.logger import get_global_log_dir
+        import os
+        from gui.log_viewer import LogViewer
+
+        # Clear existing entries in the menu
+        self.global_logs_menu.delete(0, tk.END)
+
+        log_dir = get_global_log_dir()
+        if not os.path.exists(log_dir):
+            self.global_logs_menu.add_command(label="No logs found", state="disabled")
+            return
+
+        # Fetch only .log files
+        log_files = [f for f in os.listdir(log_dir) if f.endswith('.log')]
+        
+        if not log_files:
+            self.global_logs_menu.add_command(label="No logs enabled/found", state="disabled")
+            return
+
+        # Add a command for each log file
+        for log_file in sorted(log_files):
+            # lambda f=log_file captures the current iteration value correctly
+            self.global_logs_menu.add_command(
+                label=log_file,
+                command=lambda f=log_file: LogViewer(self.master, f, f)
+            )
+    

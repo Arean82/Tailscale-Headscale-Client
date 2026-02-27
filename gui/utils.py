@@ -9,6 +9,8 @@ import customtkinter as ctk
 
 # Define the path for the main application log file
 from config import LOG_DIR
+# Import the new global app logger
+from logic.logger import app_logger
 
 # Ensure the log directory exists for write_log
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -44,13 +46,28 @@ def format_bytes(size):
     return f"{size:.2f} PB"
 
 def write_log(entry, level="INFO"):
-    """Writes an entry to the main application log file."""
+    """Writes an entry to the main application log file and the global logger."""
+    # --- Step 1: ORIGINAL BEHAVIOR (DO NOT TOUCH) ---
     try:
         with open(LOG_FILE, "a") as f:
             timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
             f.write(f"{timestamp} [{level}] {entry}\n")
     except Exception as e:
         print(f"Failed to write log (fallback print): {e} - Original entry: {entry}")
+
+    # --- Step 2: NEW GLOBAL LOGGING BEHAVIOR ---
+    try:
+        level_upper = level.upper()
+        if level_upper == "INFO":
+            app_logger.info(entry)
+        elif level_upper == "ERROR":
+            app_logger.error(entry)
+        elif level_upper == "WARNING" or level_upper == "WARN":
+            app_logger.warning(entry)
+        else:
+            app_logger.debug(entry)
+    except Exception as e:
+        print(f"Failed to write to global app_logger: {e}")
 
 def add_tooltip(widget, text, parent=None):
     # Maintaining your exact logic but compatible with ctk windows

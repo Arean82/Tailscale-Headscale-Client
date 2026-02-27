@@ -14,6 +14,7 @@ import json
 import threading
 import time
 from tkinter import messagebox
+from logic.logger import app_logger, get_profile_logger
 
 
 # Import OS-specific mutex functions
@@ -86,6 +87,7 @@ def get_file_path(base_filename, tab_name):
 
 def write_profile_log(tab_name, entry, level="DEBUG"):
     """Writes a debug-level log entry to the profile's connection.log."""
+    # --- Step 1: ORIGINAL BEHAVIOR (DO NOT TOUCH) ---
     try:
         log_path = get_file_path("connection.log", tab_name)
         timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
@@ -93,6 +95,23 @@ def write_profile_log(tab_name, entry, level="DEBUG"):
             f.write(f"{timestamp} [{level}] {entry}\n")
     except Exception as e:
         write_log(f"Error writing profile log for '{tab_name}': {e}", level="ERROR")
+
+    # --- Step 2: NEW GLOBAL LOGGING BEHAVIOR ---
+    try:
+        prof_logger = get_profile_logger(tab_name)
+        # Match the requested log level
+        level_upper = level.upper()
+        if level_upper == "INFO":
+            prof_logger.info(entry)
+        elif level_upper == "ERROR":
+            prof_logger.error(entry)
+        elif level_upper == "WARNING" or level_upper == "WARN":
+            prof_logger.warning(entry)
+        else:
+            prof_logger.debug(entry)
+    except Exception as e:
+        # If the global logger fails, we don't want it to crash the app
+        app_logger.error(f"Failed to write to global profile logger for {tab_name}: {e}")
 
 def encrypt_key(plain_text_key):
     """Encrypts the given plain text key."""
