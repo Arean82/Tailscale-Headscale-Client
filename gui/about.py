@@ -7,6 +7,7 @@ import customtkinter as ctk
 class AboutWindow(ctk.CTkToplevel):
     def __init__(self, master, icon_image=None):
         super().__init__(master)
+        self.transient(master) # Ensure the About window is always on top of the main window
         
         # Original Logic: Ensure it stays on top and grabs focus
         self.attributes("-topmost", True)

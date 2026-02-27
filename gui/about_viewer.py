@@ -7,6 +7,7 @@ from gui.common import COLORS, FONTS
 class AboutViewer(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
+        self.transient(parent)    
         self.title("About Us")
         self.geometry("400x300")
         self.resizable(False, False)

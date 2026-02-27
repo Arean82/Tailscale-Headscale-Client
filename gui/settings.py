@@ -6,16 +6,17 @@ import customtkinter as ctk
 import os
 import sys
 import subprocess
+from tkinter import messagebox
 
 from logic.vpn_logic import load_settings, save_settings
 
 # Import both the directory getter AND the setup function we just created
-from logic.logger import get_global_log_dir, refresh_all_loggers
+from logic.logger import get_global_log_dir, refresh_all_loggers, clear_global_logs
 
 class SettingsWindow(ctk.CTkToplevel):
     def __init__(self, master, icon_image=None):
         super().__init__(master)
-        
+        self.transient(master)
         self.title("Settings")
         self.geometry("320x220") 
         self.resizable(False, False)
@@ -89,6 +90,20 @@ class SettingsWindow(ctk.CTkToplevel):
         save_settings(self.settings)
 
     def _on_log_toggle(self):
+        # If the user is unchecking the box (turning logs off)
+        if not self.enable_logs_var.get():
+            confirm = messagebox.askokcancel(
+                "Disable & Delete Logs", 
+                "Disabling logs will permanently delete all existing log files in the GlobalLogs folder.\n\nAre you sure you want to proceed?"
+            )            
+            if not confirm:
+                # User clicked Cancel. Revert the checkbox back to checked.
+                self.enable_logs_var.set(True)
+                return  # Stop execution here
+                
+            # If user clicked OK, safely release and delete the files
+            clear_global_logs()
+
         # 1. Save the new setting to the JSON file
         self.settings["enable_logs"] = self.enable_logs_var.get()
         save_settings(self.settings)
@@ -96,7 +111,7 @@ class SettingsWindow(ctk.CTkToplevel):
         # 2. Update the UI to show/hide the path and button
         self._update_log_ui()
         
-        # 3. Reload the global logger immediately so it starts/stops writing right now
+        # 3. Reload all global loggers immediately
         refresh_all_loggers()
 
     def _update_log_ui(self):
@@ -112,6 +127,9 @@ class SettingsWindow(ctk.CTkToplevel):
             subprocess.Popen(["open", self.current_log_dir])
         else:  
             subprocess.Popen(["xdg-open", self.current_log_dir])
+
+    
+    
 
 def show_settings(master, icon_image=None):
     return SettingsWindow(master, icon_image)

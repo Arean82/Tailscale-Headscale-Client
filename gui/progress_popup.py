@@ -6,6 +6,7 @@ import customtkinter as ctk # Migrate to CustomTkinter
 class ProgressPopup(ctk.CTkToplevel): # Inherit from CTkToplevel
     def __init__(self, parent):
         super().__init__(parent)
+        self.transient(parent)
         self.overrideredirect(True)
         self.attributes("-topmost", True)
 

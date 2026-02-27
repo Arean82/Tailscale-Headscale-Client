@@ -22,6 +22,7 @@ def show_change_credentials_popup(master, tab_name, current_url, current_key, sa
     popup_height = 240
     
     popup = ctk.CTkToplevel(master)
+    popup.transient(master)
     popup.title(f"Set VPN Credentials - '{tab_name}'")
     popup.geometry(f"{popup_width}x{popup_height}")
     popup.resizable(False, False)

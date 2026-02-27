@@ -9,6 +9,7 @@ from config import APP_DATA_DIR, LOG_DIR
 from gui.utils import write_log, center_window
 from logic.vpn_logic import load_last_selected_tab_id, initialize_app_storage
 from gui.gui_main import TabbedClientApp
+from logic.logger import app_logger
 
 def start_gui():
     print("[DEBUG] >> start_gui called")

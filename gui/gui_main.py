@@ -17,6 +17,7 @@ from gui.license_viewer import LicenseViewer
 from gui.readme_viewer import ReadmeViewer
 from gui.settings import show_settings  # Added import for the new settings module
 from gui.about import show_about # Add this alongside your other imports
+from logic.logger import app_logger
 
 from logic.vpn_logic import (
     acquire_mutex, release_mutex, check_tailscale_installed,

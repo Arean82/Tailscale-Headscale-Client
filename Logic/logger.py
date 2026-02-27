@@ -2,6 +2,7 @@
 # This module manages all logging functionality for the MAPView VPN Client, including global loggers and dynamic profile loggers.  It uses Python's built-in logging library to create loggers that write to files in a dedicated GlobalLogs directory. The loggers are configured to only write to files if the user has enabled logging in the settings, ensuring that logs are generated according to user preferences.  The module also provides a function to refresh all loggers when the user toggles the logging setting, allowing for dynamic enabling/disabling of logs without needing to restart the application.  
 
 import os
+import sys
 import json
 import logging
 from logging.handlers import RotatingFileHandler
@@ -25,6 +26,31 @@ def _is_logging_enabled():
             pass
     return False
 
+# --- Print Redirection Logic ---
+class StreamToLogger:
+    """Redirects print() (stdout/stderr) to the logging module."""
+    def __init__(self, logger, log_level):
+        self.logger = logger
+        self.log_level = log_level
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            if line.strip():  # Avoid logging empty blank lines
+                self.logger.log(self.log_level, line.rstrip())
+
+    def flush(self):
+        pass
+
+def manage_sys_streams(enabled):
+    """Overrides or restores standard print outputs."""
+    if enabled:
+        sys.stdout = StreamToLogger(app_logger, logging.DEBUG)
+        sys.stderr = StreamToLogger(app_logger, logging.ERROR)
+    else:
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+
+# --- Logger Setup ---
 def setup_logger(logger_name, log_filename):
     """Creates a specific logger that writes to a file only if enabled."""
     logger = logging.getLogger(logger_name)
@@ -47,32 +73,51 @@ def setup_logger(logger_name, log_filename):
 
     return logger
 
-# --- Pre-configure Static Loggers ---
+# Pre-configure our specific loggers
 app_logger = setup_logger("AppLogger", "app.log")
 db_logger  = setup_logger("DBLogger", "database.log")
 net_logger = setup_logger("NetLogger", "network.log")
 
-# --- Dynamic Profile Loggers ---
+# Setup stream capture initially based on current settings
+manage_sys_streams(_is_logging_enabled())
+
 def get_profile_logger(profile_name):
-    """
-    Dynamically creates or retrieves a logger for a specific profile.
-    Generates a file like 'Profile1_connection.log' in the GlobalLogs directory.
-    """
+    """Dynamically creates or retrieves a logger for a specific profile."""
     safe_profile_name = "".join(c for c in profile_name if c.isalnum() or c in (' ', '.', '_', '-')).strip()
     safe_profile_name = safe_profile_name.replace(' ', '_')
-    
     logger_name = f"ProfileLogger_{safe_profile_name}"
     log_filename = f"{safe_profile_name}_connection.log"
-    
     return setup_logger(logger_name, log_filename)
+
+def clear_global_logs():
+    """Safely closes logger file handles and deletes the log files."""
+    # 1. Find all active loggers and close their file handlers (releases Windows file locks)
+    loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+    loggers.extend([app_logger, db_logger, net_logger]) # Ensure our mains are included
+    
+    for logger in loggers:
+        for handler in logger.handlers[:]:
+            handler.close()
+            logger.removeHandler(handler)
+            
+    # 2. Delete files in the directory
+    if os.path.exists(GLOBAL_LOG_DIR):
+        for filename in os.listdir(GLOBAL_LOG_DIR):
+            file_path = os.path.join(GLOBAL_LOG_DIR, filename)
+            try:
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                # If it fails to delete, print to standard console (since file logs are closing)
+                print(f"Failed to delete {file_path}: {e}")
 
 def refresh_all_loggers():
     """Called by settings.py when the user toggles the checkbox."""
     global app_logger, db_logger, net_logger
+    enabled = _is_logging_enabled()
     
-    # Refresh static loggers
     app_logger = setup_logger("AppLogger", "app.log")
     db_logger  = setup_logger("DBLogger", "database.log")
     net_logger = setup_logger("NetLogger", "network.log")
     
-    # Note: Profile loggers will naturally refresh the next time get_profile_logger is called
+    manage_sys_streams(enabled)
