@@ -4,18 +4,26 @@ import markdown
 import webview
 import multiprocessing
 
+class ReadmeAPI:
+    """Official pywebview bridge to handle window destruction."""
+    def __init__(self):
+        self.window = None
+
+    def close(self):
+        if self.window:
+            self.window.destroy()
+
 def _launch_readme_window(html_content):
-    """
-    Launch the webview in a dedicated process.
-    Window size is set here: width=1000, height=800.
-    """
+    api = ReadmeAPI()
+    # SIZE LOCKED: 800x600
     window = webview.create_window(
         "README - TAILSCALE VPN Client", 
         html=html_content, 
+        js_api=api,
         width=800, 
-        height=600,
-        resizable=True
+        height=600
     )
+    api.window = window
     webview.start()
 
 class ReadmeViewer:
@@ -34,7 +42,6 @@ class ReadmeViewer:
 
         html_body = markdown.markdown(md_content, extensions=["fenced_code", "tables"])
 
-        # YOUR EXACT CSS + Added Fixed Close Button Styling
         full_html = f"""
         <html>
         <head>
@@ -43,8 +50,10 @@ class ReadmeViewer:
                 body {{
                     font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial;
                     margin: 40px;
-                    margin-bottom: 100px; /* Space for button */
-                    max-width: 900px;
+                    margin-bottom: 80px; 
+                    max-width: 700px;
+                    margin-left: auto;
+                    margin-right: auto;
                 }}
                 h1, h2, h3 {{ border-bottom: 1px solid #ddd; padding-bottom: 5px; }}
                 pre {{ background: #f6f8fa; padding: 12px; border-radius: 6px; overflow-x: auto; }}
@@ -52,14 +61,13 @@ class ReadmeViewer:
                 table {{ border-collapse: collapse; width: 100%; }}
                 th, td {{ border: 1px solid #ddd; padding: 8px; }}
                 
-                /* Fixed Close Button Logic */
                 .footer {{
                     position: fixed;
                     bottom: 0;
                     left: 0;
                     width: 100%;
                     background: white;
-                    padding: 20px 0;
+                    padding: 15px 0;
                     border-top: 1px solid #ddd;
                     text-align: center;
                 }}
@@ -72,6 +80,7 @@ class ReadmeViewer:
                     cursor: pointer;
                     font-size: 14px;
                     font-family: sans-serif;
+                    font-weight: bold;
                 }}
                 .close-btn:hover {{ background-color: #005a9e; }}
             </style>
@@ -79,7 +88,7 @@ class ReadmeViewer:
         <body>
             {html_body}
             <div class="footer">
-                <button class="close-btn" onclick="window.close()">Close README</button>
+                <button class="close-btn" onclick="pywebview.api.close()">Close README</button>
             </div>
         </body>
         </html>
