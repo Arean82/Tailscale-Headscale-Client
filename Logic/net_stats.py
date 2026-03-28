@@ -8,7 +8,7 @@ from datetime import datetime
 
 # Import shared configuration and logging
 from config import APP_BASE_DIR, LOG_DIR
-from gui.utils import write_log
+def write_log(msg, level="INFO"): print(f"[{level}] {msg}")
 
 # Use APP_BASE_DIR for consistency
 DB_FILE = os.path.join(APP_BASE_DIR, "traffic_stats.db") # This should probably be in db_manager, but keeping consistent with original structure for now.

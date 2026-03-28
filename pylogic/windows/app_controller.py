@@ -72,16 +72,19 @@ class AppController(QMainWindow):
         if acquired is False:
             QMessageBox.warning(self, "Already Running",
                                 "Another instance of TAILSCALE VPN Client is already running.")
-            sys.exit(0)
+            QTimer.singleShot(0, QApplication.instance().quit)
+            return
         elif acquired is None:
             QMessageBox.critical(self, "Error", "Could not acquire system mutex.")
-            sys.exit(1)
+            QTimer.singleShot(0, QApplication.instance().quit)
+            return
 
         # Tailscale check
         if not check_tailscale_installed():
             QMessageBox.critical(self, "Error",
                                  "Tailscale CLI not found. Please install Tailscale.")
-            sys.exit(1)
+            QTimer.singleShot(0, QApplication.instance().quit)
+            return
 
         # Wire menu actions
         self._connect_menu_actions()
@@ -385,12 +388,10 @@ def start_gui():
     initialize_app_storage()
 
     app = QApplication.instance() or QApplication(sys.argv)
-
-    # High-DPI support (Qt6 has it by default, but be explicit)
     app.setApplicationName("TAILSCALE VPN Client")
 
     window = AppController()
     window.show()
 
     app_logger.info("Launching GUI...")
-    sys.exit(app.exec())
+    app.exec()

@@ -4,7 +4,7 @@
 import sys
 import os
 import errno
-from gui.utils import write_log
+def write_log(msg, level="INFO"): print(f"[{level}] {msg}")
 
 if sys.platform == "win32":
     import msvcrt
