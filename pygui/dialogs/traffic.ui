@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TrafficDialog</class>
+ <widget class="QDialog" name="TrafficDialog">
+  <property name="windowTitle"><string>Traffic Stats</string></property>
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>260</width><height>240</height></rect>
+  </property>
+  <property name="sizeGripEnabled"><bool>false</bool></property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="contentsMargins">
+    <number>16</number><number>12</number><number>16</number><number>12</number>
+   </property>
+   <property name="spacing"><number>8</number></property>
+
+   <item>
+    <widget class="QLabel" name="labelTitle">
+     <property name="text"><string>Traffic Statistics</string></property>
+     <property name="font">
+      <font><family>Segoe UI</family><pointsize>11</pointsize><bold>true</bold></font>
+     </property>
+     <property name="alignment"><enum>Qt::AlignCenter</enum></property>
+    </widget>
+   </item>
+
+   <item>
+    <widget class="QLabel" name="labelStats">
+     <property name="text"><string></string></property>
+     <property name="font">
+      <font><family>Courier New</family><pointsize>10</pointsize></font>
+     </property>
+     <property name="alignment"><enum>Qt::AlignLeft</enum></property>
+    </widget>
+   </item>
+
+   <item>
+    <widget class="QLabel" name="labelDailyStats">
+     <property name="text"><string></string></property>
+     <property name="font">
+      <font><family>Courier New</family><pointsize>10</pointsize><bold>true</bold></font>
+     </property>
+     <property name="alignment"><enum>Qt::AlignLeft</enum></property>
+     <property name="styleSheet"><string>color: #3b8ed0;</string></property>
+    </widget>
+   </item>
+
+   <item>
+    <spacer>
+     <property name="orientation"><enum>Qt::Vertical</enum></property>
+     <property name="sizeHint" stdset="0"><size><width>20</width><height>10</height></size></property>
+    </spacer>
+   </item>
+
+   <item>
+    <widget class="QPushButton" name="btnClose">
+     <property name="text"><string>Close</string></property>
+     <property name="maximumWidth"><number>100</number></property>
+    </widget>
+   </item>
+
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

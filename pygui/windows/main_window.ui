@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="windowTitle">
+   <string>TAILSCALE VPN Client</string>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>100</x>
+    <y>100</y>
+    <width>420</width>
+    <height>280</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>380</width>
+    <height>240</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>500</width>
+    <height>400</height>
+   </size>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="contentsMargins">
+     <number>6</number>
+     <number>6</number>
+     <number>6</number>
+     <number>6</number>
+    </property>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="tabPosition">
+       <enum>QTabWidget::North</enum>
+      </property>
+      <property name="tabShape">
+       <enum>QTabWidget::Rounded</enum>
+      </property>
+      <property name="movable">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>420</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <!-- File menu -->
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionSettings"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <!-- Profile menu -->
+   <widget class="QMenu" name="menuProfile">
+    <property name="title">
+     <string>Profile</string>
+    </property>
+    <addaction name="actionAddProfile"/>
+    <addaction name="actionRemoveProfile"/>
+   </widget>
+   <!-- Theme menu -->
+   <widget class="QMenu" name="menuTheme">
+    <property name="title">
+     <string>Theme</string>
+    </property>
+    <addaction name="actionLightTheme"/>
+    <addaction name="actionDarkTheme"/>
+   </widget>
+   <!-- Logs menu -->
+   <widget class="QMenu" name="menuLogs">
+    <property name="title">
+     <string>Logs</string>
+    </property>
+    <widget class="QMenu" name="menuGlobalLogs">
+     <property name="title">
+      <string>Global Logs</string>
+     </property>
+    </widget>
+    <addaction name="menuGlobalLogs"/>
+   </widget>
+   <!-- Help menu -->
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+    <addaction name="actionLicense"/>
+    <addaction name="actionReadme"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuProfile"/>
+   <addaction name="menuTheme"/>
+   <addaction name="menuLogs"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <!-- Actions -->
+  <action name="actionSettings">
+   <property name="text"><string>Settings</string></property>
+  </action>
+  <action name="actionExit">
+   <property name="text"><string>Exit</string></property>
+  </action>
+  <action name="actionAddProfile">
+   <property name="text"><string>Add New Profile</string></property>
+  </action>
+  <action name="actionRemoveProfile">
+   <property name="text"><string>Remove Current Profile</string></property>
+  </action>
+  <action name="actionLightTheme">
+   <property name="text"><string>Light Theme</string></property>
+  </action>
+  <action name="actionDarkTheme">
+   <property name="text"><string>Dark Theme</string></property>
+  </action>
+  <action name="actionAbout">
+   <property name="text"><string>About Us</string></property>
+  </action>
+  <action name="actionLicense">
+   <property name="text"><string>View License</string></property>
+  </action>
+  <action name="actionReadme">
+   <property name="text"><string>Readme</string></property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

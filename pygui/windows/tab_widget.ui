@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TabWidget</class>
+ <widget class="QWidget" name="TabWidget">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>400</width><height>210</height></rect>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <property name="contentsMargins">
+    <number>6</number><number>6</number><number>6</number><number>6</number>
+   </property>
+   <property name="verticalSpacing"><number>4</number></property>
+
+   <!-- Row 0: URL label + entry -->
+   <item row="0" column="0">
+    <widget class="QLabel" name="labelUrl">
+     <property name="text"><string>TAILSCALE VPN URL    :</string></property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QLineEdit" name="lineEditUrl">
+     <property name="font">
+      <font><family>Courier New</family><pointsize>10</pointsize></font>
+     </property>
+     <property name="placeholderText"><string>https://vpn.example.com</string></property>
+    </widget>
+   </item>
+
+   <!-- Row 1: Status label + Change Credentials button -->
+   <item row="1" column="0">
+    <widget class="QLabel" name="labelStatus">
+     <property name="text"><string>🔴 Disconnected</string></property>
+     <property name="font">
+      <font><family>Segoe UI</family><pointsize>10</pointsize><bold>true</bold></font>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QPushButton" name="btnChangeCredentials">
+     <property name="text"><string>Change Credentials</string></property>
+     <property name="maximumWidth"><number>160</number></property>
+    </widget>
+   </item>
+
+   <!-- Row 2: Action buttons frame -->
+   <item row="2" column="0" colspan="2">
+    <widget class="QWidget" name="buttonFrame">
+     <layout class="QHBoxLayout" name="hLayoutButtons">
+      <property name="contentsMargins">
+       <number>0</number><number>0</number><number>0</number><number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="btnVpnAction">
+        <property name="text"><string>Connect</string></property>
+        <property name="objectName"><string>btn_connect</string></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnShowStats">
+        <property name="text"><string>Show Traffic Stats</string></property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- Row 3: Traffic label -->
+   <item row="3" column="0" colspan="2">
+    <widget class="QLabel" name="labelTraffic">
+     <property name="text"><string>Traffic: Sent 0 B / Received 0 B</string></property>
+     <property name="font">
+      <font><family>Courier New</family><pointsize>9</pointsize></font>
+     </property>
+    </widget>
+   </item>
+
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

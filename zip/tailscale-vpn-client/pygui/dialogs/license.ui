@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LicenseDialog</class>
+ <widget class="QDialog" name="LicenseDialog">
+  <property name="windowTitle"><string>License</string></property>
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>520</width><height>420</height></rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="contentsMargins">
+    <number>10</number><number>10</number><number>10</number><number>10</number>
+   </property>
+   <property name="spacing"><number>8</number></property>
+   <item>
+    <widget class="QPlainTextEdit" name="textArea">
+     <property name="readOnly"><bool>true</bool></property>
+     <property name="font">
+      <font><family>Consolas</family><pointsize>9</pointsize></font>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="btnClose">
+     <property name="text"><string>Close</string></property>
+     <property name="maximumWidth"><number>120</number></property>
+     <property name="styleSheet"><string>background-color: #007acc; color: white;</string></property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

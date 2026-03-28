@@ -39,5 +39,3 @@ if __name__ == "__main__":
 
     app_logger.info("Launching GUI...")
     start_gui()
-
-    

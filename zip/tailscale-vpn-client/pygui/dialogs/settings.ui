@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SettingsDialog</class>
+ <widget class="QDialog" name="SettingsDialog">
+  <property name="windowTitle"><string>Settings</string></property>
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>340</width><height>240</height></rect>
+  </property>
+  <property name="sizeGripEnabled"><bool>false</bool></property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="contentsMargins">
+    <number>20</number><number>16</number><number>20</number><number>16</number>
+   </property>
+   <property name="spacing"><number>10</number></property>
+
+   <item>
+    <widget class="QCheckBox" name="chkAutoConnect">
+     <property name="text"><string>Enable Auto-connect on startup</string></property>
+    </widget>
+   </item>
+
+   <item>
+    <widget class="QCheckBox" name="chkEnableLogs">
+     <property name="text"><string>Enable Global App Logs</string></property>
+    </widget>
+   </item>
+
+   <!-- Log detail frame (shown/hidden by chkEnableLogs) -->
+   <item>
+    <widget class="QFrame" name="frameLogDetails">
+     <property name="frameShape"><enum>QFrame::StyledPanel</enum></property>
+     <layout class="QVBoxLayout" name="vLayoutLog">
+      <property name="contentsMargins">
+       <number>8</number><number>6</number><number>8</number><number>6</number>
+      </property>
+      <property name="spacing"><number>6</number></property>
+      <item>
+       <widget class="QLabel" name="labelLogPath">
+        <property name="text"><string>Path: (loading...)</string></property>
+        <property name="wordWrap"><bool>true</bool></property>
+        <property name="font">
+         <font><pointsize>8</pointsize></font>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnOpenLogFolder">
+        <property name="text"><string>Open Log Folder</string></property>
+        <property name="maximumWidth"><number>140</number></property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <item>
+    <spacer>
+     <property name="orientation"><enum>Qt::Vertical</enum></property>
+     <property name="sizeHint" stdset="0"><size><width>20</width><height>10</height></size></property>
+    </spacer>
+   </item>
+
+   <item>
+    <widget class="QPushButton" name="btnClose">
+     <property name="text"><string>Close</string></property>
+     <property name="maximumWidth"><number>100</number></property>
+    </widget>
+   </item>
+
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
