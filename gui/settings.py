@@ -18,7 +18,7 @@ class SettingsWindow(ctk.CTkToplevel):
         super().__init__(master)
         self.transient(master)
         self.title("Settings")
-        self.geometry("320x220") 
+        self.geometry("340x380") 
         self.resizable(False, False)
         
         self.attributes("-topmost", True)
@@ -75,15 +75,38 @@ class SettingsWindow(ctk.CTkToplevel):
         )
         self.open_log_btn.pack(pady=(0, 10))
 
+        # Profile Limit Section
+        ctk.CTkLabel(container, text="Max Profile Limit:", font=("Segoe UI", 12, "bold")).pack(pady=(10, 0))
+        self.max_tabs_var = tk.IntVar(value=self.settings.get("max_tabs", 5))
+        
+        self.limit_slider = ctk.CTkSlider(
+            container, 
+            from_=1, 
+            to=10, 
+            number_of_steps=9, 
+            variable=self.max_tabs_var,
+            command=self._on_limit_change
+        )
+        self.limit_slider.pack(pady=(5, 0))
+        
+        self.limit_label = ctk.CTkLabel(container, text=f"Value: {self.max_tabs_var.get()}", font=("Arial", 10))
+        self.limit_label.pack()
+
         self._update_log_ui()
 
         self.close_btn = ctk.CTkButton(
             container, 
-            text="Close", 
+            text="Save & Close", 
             command=self.destroy,
-            width=100
+            width=120,
+            fg_color="#007acc"
         )
-        self.close_btn.pack(side="bottom", pady=(10, 0))
+        self.close_btn.pack(side="bottom", pady=(15, 0))
+
+    def _on_limit_change(self, val):
+        self.limit_label.configure(text=f"Value: {int(val)}")
+        self.settings["max_tabs"] = int(val)
+        save_settings(self.settings)
 
     def _on_toggle(self):
         self.settings["auto_connect"] = self.auto_connect_var.get()

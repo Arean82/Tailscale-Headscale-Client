@@ -1,6 +1,7 @@
 # gui/gui_main.py
 # This module contains the main GUI application logic for the TAILSCALE VPN Client.
 
+from gui.utils import write_log
 import tkinter as tk
 from tkinter import ttk, messagebox
 import customtkinter as ctk 
@@ -15,22 +16,24 @@ from gui.themes import THEMES
 from gui.gui_tabs import ClientTab 
 from gui.license_viewer import LicenseViewer
 from gui.readme_viewer import ReadmeViewer
-from gui.settings import show_settings  # Added import for the new settings module
-from gui.about import show_about # Add this alongside your other imports
+from gui.settings import show_settings
+from gui.about import show_about
+from gui.tray_handler import TrayHandler
 from logic.logger import app_logger
 
 from logic.vpn_logic import (
     acquire_mutex, release_mutex, check_tailscale_installed,
-    initialize_app_storage, get_tab_dir, load_tab_names, auto_connect_if_enabled, load_settings, save_settings,
+    initialize_app_storage, get_tab_dir, load_tab_names, load_settings, save_settings,
     save_tab_names, load_last_selected_tab_id, save_last_selected_tab_id,
-    write_log, get_file_path, TAB_NAMES_FILE
+    get_file_path, TAB_NAMES_FILE, DataCache
 )
+from concurrent.futures import ThreadPoolExecutor
 
 class TabbedClientApp:
-    MAX_TABS = 5 # Maximum Profile Limit. To increase change the value
     def __init__(self, master, theme_name=None):
         print("[DEBUG] >> TabbedClientApp init start")
         self.master = master
+        self.tabs = {} # Initialize early to avoid theme update errors
     
         if theme_name is None:
             settings = load_settings()
@@ -53,12 +56,7 @@ class TabbedClientApp:
         self.master.protocol("WM_DELETE_WINDOW", self.on_close_app)
 
         self.current_theme_name = theme_name
-        self.current_theme = THEMES.get(theme_name, THEMES["light"])
-
-        if theme_name == "dark":
-            self.style = setup_dark_styles(self.current_theme)
-        else:
-            self.style = setup_styles(self.current_theme)
+        self.current_theme = THEMES.get(theme_name if theme_name in THEMES else "dark")
 
         self._bgcolor = self.current_theme.get("bgcolor")
         self._fgcolor = self.current_theme.get("fgcolor")
@@ -66,6 +64,9 @@ class TabbedClientApp:
         self.master.configure(background=self.current_theme["bgcolor"])
 
         self._create_menu_bar()  
+
+        # Apply theme (handles system/dark/light and style setup)
+        self.change_theme(theme_name)
         
         # Acquire the mutex at application startup
         acquired = acquire_mutex()
@@ -92,7 +93,6 @@ class TabbedClientApp:
 
         self.notebook = self.tabview
         
-        self.tabs = {}
         print("[DEBUG] >> Loading tab names")
         self.tab_id_to_name = load_tab_names()
         print(f"[DEBUG] >> Loaded tab names: {self.tab_id_to_name}")
@@ -106,12 +106,70 @@ class TabbedClientApp:
             print("[DEBUG] >> No tabs found, prompting for first tab name")
             self._prompt_for_first_tab_name()
         else:
-            for tab_id in sorted(self.tab_id_to_name.keys()):
+            # High-performance parallel pre-loading of profile data
+            print("[DEBUG] >> Pre-loading profile data in parallel")
+            DataCache.preload_all_profiles()
+
+            # Parallel tab initialization
+            print("[DEBUG] >> Initializing tabs in parallel")
+            sorted_tab_ids = sorted(self.tab_id_to_name.keys())
+            
+            # Since CTkTabview.add must be called on main thread, we parallelize the Data fetching 
+            # and then add to GUI sequentially but with pre-cached data.
+            for tab_id in sorted_tab_ids:
                 tab_name = self.tab_id_to_name[tab_id]
-                print(f"[DEBUG] >> Loading tab: {tab_id} - {tab_name}")    
                 self.add_new_tab(tab_name=tab_name, existing_tab_id=tab_id)
 
         self.update_tab_states()
+
+        # Initialize System Tray
+        self._setup_tray()
+
+        # Handle Auto-connect
+        self._auto_connect_if_enabled()
+
+    def _auto_connect_if_enabled(self):
+        """Auto-connect VPN on startup if enabled in settings."""
+        settings = load_settings()
+        if not settings.get("auto_connect", False):
+            return
+
+        last_tab_id = load_last_selected_tab_id()
+        if last_tab_id is not None and last_tab_id in self.tabs:
+            tab_instance = self.tabs[last_tab_id]
+            tab_name = tab_instance.tab_name
+            self.tabview.set(tab_name)
+            self.update_tab_states()
+            if hasattr(tab_instance, "connect_vpn"):
+                self.master.after(500, tab_instance.connect_vpn)
+        else:
+            # Fallback to first tab
+            if self.tab_id_to_name:
+                first_id = sorted(self.tab_id_to_name.keys())[0]
+                first_name = self.tab_id_to_name[first_id]
+                self.tabview.set(first_name)
+                self.update_tab_states()
+                first_tab_instance = self.tabs[first_id]
+                if hasattr(first_tab_instance, "connect_vpn"):
+                    self.master.after(500, first_tab_instance.connect_vpn)
+
+    def _setup_tray(self):
+        """Sets up the system tray integration."""
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        icon_path = os.path.join(base_dir, "icon.png")
+        if not os.path.exists(icon_path):
+             icon_path = os.path.join(base_dir, "assets", "icon.png")
+        
+        self.tray_handler = TrayHandler(self, icon_path)
+        self.tray_handler.run()
+        
+        # Bind the minimize event
+        self.master.bind("<Unmap>", self._on_window_unmap)
+
+    def _on_window_unmap(self, event):
+        """Handles the window minimize event."""
+        if self.master.state() == 'iconic':
+            self.tray_handler.hide_to_tray()
 
     def _create_menu_bar(self):
         menu_bar = tk.Menu(self.master)
@@ -132,8 +190,12 @@ class TabbedClientApp:
         self.profile_menu = profile_menu
 
         # Theme Menu
+        self.theme_var = tk.StringVar(value=self.current_theme_name)
         theme_menu = tk.Menu(menu_bar, tearoff=0)
-        theme_menu.add_command(label="Light Theme", command=lambda: self.change_theme("light"))
+        theme_menu.add_radiobutton(label="Light Theme", variable=self.theme_var, value="light", command=lambda: self.change_theme("light"))
+        theme_menu.add_radiobutton(label="Dark Theme", variable=self.theme_var, value="dark", command=lambda: self.change_theme("dark"))
+        theme_menu.add_separator()
+        theme_menu.add_radiobutton(label="System Default", variable=self.theme_var, value="system", command=lambda: self.change_theme("system"))
         menu_bar.add_cascade(label="Theme", menu=theme_menu)
 
         # Logs Menu
@@ -153,17 +215,40 @@ class TabbedClientApp:
         self.master.config(menu=menu_bar)
 
     def change_theme(self, new_theme_name):
-        if new_theme_name not in THEMES:
+        if new_theme_name not in THEMES and new_theme_name != "system":
             print(f"Theme '{new_theme_name}' not found.")
             return
 
         self.current_theme_name = new_theme_name
-        self.current_theme = THEMES[new_theme_name]
+        if hasattr(self, "theme_var"):
+            self.theme_var.set(new_theme_name)
+        
+        if new_theme_name == "system":
+            ctk.set_appearance_mode("system")
+            # For system mode, we pick dark colors as default for internal logic, 
+            # though CTK will handle the visual part.
+            self.current_theme = THEMES["dark"]
+        elif new_theme_name == "dark":
+            ctk.set_appearance_mode("dark")
+            self.current_theme = THEMES["dark"]
+        else:
+            ctk.set_appearance_mode("light")
+            self.current_theme = THEMES["light"]
+
         self._bgcolor = self.current_theme["bgcolor"]
         self._fgcolor = self.current_theme["fgcolor"]
 
-        self.style = setup_styles(self.current_theme)
+        if ctk.get_appearance_mode().lower() == "dark":
+            self.style = setup_dark_styles(self.current_theme)
+        else:
+            self.style = setup_styles(self.current_theme)
+
         self.master.configure(background=self._bgcolor)
+
+        # Update all existing tabs
+        for tab_instance in self.tabs.values():
+            if hasattr(tab_instance, "update_theme"):
+                tab_instance.update_theme(self.current_theme)
 
         settings = load_settings()
         settings["theme"] = new_theme_name
@@ -176,11 +261,11 @@ class TabbedClientApp:
             self.lic_win.focus()
 
     def show_readme(self):
-        """Restored logic to launch the standalone ReadmeViewer."""
+        """Restored logic to launch the standalone ReadmeViewer with theme support."""
         try:
             from gui.readme_viewer import ReadmeViewer
-            # Simply initialize it; our new logic handles the process launch
-            ReadmeViewer(self.master)
+            # Pass the current theme name to ensure visual consistency
+            ReadmeViewer(self.master, theme=self.current_theme_name)
         except Exception as e:
             from gui.utils import write_log
             write_log(f"Failed to launch README: {e}", level="ERROR")
@@ -235,8 +320,10 @@ class TabbedClientApp:
         create_button.pack(pady=10)
 
     def on_add_new_tab_click(self):
-        if len(self.tabs) >= self.MAX_TABS:
-            messagebox.showwarning("Tab Limit", f"Maximum {self.MAX_TABS} tabs allowed.")
+        settings = load_settings()
+        max_tabs = settings.get("max_tabs", 5)
+        if len(self.tabs) >= max_tabs:
+            messagebox.showwarning("Tab Limit", f"Maximum {max_tabs} profiles allowed. You can increase this in File > Settings.")
             return
 
         popup_width = 300
@@ -363,6 +450,9 @@ class TabbedClientApp:
                 return
 
         try:
+            if hasattr(self, 'tray_handler'):
+                self.tray_handler.icon.stop()
+
             for tab_name in self.tab_id_to_name.values():
                 tab_dir = get_tab_dir(tab_name)
                 if os.path.exists(tab_dir) and not os.listdir(tab_dir):

@@ -33,7 +33,7 @@ def center_window(parent, child, width, height):
     if x < 0: x = 0
     if y < 0: y = 0
     if x + width > screen_width: x = screen_width - width
-    if y + height > screen_height: x = screen_height - height
+    if y + height > screen_height: y = screen_height - height
 
     child.geometry(f"{width}x{height}+{int(x)}+{int(y)}")
 
@@ -46,28 +46,20 @@ def format_bytes(size):
     return f"{size:.2f} PB"
 
 def write_log(entry, level="INFO"):
-    """Writes an entry to the main application log file and the global logger."""
-    # --- Step 1: ORIGINAL BEHAVIOR (DO NOT TOUCH) ---
-    try:
-        with open(LOG_FILE, "a") as f:
-            timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-            f.write(f"{timestamp} [{level}] {entry}\n")
-    except Exception as e:
-        print(f"Failed to write log (fallback print): {e} - Original entry: {entry}")
-
-    # --- Step 2: NEW GLOBAL LOGGING BEHAVIOR ---
+    """Wrapper that sends log entries to the global app_logger."""
     try:
         level_upper = level.upper()
-        if level_upper == "INFO":
-            app_logger.info(entry)
-        elif level_upper == "ERROR":
+        if level_upper == "ERROR":
             app_logger.error(entry)
-        elif level_upper == "WARNING" or level_upper == "WARN":
+        elif level_upper in ["WARNING", "WARN"]:
             app_logger.warning(entry)
-        else:
+        elif level_upper == "DEBUG":
             app_logger.debug(entry)
+        else:
+            app_logger.info(entry)
     except Exception as e:
-        print(f"Failed to write to global app_logger: {e}")
+        # Final fallback to console if logger fails
+        print(f"Logging failed: {e} - Entry: {entry}")
 
 def add_tooltip(widget, text, parent=None):
     # Maintaining your exact logic but compatible with ctk windows

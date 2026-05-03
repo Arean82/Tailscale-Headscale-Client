@@ -6,6 +6,7 @@ import sys
 import subprocess
 import threading
 import time
+import re
 from tkinter import messagebox
 from logic.statuscheck import wait_until_connected
 
@@ -172,24 +173,23 @@ class TailscaleClient:
                 text=True
             )
 
+            url_opened = False
             for line in process.stdout:
                 line = line.strip()
                 output_lines.append(line)
                 self._print_output(line)
                 write_profile_log(profile_name, line)
 
-                if "https://" in line and "/a/" in line:
-                    login_url = line
-                    self._print_output(f"🔐 SSO Login URL: {login_url}")
-                    if self.message_popup_callback:
-                        self.message_popup_callback("SSO Login Required", f"Please authenticate in your browser:\n\n{login_url}")
-                    try:
-                        import webbrowser
-                        webbrowser.open(login_url)
-                    except Exception as e:
-                        app_logger.error(f"Failed to open browser: {e}")
+                if not url_opened and "https://" in line:
+                    match = re.search(r'https://\S+', line)
+                    if match:
+                        login_url = match.group(0)
+                        self._print_output(f"🔐 SSO Login URL: {login_url}")
+                        url_opened = True
+                        if self.message_popup_callback:
+                            self.message_popup_callback("SSO Login Required", f"Please authenticate in your browser:\n\n{login_url}")
 
-                if line.strip().lower() == "success.":
+                if line.lower() == "success.":
                     self.connected = True
                     self.logged_in = True
                     self._update_status("🟢 Connected", "green")

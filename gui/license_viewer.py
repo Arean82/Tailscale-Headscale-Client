@@ -17,15 +17,25 @@ class LicenseViewer(ctk.CTkToplevel):
 
         self.text_area = ctk.CTkTextbox(
             self, 
-            fg_color="#1e1e1e", 
-            text_color="#d4d4d4", 
-            wrap="word"
+            fg_color="#1a1a1a", 
+            text_color="#e0e0e0", 
+            wrap="word",
+            font=("Consolas", 12)
         )
-        self.text_area.pack(fill="both", expand=True, padx=10, pady=(10, 5))
+        self.text_area.pack(fill="both", expand=True, padx=15, pady=(15, 10))
 
         self.load_license()
         
-        ctk.CTkButton(self, text="Close", command=self.destroy, width=120, fg_color="#007acc").pack(pady=10)
+        ctk.CTkButton(
+            self, 
+            text="Close", 
+            command=self.destroy, 
+            width=150, 
+            height=35,
+            fg_color="#007acc",
+            hover_color="#005a9e",
+            font=("Segoe UI", 13, "bold")
+        ).pack(pady=15)
 
     def load_license(self):
         # Step out of /gui/ to the root to find LICENSE

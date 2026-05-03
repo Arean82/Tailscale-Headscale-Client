@@ -45,10 +45,13 @@ class ClientTab(ctk.CTkFrame):
         self.Entry1 = ctk.CTkEntry(self, textvariable=self.login_server_var, font=("Courier New", 12))
         self.Entry1.grid(row=0, column=1, sticky='ew', pady=(5, 2), padx=(0, 5))
 
+        self.key_label = ctk.CTkLabel(self, text="AUTHENTICATION KEY  :")
+        self.key_label.grid(row=1, column=0, sticky='w', pady=(2, 5), padx=5)
         self.Entry1_1 = ctk.CTkEntry(self, textvariable=self.auth_key_var, font=("Courier New", 12), show="*")
+        self.Entry1_1.grid(row=1, column=1, sticky='ew', pady=(2, 5), padx=(0, 5))
 
-        self.Label2 = ctk.CTkLabel(self, text="🔴 Disconnected", text_color="red", font=("Segoe UI", 13, "bold"), anchor='w')
-        self.Label2.grid(row=3, column=0, sticky='w', pady=(5, 5), padx=5)
+        self.Label2 = ctk.CTkLabel(self, text="🔴 Disconnected", text_color=("red", "#FF6B6B"), font=("Segoe UI", 13, "bold"), anchor='w')
+        self.Label2.grid(row=2, column=0, sticky='w', pady=(2, 2), padx=5)
 
         self.change_cred_btn = ctk.CTkButton(
             self,
@@ -56,17 +59,19 @@ class ClientTab(ctk.CTkFrame):
             command=self.on_change_credentials_click, 
             width=140
         )
-        self.change_cred_btn.grid(row=3, column=1, sticky='e', pady=(5, 5), padx=(0, 5))
+        self.change_cred_btn.grid(row=2, column=1, sticky='e', pady=(2, 2), padx=(0, 5))
 
         self.button_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.button_frame.grid(row=4, column=0, columnspan=2, sticky='ew', pady=(5, 10))
+        self.button_frame.grid(row=3, column=0, columnspan=2, sticky='ew', pady=(2, 2))
 
         self.vpn_action_btn = ctk.CTkButton(
             self.button_frame,
             text="Connect",
             command=self.vpn_status_change,
             fg_color="#4CAF50", 
-            hover_color="#45a049"
+            hover_color="#45a049",
+            text_color="white",  # Explicitly white for better visibility
+            font=("Segoe UI", 12, "bold")
         )
         self.vpn_action_btn.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
@@ -74,18 +79,21 @@ class ClientTab(ctk.CTkFrame):
             self.button_frame, 
             text="Show Traffic Stats", 
             command=self.open_traffic_popup,
-            fg_color="#666666" 
+            fg_color="#666666",
+            text_color="white"
         )
         self.show_stats_btn.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
         self.traffic_label = ctk.CTkLabel(self, text="Traffic: Sent 0 B / Received 0 B", font=("Courier New", 11), anchor='w')
-        self.traffic_label.grid(row=5, column=0, columnspan=2, sticky='w', padx=5)
+        self.traffic_label.grid(row=4, column=0, columnspan=2, sticky='w', padx=5)
 
         self.progress_popup = ProgressPopup(self.master.master)
         self.progress_popup.withdraw() 
 
         self.prev_stats = None
         self._monitoring = False
+        self.is_connecting = False
+        self.cancel_event = threading.Event()
 
         add_tooltip(self.Entry1, "Enter your VPN URL (e.g. https://vpn.example.com)", self)
         add_tooltip(self.Entry1_1, "Enter the authentication key", self)
@@ -106,12 +114,7 @@ class ClientTab(ctk.CTkFrame):
             message_popup_callback=self._show_messagebox_popup
         )
 
-        if self.auth_key_var.get() and self.login_server_var.get():
-            self.vpn_action_btn.configure(state='normal')
-        else:
-            self.vpn_action_btn.configure(state='disabled')  
-            self.vpn_action_btn.update_idletasks()  
-        
+        self._update_auth_mode_ui()
         self._update_change_credentials_button_state()
 
     def _show_messagebox_popup(self, title, message):
@@ -119,13 +122,14 @@ class ClientTab(ctk.CTkFrame):
 
     def on_change_credentials_click(self):
         from gui.change_credentials_popup import show_change_credentials_popup
+        # Pass the actual root window (master.master) for correct centering
         show_change_credentials_popup(
-            master=self,
+            master=self.master.master,
             tab_name=self.tab_name,
             current_url=self._get_saved_url(),
             current_key=self._get_saved_key(),
             save_callback=self._save_credentials,
-            icon_image=self.master.icon_image if hasattr(self.master, "icon_image") else None
+            icon_image=self.master.master.icon_image if hasattr(self.master.master, "icon_image") else None
         )
 
     def _get_saved_url(self):
@@ -134,13 +138,22 @@ class ClientTab(ctk.CTkFrame):
     def _get_saved_key(self):
         return load_saved_key(self.tab_name)
 
-    def is_sso_mode(self):
-        from logic.vpn_logic import get_file_path
-        mode_file = get_file_path("auth_mode", self.tab_name)
-        if os.path.exists(mode_file):
-            with open(mode_file, "r") as f:
-                return f.read().strip() == "google"
-        return False  
+    # Removed local is_sso_mode method to avoid conflict with imported one from logic.vpn_logic
+
+    def _update_auth_mode_ui(self):
+        # Use the imported is_sso_mode from logic.vpn_logic
+        if is_sso_mode(self.tab_name):
+            self.key_label.grid_remove()
+            self.Entry1_1.grid_remove()
+            self.vpn_action_btn.configure(state='normal')
+        else:
+            self.key_label.grid()
+            self.Entry1_1.grid()
+            # If we have a URL, let them click connect even if key is empty (they might want to paste it or see error)
+            if self.login_server_var.get():
+                self.vpn_action_btn.configure(state='normal')
+            else:
+                self.vpn_action_btn.configure(state='disabled')
 
     def _save_credentials(self, url, key, mode):
         from logic.vpn_logic import save_url, save_key, write_log, get_file_path
@@ -150,10 +163,19 @@ class ClientTab(ctk.CTkFrame):
             mode_file = get_file_path("auth_mode", self.tab_name)
             with open(mode_file, "w") as f:
                 f.write(mode)
+            self._update_auth_mode_ui()
         except Exception as e:
             app_logger.error(f"Error saving auth mode for '{self.tab_name}': {e}")
 
     def vpn_status_change(self):
+        if self.is_connecting:
+            # If already connecting, signal a cancel for the current attempt and wait briefly
+            app_logger.info(f"[{self.tab_name}] Aborting previous attempt and retrying...")
+            self.cancel_event.set()
+            time.sleep(0.5) 
+            self.cancel_event.clear()
+            # We don't return here, we fall through to start a NEW connection
+
         if self.client.connected:
             self.on_disconnect_and_cleanup()
         else:
@@ -168,18 +190,19 @@ class ClientTab(ctk.CTkFrame):
         # 1. Log every piece of output from Tailscale into the global logger
         app_logger.debug(f"[{self.tab_name}] {text}")
 
-        # 2. Check for URL to open browser
-        saved_url = load_saved_url(self.tab_name).strip()
-        if saved_url and saved_url in text:
-            try:
-                webbrowser.open(text)
-            except Exception as e:
-                app_logger.error(f"Failed to open browser: {e}")
-
-    # ... [Keep all other methods the same: _update_status_label, on_connect, etc.] ...
-    def _update_status_label(self, text, color):     
-        self.Label2.configure(text=text, text_color=color)
+    def _update_status_label(self, text, color):
+        # Map simple colors to high-contrast adaptive colors
+        color_map = {
+            "green": ("#2E7D32", "#4CAF50"), # Dark green / Light green
+            "red": ("#C62828", "#FF6B6B"),   # Dark red / Light red
+            "orange": ("#EF6C00", "#FFB74D") # Dark orange / Light orange
+        }
+        actual_color = color_map.get(color, color)
+        self.Label2.configure(text=text, text_color=actual_color)
+        
+        # Reset connecting state if we reached a final status
         if any(x in text.lower() for x in ["connected", "disconnected", "error", "failed"]):
+            self.is_connecting = False
             self.vpn_action_btn.configure(state='normal')
 
     def _update_progress_label(self, message, step):
@@ -189,7 +212,8 @@ class ClientTab(ctk.CTkFrame):
         self.vpn_action_btn.configure(
             text="Logout", 
             fg_color='#f44336', 
-            hover_color='#da190b'
+            hover_color='#da190b',
+            text_color='white'
         )
         if hasattr(self.vpn_action_btn, "tooltip_label"):
             self.vpn_action_btn.tooltip_label.configure(text="Disconnect and Logout from VPN")
@@ -199,14 +223,18 @@ class ClientTab(ctk.CTkFrame):
         self.app_instance.set_connected_tab(self.tab_id)
         self._update_change_credentials_button_state()
 
+    def connect_vpn(self):
+        """Public method to trigger connection, used by auto-connect logic."""
+        self.on_connect()
+
     def on_connect(self):
         server = self.login_server_var.get().strip()
         key = self.auth_key_var.get().strip()
 
         self.Entry1.configure(state='disabled')
         self.Entry1_1.configure(state='disabled')
-        self.vpn_action_btn.configure(state='disabled')  
-        self.vpn_action_btn.update_idletasks()
+        self.is_connecting = True
+        self.vpn_action_btn.configure(state='normal') # Keep enabled as requested
         self._update_change_credentials_button_state()
 
         if is_sso_mode(self.tab_name):
@@ -224,7 +252,8 @@ class ClientTab(ctk.CTkFrame):
                 expected_url_part=server,
                 output_callback=self._print_output,
                 error_callback=lambda e: self._print_output(f"[SSO ERROR] {e}"),
-                success_callback=on_sso_connected 
+                success_callback=on_sso_connected,
+                cancel_event=self.cancel_event
             )
 
             def poll_and_update_gui():
@@ -316,7 +345,7 @@ class ClientTab(ctk.CTkFrame):
 
     def _update_change_credentials_button_state(self):
         if not self.client.connected and not self.client.logged_in:
-            self.change_cred_btn.grid(row=3, column=1, sticky='e', pady=(5, 5), padx=(0, 5))
+            self.change_cred_btn.grid(row=2, column=1, sticky='e', pady=(2, 2), padx=(0, 5))
             self.change_cred_btn.configure(state='normal')
             self.Entry1_1.configure(state='normal')
         else:
@@ -362,6 +391,18 @@ class ClientTab(ctk.CTkFrame):
     def notify_app_logged_out(self):
         self.app_instance.clear_connected_tab()
         self.enable_tab_ui()
+    
+    def update_theme(self, theme):
+        """Updates the tab's colors when the global theme changes."""
+        # Refresh colors of labels that might have been set manually
+        current_text = self.Label2.cget("text")
+        if "Connected" in current_text:
+            self._update_status_label("🟢 Connected", "green")
+        elif "Disconnected" in current_text:
+            self._update_status_label("🔴 Disconnected", "red")
+        
+        # Ensure traffic label is visible
+        self.traffic_label.configure(text_color=theme.get("fgcolor", "white"))
   
     def open_traffic_popup(self):
         if not self.client.connected:
@@ -377,5 +418,6 @@ class ClientTab(ctk.CTkFrame):
             if stats and self.prev_stats:
                 sent = stats.bytes_sent - self.prev_stats.bytes_sent
                 recv = stats.bytes_recv - self.prev_stats.bytes_recv
-                self.traffic_label.configure(text=f"Traffic: Sent {format_bytes(sent)} / Received {format_bytes(recv)}")
+                new_text = f"Traffic: Sent {format_bytes(sent)} / Received {format_bytes(recv)}"
+                self.after(0, lambda t=new_text: self.traffic_label.configure(text=t))
             time.sleep(3)

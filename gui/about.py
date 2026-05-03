@@ -24,7 +24,7 @@ class AboutWindow(ctk.CTkToplevel):
         
         # Original Logic: Background color
         # Note: ctk.CTkToplevel handles its own theme, but we can set fg_color for consistency
-        self.configure(fg_color="#d9d9d9")
+        self.configure(fg_color=("white", "#1a1a1a"))
 
         self._create_widgets()
 
@@ -35,20 +35,17 @@ class AboutWindow(ctk.CTkToplevel):
         ctk.CTkLabel(
             self, 
             text="TAILSCALE VPN Client", 
-            font=("Segoe UI", 11, "bold"),
-            text_color="black"
+            font=("Segoe UI", 11, "bold")
         ).pack(pady=(15, 5))
 
         ctk.CTkLabel(
             self, 
-            text="Version 3.0",
-            text_color="black"
+            text="Version 3.0"
         ).pack()
 
         ctk.CTkLabel(
             self, 
-            text="© 2025 TAILSCALE VPN Client",
-            text_color="black"
+            text="© 2026 TAILSCALE VPN Client"
         ).pack()
 
         # Replaces ttk.Button with CTkButton
@@ -57,7 +54,9 @@ class AboutWindow(ctk.CTkToplevel):
             self, 
             text="Close", 
             command=self.destroy,
-            width=100
+            width=100,
+            fg_color="#007acc",
+            hover_color="#005a9e"
         ).pack(pady=10)
 
 def show_about(master, icon_image=None):

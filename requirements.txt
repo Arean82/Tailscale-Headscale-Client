@@ -9,3 +9,4 @@ aiohttp
 tailscale
 pycryptodome
 customtkinter
+pystray

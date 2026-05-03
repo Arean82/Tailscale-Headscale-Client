@@ -55,7 +55,7 @@ def execute_command(cmd, require_sudo=False, output_callback=None, error_log_cal
                 if match:
                     url = match.group(0)
                     print(f"[DEBUG] Detected URL: {url}")
-                    open_browser(url)
+                    # Removed redundant browser opening logic
                     url_opened = True  # Prevent opening more than once
 
         process.wait()

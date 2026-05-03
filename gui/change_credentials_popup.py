@@ -18,8 +18,8 @@ def resource_path(relative_path):
 
 def show_change_credentials_popup(master, tab_name, current_url, current_key, save_callback, bg_color=None, icon_image=None):
     # If bg_color is passed as default hex from old call, we let CTk handle theme instead
-    popup_width = 240 # Adjusted slightly for CTk padding
-    popup_height = 240
+    popup_width = 300 
+    popup_height = 300
     
     popup = ctk.CTkToplevel(master)
     popup.transient(master)
@@ -72,7 +72,7 @@ def show_change_credentials_popup(master, tab_name, current_url, current_key, sa
     container.columnconfigure(1, weight=1)
     frame_holder.columnconfigure(0, weight=1)
 
-    frame_holder.configure(height=80)
+    frame_holder.configure(height=130)
 
     # Auth Frame
     auth_frame = ctk.CTkFrame(frame_holder, fg_color="transparent")
@@ -108,27 +108,28 @@ def show_change_credentials_popup(master, tab_name, current_url, current_key, sa
     btn_cancel = ctk.CTkButton(
         button_frame,
         image=cancel_icon,
-        text="",
+        text="Cancel", # Added text for better clarity
         command=popup.destroy,
-        width=40,
-        fg_color="transparent",
-        hover_color=("#dbdbdb", "#2b2b2b")
+        width=100,
+        fg_color="#666666",
+        hover_color="#555555",
+        text_color="white"
     )
     btn_cancel.image = cancel_icon
-    btn_cancel.grid(row=0, column=0, padx=(0, 15), sticky="e")
+    btn_cancel.grid(row=0, column=0, padx=10, sticky="e")
 
     btn_save = ctk.CTkButton(
         button_frame,
         image=save_icon,
-        text="",
+        text="Save", # Added text
         command=lambda: save(),
-        width=40,
-        fg_color="transparent",
-        hover_color=("#dbdbdb", "#2b2b2b")
+        width=100,
+        fg_color="#007acc",
+        hover_color="#005a9e",
+        text_color="white"
     )
     btn_save.image = save_icon
-
-    btn_save.grid(row=0, column=1, sticky="w")
+    btn_save.grid(row=0, column=1, padx=10, sticky="w")
 
     animating = False
 

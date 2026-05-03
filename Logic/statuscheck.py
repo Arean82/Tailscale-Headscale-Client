@@ -7,12 +7,12 @@ from logic.logger import app_logger
 
 def is_logged_out():
     try:
-        result = subprocess.run(['tailscale', 'status'], capture_output=True, text=True, timeout=5)
-        app_logger.debug(f"tailscale status output: {result.stdout.strip()}")
-        return 'Logged out.' in result.stdout
-    except subprocess.TimeoutExpired:
-        app_logger.debug("tailscale status timed out")
-        return True  
+        result = subprocess.run(['tailscale', 'status', '--json'], capture_output=True, text=True, timeout=5)
+        if result.returncode != 0:
+            return True
+        data = json.loads(result.stdout)
+        # In JSON, if BackendState is 'NeedsLogin', it means logged out or needs auth
+        return data.get("BackendState") == "NeedsLogin"
     except Exception as e:
         app_logger.error(f"Error checking Tailscale status: {e}")
         return True

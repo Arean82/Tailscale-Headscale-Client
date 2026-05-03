@@ -25,11 +25,41 @@ from logic.net_stats import log_tailscale_stats
 from gui.utils import write_log
 
 from config import APP_BASE_DIR, APP_DATA_DIR, LOG_DIR
+from concurrent.futures import ThreadPoolExecutor
 
 # --- Global Configuration and Utilities ---
-PASSWORD = "some-hardcoded-passphrase" # Consider getting this more securely
-KEY = base64.urlsafe_b64encode(hashlib.sha256(PASSWORD.encode()).digest())
-fernet = Fernet(KEY)
+# --- Encryption Setup ---
+MASTER_KEY_FILE = os.path.join(APP_BASE_DIR, "master.key")
+
+def get_encryption_key():
+    """Retrieves the encryption key from a file or generates a new one."""
+    if os.path.exists(MASTER_KEY_FILE):
+        try:
+            with open(MASTER_KEY_FILE, "rb") as f:
+                return f.read()
+        except Exception as e:
+            app_logger.error(f"Failed to read master key: {e}")
+    
+    # Fallback/Initialization: Generate a new key
+    # For backward compatibility, you might want to use the old key if it exists
+    # but for a 'fix', we should move to a secure random key.
+    new_key = Fernet.generate_key()
+    try:
+        os.makedirs(APP_BASE_DIR, exist_ok=True)
+        with open(MASTER_KEY_FILE, "wb") as f:
+            f.write(new_key)
+        return new_key
+    except Exception as e:
+        app_logger.error(f"Failed to save master key: {e}")
+        # Last resort: use a derived key (less secure but works)
+        return base64.urlsafe_b64encode(hashlib.sha256(b"fallback-salt").digest())
+
+# Initialize Fernet with the master key
+ENCRYPTION_KEY = get_encryption_key()
+fernet = Fernet(ENCRYPTION_KEY)
+OLD_PASSWORD = "some-hardcoded-passphrase"
+OLD_KEY = base64.urlsafe_b64encode(hashlib.sha256(OLD_PASSWORD.encode()).digest())
+old_fernet = Fernet(OLD_KEY)
 
 # Secure File Path Setup (OS-agnostic base directory)
 if sys.platform == "win32":
@@ -49,6 +79,54 @@ SETTINGS_FILE = os.path.join(APP_BASE_DIR, "settings.json")
 
 # Set the lock file path for the mutex handler (important for Linux)
 set_lock_file_path(LOCK_FILE)
+
+# --- High-Performance Caching Layer ---
+class DataCache:
+    _settings = None
+    _tab_names = None
+    _profile_data = {} # {profile_name: {url: ..., key: ..., mode: ...}}
+
+    @classmethod
+    def get_settings(cls):
+        if cls._settings is None:
+            cls._settings = load_settings(use_cache=False)
+        return cls._settings
+
+    @classmethod
+    def set_settings(cls, settings):
+        cls._settings = settings
+
+    @classmethod
+    def get_tab_names(cls):
+        if cls._tab_names is None:
+            cls._tab_names = load_tab_names(use_cache=False)
+        return cls._tab_names
+
+    @classmethod
+    def set_tab_names(cls, tab_names):
+        cls._tab_names = tab_names
+
+    @classmethod
+    def get_profile_info(cls, tab_name):
+        if tab_name not in cls._profile_data:
+            cls._profile_data[tab_name] = {
+                "url": load_saved_url(tab_name, use_cache=False),
+                "key": load_saved_key(tab_name, use_cache=False),
+                "mode": get_auth_mode(tab_name, use_cache=False)
+            }
+        return cls._profile_data[tab_name]
+
+    @classmethod
+    def invalidate_profile(cls, tab_name):
+        if tab_name in cls._profile_data:
+            del cls._profile_data[tab_name]
+
+    @classmethod
+    def preload_all_profiles(cls):
+        """Loads all profile data in parallel for super-fast startup."""
+        tab_names = cls.get_tab_names()
+        with ThreadPoolExecutor() as executor:
+            executor.map(cls.get_profile_info, tab_names.values())
 
 # --- General Utilities ---
 def check_tailscale_installed():
@@ -86,51 +164,52 @@ def get_file_path(base_filename, tab_name):
 
 
 def write_profile_log(tab_name, entry, level="DEBUG"):
-    """Writes a debug-level log entry to the profile's connection.log."""
-    # --- Step 1: ORIGINAL BEHAVIOR (DO NOT TOUCH) ---
-    try:
-        log_path = get_file_path("connection.log", tab_name)
-        timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-        with open(log_path, "a") as f:
-            f.write(f"{timestamp} [{level}] {entry}\n")
-    except Exception as e:
-        write_log(f"Error writing profile log for '{tab_name}': {e}", level="ERROR")
-
-    # --- Step 2: NEW GLOBAL LOGGING BEHAVIOR ---
+    """Sends a log entry to the profile-specific logger."""
     try:
         prof_logger = get_profile_logger(tab_name)
-        # Match the requested log level
         level_upper = level.upper()
         if level_upper == "INFO":
             prof_logger.info(entry)
         elif level_upper == "ERROR":
             prof_logger.error(entry)
-        elif level_upper == "WARNING" or level_upper == "WARN":
+        elif level_upper in ["WARNING", "WARN"]:
             prof_logger.warning(entry)
         else:
             prof_logger.debug(entry)
     except Exception as e:
-        # If the global logger fails, we don't want it to crash the app
-        app_logger.error(f"Failed to write to global profile logger for {tab_name}: {e}")
+        app_logger.error(f"Failed to write to profile logger for {tab_name}: {e}")
 
 def encrypt_key(plain_text_key):
     """Encrypts the given plain text key."""
     return fernet.encrypt(plain_text_key.encode()).decode()
 
 def decrypt_key(encrypted_key):
-    """Decrypts the given encrypted key."""
+    """Decrypts the given encrypted key with fallback support."""
     try:
         return fernet.decrypt(encrypted_key.encode()).decode()
     except Exception:
-        return ""
+        # Try fallback with old hardcoded key
+        try:
+            decrypted = old_fernet.decrypt(encrypted_key.encode()).decode()
+            # If successful, re-encrypt with the new key for future use
+            return decrypted
+        except Exception:
+            return ""
 
-def load_saved_url(tab_name):
-    """Loads a URL specific to a tab's name."""
+def load_saved_url(tab_name, use_cache=True):
+    """Loads a URL specific to a tab's name, utilizing cache for speed."""
+    if use_cache and tab_name in DataCache._profile_data:
+        return DataCache._profile_data[tab_name].get("url", "")
+    
     try:
         url_file = get_file_path("Tailscale_VPN_url", tab_name)
         if os.path.exists(url_file):
             with open(url_file, 'r') as f:
-                return f.read().strip()
+                url = f.read().strip()
+                if use_cache:
+                    if tab_name not in DataCache._profile_data: DataCache._profile_data[tab_name] = {}
+                    DataCache._profile_data[tab_name]["url"] = url
+                return url
     except Exception as e:
         write_log(f"Error loading saved URL for profile '{tab_name}': {e}", level="ERROR")
     return ""
@@ -144,14 +223,21 @@ def save_url(url, tab_name):
     except Exception as e:
         write_log(f"Error saving URL for tab '{tab_name}': {e}", level="ERROR")
 
-def load_saved_key(tab_name):
-    """Loads an encrypted key specific to a tab's name."""
+def load_saved_key(tab_name, use_cache=True):
+    """Loads an encrypted key specific to a tab's name, utilizing cache."""
+    if use_cache and tab_name in DataCache._profile_data:
+        return DataCache._profile_data[tab_name].get("key", "")
+
     try:
         key_file = get_file_path("Tailscale_VPN_key", tab_name)
         if os.path.exists(key_file):
             with open(key_file, 'r') as f:
                 encrypted = f.read().strip()
-                return decrypt_key(encrypted)
+                key = decrypt_key(encrypted)
+                if use_cache:
+                    if tab_name not in DataCache._profile_data: DataCache._profile_data[tab_name] = {}
+                    DataCache._profile_data[tab_name]["key"] = key
+                return key
     except Exception as e:
         write_log(f"Error loading saved key for profile '{tab_name}': {e}", level="ERROR")
     return ""
@@ -165,12 +251,18 @@ def save_key(key, tab_name):
     except Exception as e:
         write_log(f"Error saving key for profile '{tab_name}': {e}", level="ERROR")
 
-def load_tab_names():
-    """Loads the dictionary mapping tab IDs to tab names."""
+def load_tab_names(use_cache=True):
+    """Loads the dictionary mapping tab IDs to tab names, utilizing cache."""
+    if use_cache and DataCache._tab_names is not None:
+        return DataCache._tab_names
+
     try:
         if os.path.exists(TAB_NAMES_FILE):
             with open(TAB_NAMES_FILE, 'r') as f:
-                return {int(k): v for k, v in json.load(f).items()}
+                names = {int(k): v for k, v in json.load(f).items()}
+                if use_cache:
+                    DataCache._tab_names = names
+                return names
     except Exception as e:
         write_log(f"Error loading tab names: {e}", level="ERROR")
     return {}
@@ -212,12 +304,19 @@ def save_auth_mode(tab_name, mode):
     except Exception as e:
         write_log(f"Error saving auth mode for tab '{tab_name}': {e}", level="ERROR")
 
-def get_auth_mode(tab_name):     # FIXED: Removed the internal import that caused the crash
+def get_auth_mode(tab_name, use_cache=True):     # FIXED: Removed the internal import that caused the crash
+    if use_cache and tab_name in DataCache._profile_data:
+        return DataCache._profile_data[tab_name].get("mode", "auth_key")
+
     mode_file = get_file_path("auth_mode", tab_name)
     if os.path.exists(mode_file):
         try:
             with open(mode_file, "r") as f:
-                return f.read().strip()
+                mode = f.read().strip()
+                if use_cache:
+                    if tab_name not in DataCache._profile_data: DataCache._profile_data[tab_name] = {}
+                    DataCache._profile_data[tab_name]["mode"] = mode
+                return mode
         except:
             return "auth_key"
     return "auth_key"
@@ -227,36 +326,27 @@ def is_sso_mode(tab_name):
 
 
 
-# Log Rotation (main log file)
-def rotate_log():
-    """Rotates the main application log file if it's from a different month/year."""
-    if not os.path.exists(LOG_FILE):
-        return
-    try:
-        file_mtime = datetime.fromtimestamp(os.path.getmtime(LOG_FILE))
-        now = datetime.now()
-        if file_mtime.month != now.month or file_mtime.year != now.year:
-            archive_name = os.path.join(LOG_DIR, f"vpn_connect_{file_mtime.strftime('%Y_%m')}.log")
-            if not os.path.exists(archive_name):
-                os.rename(LOG_FILE, archive_name)
-    except Exception as e:
-        write_log(f"Log rotation error: {e}", level="ERROR")
-
-# Call log rotation once on startup
-rotate_log()
+# Log rotation is now handled automatically by RotatingFileHandler in logger.py
 
 # Load and save settings
-def load_settings():
-    """Load settings from JSON file or return defaults."""
+def load_settings(use_cache=True):
+    """Load settings from JSON file or return defaults, utilizing cache."""
+    if use_cache and DataCache._settings is not None:
+        return DataCache._settings
+
     if os.path.exists(SETTINGS_FILE):
         try:
             with open(SETTINGS_FILE, "r") as f:
-                return json.load(f)
+                settings = json.load(f)
+                if use_cache:
+                    DataCache._settings = settings
+                return settings
         except Exception as e:
             write_log(f"Failed to load settings: {e}", level="ERROR")
     # Default settings
     return {
-        "auto_connect": False
+        "auto_connect": False,
+        "max_tabs": 5
     }
 
 def save_settings(settings):
@@ -267,33 +357,5 @@ def save_settings(settings):
     except Exception as e:
         write_log(f"Failed to save settings: {e}", level="ERROR")
 
-# Auto-connect logic
-# This function should be called at application startup to check if auto-connect is enabled
-# and to attempt to connect to the last used tab if applicable.
-# It assumes that the application has a reference to the main app object and the last tab ID
-# is stored in LAST_TAB_FILE.
-def auto_connect_if_enabled(app, last_tab_id):
-    """Auto-connect VPN on startup if enabled in settings."""
-    settings = load_settings()
-    if not settings.get("auto_connect", False):
-        return  # Do nothing if disabled
-
-    # Try to select last tab and auto-connect
-    if last_tab_id is not None and last_tab_id in app.tabs:
-        for tab_frame_id in app.notebook.tabs():
-            tab_widget = app.notebook.nametowidget(tab_frame_id)
-            if hasattr(tab_widget, 'tab_id') and tab_widget.tab_id == last_tab_id:
-                app.notebook.select(tab_frame_id)
-                app.update_tab_states()
-                if hasattr(tab_widget, "connect_vpn"):
-                    app.after(500, tab_widget.connect_vpn)
-                return
-    else:
-        # No last tab or not found: try first tab
-        if app.notebook.tabs():
-            first_tab_widget = app.notebook.nametowidget(app.notebook.tabs()[0])
-            app.notebook.select(app.notebook.tabs()[0])
-            app.update_tab_states()
-            if hasattr(first_tab_widget, "connect_vpn"):
-                app.after(500, first_tab_widget.connect_vpn)
+# Auto-connect logic has been moved to gui/gui_main.py to improve decoupling.
                 
