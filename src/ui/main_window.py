@@ -1,5 +1,8 @@
+# src/ui/main_window.py
+
+import sys
 import os
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QMenuBar, QTabWidget
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QMenuBar, QTabWidget, QMenu
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
 
@@ -19,43 +22,170 @@ class MainWindow(QMainWindow):
         self.ui_window = loader.load(ui_file) # This is the QMainWindow from your UI
         ui_file.close()
         
-        # 2. Steal the central widget and menu bar from the loaded UI
-        # This is the most reliable way to preserve your design
+        # 2. Steal the central widget from the loaded UI
         self.setCentralWidget(self.ui_window.findChild(QWidget, "centralwidget"))
         
-        menubar = self.ui_window.findChild(QMenuBar, "menuBar")
-        if menubar:
-            self.setMenuBar(menubar)
+        # 3. Create Menu Bar in Code (Full Control)
+        self._create_menu_bar()
             
         self.tabWidget = self.findChild(QTabWidget, "tabWidget")
-        self.setWindowTitle(self.ui_window.windowTitle())
+        self.setWindowTitle("Tailscale Client Pro")
         self.setMinimumSize(self.ui_window.minimumSize())
         self.setMaximumSize(self.ui_window.maximumSize())
         self.resize(self.ui_window.size())
 
-        # 3. Connect Actions (Finding them on the loaded UI window)
-        from PySide6.QtGui import QAction
-        
-        self.actionExit = self.ui_window.findChild(QAction, "actionExit")
-        if self.actionExit: self.actionExit.triggered.connect(self.close)
-        
-        self.actionAddProfile = self.ui_window.findChild(QAction, "actionAddProfile")
-        if self.actionAddProfile: self.actionAddProfile.triggered.connect(self.add_profile_clicked)
-        
-        self.actionRemoveProfile = self.ui_window.findChild(QAction, "actionRemoveProfile")
-        if self.actionRemoveProfile: self.actionRemoveProfile.triggered.connect(self.remove_profile_clicked)
-        
-        self.actionAbout = self.ui_window.findChild(QAction, "actionAbout")
-        if self.actionAbout: self.actionAbout.triggered.connect(self.show_about)
-        
-        self.actionLicense = self.ui_window.findChild(QAction, "actionLicense")
-        if self.actionLicense: self.actionLicense.triggered.connect(self.show_license)
-        
-        self.actionReadme = self.ui_window.findChild(QAction, "actionReadme")
-        if self.actionReadme: self.actionReadme.triggered.connect(self.show_readme)
-        
+        self.current_theme = "light" # Default is LIGHT
+        self.change_theme("light")
+
         # 4. Initialize tabs
         self.refresh_tabs()
+
+    def _create_menu_bar(self):
+        from PySide6.QtGui import QAction, QActionGroup
+        from PySide6.QtWidgets import QApplication
+        menubar = self.menuBar()
+        
+        # --- File Menu ---
+        file_menu = menubar.addMenu("&File")
+        self.actionExit = QAction("&Exit", self)
+        self.actionExit.triggered.connect(self.close)
+        file_menu.addAction(self.actionExit)
+        
+        # --- Profile Menu ---
+        profile_menu = menubar.addMenu("&Profile")
+        self.actionAddProfile = QAction("&Add New Profile", self)
+        self.actionAddProfile.triggered.connect(self.add_profile_clicked)
+        profile_menu.addAction(self.actionAddProfile)
+        
+        self.actionRemoveProfile = QAction("&Remove Current Profile", self)
+        self.actionRemoveProfile.triggered.connect(self.remove_profile_clicked)
+        profile_menu.addAction(self.actionRemoveProfile)
+        
+        # --- Theme Menu ---
+        theme_menu = menubar.addMenu("&Theme")
+        self.theme_group = QActionGroup(self)
+        
+        self.actionSystemTheme = QAction("&System Default", self)
+        self.actionSystemTheme.setCheckable(True)
+        self.actionSystemTheme.triggered.connect(lambda: self.change_theme("system"))
+        self.theme_group.addAction(self.actionSystemTheme)
+        theme_menu.addAction(self.actionSystemTheme)
+        
+        self.actionLightTheme = QAction("&Light Theme", self)
+        self.actionLightTheme.setCheckable(True)
+        self.actionLightTheme.triggered.connect(lambda: self.change_theme("light"))
+        self.theme_group.addAction(self.actionLightTheme)
+        theme_menu.addAction(self.actionLightTheme)
+        
+        self.actionDarkTheme = QAction("&Dark Theme", self)
+        self.actionDarkTheme.setCheckable(True)
+        self.actionDarkTheme.triggered.connect(lambda: self.change_theme("dark"))
+        self.theme_group.addAction(self.actionDarkTheme)
+        theme_menu.addAction(self.actionDarkTheme)
+        
+        # Set initial check
+        self.actionLightTheme.setChecked(True)
+        
+        # --- Logs Menu ---
+        logs_menu = menubar.addMenu("&Logs")
+        self.menuGlobalLogs = logs_menu.addMenu("&Global Logs")
+        self.menuGlobalLogs.aboutToShow.connect(self.populate_logs_menu)
+        
+        # --- Help Menu ---
+        help_menu = menubar.addMenu("&Help")
+        
+        self.actionAbout = QAction("&About Us", self)
+        self.actionAbout.triggered.connect(self.show_about)
+        help_menu.addAction(self.actionAbout)
+        
+        self.actionLicense = QAction("View &License", self)
+        self.actionLicense.triggered.connect(self.show_license)
+        help_menu.addAction(self.actionLicense)
+        
+        self.actionReadme = QAction("&Readme", self)
+        self.actionReadme.triggered.connect(self.show_readme)
+        help_menu.addAction(self.actionReadme)
+
+    def populate_logs_menu(self):
+        from PySide6.QtGui import QAction
+        from .components.log_viewer_dlg import LogViewerDialog
+        
+        if not self.menuGlobalLogs:
+            # Try finding it again recursively if it was missed
+            self.menuGlobalLogs = self.ui_window.findChild(QMenu, "menuGlobalLogs")
+            
+        if not self.menuGlobalLogs:
+            return
+
+        self.menuGlobalLogs.clear()
+        
+        # Determine log directory (sync with src/main.py logic)
+        if sys.platform == "win32":
+            app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client_Pro")
+        else:
+            app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client_Pro")
+        
+        print(f"DEBUG: Scanning log directory: {app_dir}")
+        
+        if not os.path.exists(app_dir):
+            print("DEBUG: Log directory does not exist.")
+            self.menuGlobalLogs.addAction("No logs found").setEnabled(False)
+            return
+            
+        log_files = [f for f in os.listdir(app_dir) if f.endswith(".log")]
+        print(f"DEBUG: Found log files: {log_files}")
+        
+        if not log_files:
+            self.menuGlobalLogs.addAction("No .log files found").setEnabled(False)
+            return
+            
+        for lf in sorted(log_files):
+            action = QAction(lf, self)
+            full_path = os.path.join(app_dir, lf)
+            # Use a default argument in lambda to capture the current path
+            action.triggered.connect(lambda checked, p=full_path, n=lf: LogViewerDialog(p, n, self).show())
+            self.menuGlobalLogs.addAction(action)
+
+    def change_theme(self, theme_name):
+        from PySide6.QtWidgets import QApplication
+        from PySide6.QtGui import QGuiApplication, Qt
+        
+        self.current_theme = theme_name
+        
+        target_theme = theme_name
+        if theme_name == "system":
+            # Detect system theme
+            hints = QGuiApplication.styleHints()
+            if hasattr(hints, "colorScheme"):
+                scheme = hints.colorScheme()
+                target_theme = "dark" if scheme == Qt.ColorScheme.Dark else "light"
+            else:
+                target_theme = "light"
+        
+        if target_theme == "dark":
+            QApplication.instance().setStyleSheet("""
+                QMainWindow, QDialog, QWidget { background-color: #2b2b2b; color: white; }
+                QMenuBar { background-color: #2b2b2b; color: white; }
+                QMenuBar::item:selected { background-color: #3c3c3c; }
+                QMenu { background-color: #2b2b2b; color: white; border: 1px solid #3c3c3c; }
+                QMenu::item:selected { background-color: #3c3c3c; }
+                QTabWidget::pane { border: 1px solid #3c3c3c; }
+                QLineEdit { background-color: #1a1a1a; color: white; border: 1px solid #3c3c3c; padding: 4px; }
+                QPushButton { background-color: #444; color: white; border: none; padding: 6px; border-radius: 3px; }
+                QPushButton:hover { background-color: #555; }
+            """)
+        else:
+            QApplication.instance().setStyleSheet("""
+                QMainWindow, QDialog, QWidget { background-color: #f0f0f0; color: #1a1a1a; }
+                QMenuBar { background-color: #ffffff; color: #1a1a1a; }
+                QMenuBar::item:selected { background-color: #e0e0e0; }
+                QMenu { background-color: #ffffff; color: #1a1a1a; border: 1px solid #d0d0d0; }
+                QMenu::item:selected { background-color: #e0e0e0; }
+                QTabWidget::pane { border: 1px solid #d0d0d0; }
+                QLineEdit { background-color: #ffffff; color: #1a1a1a; border: 1px solid #d0d0d0; padding: 4px; }
+                QPushButton { background-color: #e0e0e0; color: #1a1a1a; border: 1px solid #c0c0c0; padding: 6px; border-radius: 3px; }
+                QPushButton:hover { background-color: #d0d0d0; }
+            """)
 
 
     def show_about(self):
@@ -64,11 +194,11 @@ class MainWindow(QMainWindow):
 
     def show_license(self):
         from .components.simple_dialogs import LicenseDialog
-        LicenseDialog(self).exec()
+        LicenseDialog(self.current_theme, self).exec()
 
     def show_readme(self):
         from .components.simple_dialogs import ReadmeDialog
-        ReadmeDialog(self).exec()
+        ReadmeDialog(self.current_theme, self).exec()
 
 
     def add_profile_clicked(self):

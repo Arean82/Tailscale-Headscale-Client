@@ -27,9 +27,8 @@ def main():
     
     # Initialize Core
     manager = Manager(app_dir)
-    ts_manager = TailscaleManager()
+    ts_manager = TailscaleManager(app_dir)
 
-    
     # Initialize Main Window
     window = MainWindow(manager, ts_manager)
     window.show()

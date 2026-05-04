@@ -2,80 +2,206 @@
 <ui version="4.0">
  <class>LogViewerDialog</class>
  <widget class="QDialog" name="LogViewerDialog">
-  <property name="windowTitle"><string>Log Viewer</string></property>
   <property name="geometry">
-   <rect><x>0</x><y>0</y><width>820</width><height>660</height></rect>
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>650</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Log Viewer</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="contentsMargins">
-    <number>0</number><number>0</number><number>0</number><number>0</number>
+   <property name="spacing">
+    <number>10</number>
    </property>
-   <property name="spacing"><number>0</number></property>
-
-   <!-- Toolbar -->
+   <property name="leftMargin">
+    <number>15</number>
+   </property>
+   <property name="topMargin">
+    <number>15</number>
+   </property>
+   <property name="rightMargin">
+    <number>15</number>
+   </property>
+   <property name="bottomMargin">
+    <number>15</number>
+   </property>
    <item>
-    <widget class="QFrame" name="toolbar">
-     <property name="frameShape"><enum>QFrame::StyledPanel</enum></property>
-     <property name="minimumHeight"><number>54</number></property>
-     <layout class="QHBoxLayout" name="hLayoutToolbar">
-      <property name="contentsMargins">
-       <number>12</number><number>6</number><number>12</number><number>6</number>
-      </property>
-      <property name="spacing"><number>8</number></property>
-      <item>
-       <widget class="QLabel" name="labelTitle">
-        <property name="text"><string>Log Viewer</string></property>
-        <property name="font">
-         <font><pointsize>14</pointsize><bold>true</bold></font>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="searchEntry">
-        <property name="placeholderText"><string>Search logs...</string></property>
-        <property name="maximumWidth"><number>220</number></property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="btnSearch">
-        <property name="text"><string>Find Next</string></property>
-        <property name="maximumWidth"><number>90</number></property>
-       </widget>
-      </item>
-      <item>
-       <spacer>
-        <property name="orientation"><enum>Qt::Horizontal</enum></property>
-        <property name="sizeHint" stdset="0"><size><width>40</width><height>0</height></size></property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="btnClear">
-        <property name="text"><string>Clear</string></property>
-        <property name="maximumWidth"><number>80</number></property>
-        <property name="styleSheet"><string>background-color: #F44336; color: white;</string></property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="btnRefresh">
-        <property name="text"><string>Refresh</string></property>
-        <property name="maximumWidth"><number>80</number></property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
+    <layout class="QHBoxLayout" name="searchLayout">
+     <item>
+      <widget class="QLineEdit" name="searchEntry">
+       <property name="styleSheet">
+        <string>background-color: #1a1a1a; color: white; padding: 5px;</string>
+       </property>
+       <property name="placeholderText">
+        <string>Search logs...</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="searchBtn">
+       <property name="styleSheet">
+        <string>background-color: #555555;</string>
+       </property>
+       <property name="text">
+        <string>Find Next</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="refreshBtn">
+       <property name="styleSheet">
+        <string>background-color: #333333;</string>
+       </property>
+       <property name="text">
+        <string>Refresh</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="clearBtn">
+       <property name="styleSheet">
+        <string>background-color: #d32f2f;</string>
+       </property>
+       <property name="text">
+        <string>Clear</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="searchSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="filterLayout">
+       <item>
+        <widget class="QPushButton" name="infoBtn">
+         <property name="styleSheet">
+          <string>QPushButton { background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 3px; }
+QPushButton:checked { background-color: #2e7d32; border: 2px solid white; }</string>
+         </property>
+         <property name="text">
+          <string>INFO</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="warningBtn">
+         <property name="styleSheet">
+          <string>QPushButton { background-color: #FFC107; color: black; border: none; padding: 5px 10px; border-radius: 3px; }
+QPushButton:checked { background-color: #ff8f00; border: 2px solid white; }</string>
+         </property>
+         <property name="text">
+          <string>WARNING</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="errorBtn">
+         <property name="styleSheet">
+          <string>QPushButton { background-color: #F44336; color: white; border: none; padding: 5px 10px; border-radius: 3px; }
+QPushButton:checked { background-color: #d32f2f; border: 2px solid white; }</string>
+         </property>
+         <property name="text">
+          <string>ERROR</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="debugBtn">
+         <property name="styleSheet">
+          <string>QPushButton { background-color: #9C27B0; color: white; border: none; padding: 5px 10px; border-radius: 3px; }
+QPushButton:checked { background-color: #7b1fa2; border: 2px solid white; }</string>
+         </property>
+         <property name="text">
+          <string>DEBUG</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
    </item>
-
-   <!-- Content -->
    <item>
-    <widget class="QPlainTextEdit" name="textWidget">
-     <property name="readOnly"><bool>true</bool></property>
-     <property name="font">
-      <font><family>Consolas</family><pointsize>10</pointsize></font>
+    <widget class="QProgressBar" name="progress">
+     <property name="visible">
+      <bool>false</bool>
      </property>
-     <property name="lineWrapMode"><enum>QPlainTextEdit::NoWrap</enum></property>
+     <property name="textVisible">
+      <bool>false</bool>
+     </property>
     </widget>
    </item>
-
+   <item>
+    <widget class="QTextBrowser" name="textBrowser">
+     <property name="styleSheet">
+      <string>QTextBrowser {
+    background-color: #1a1a1a;
+    color: white;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    font-family: Consolas, Menlo, monospace;
+    font-size: 11px;
+}</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="closeBtn">
+     <property name="styleSheet">
+      <string>QPushButton {
+    background-color: #2b2b2b;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    min-width: 100px;
+}
+QPushButton:hover {
+    background-color: #3a3a3a;
+}</string>
+     </property>
+     <property name="text">
+      <string>Close</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources/>

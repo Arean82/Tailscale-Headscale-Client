@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>SettingsDialog</class>
- <widget class="QDialog" name="SettingsDialog">
+ <widget class="QWidget" name="SettingsDialog">
   <property name="windowTitle"><string>Settings</string></property>
   <property name="geometry">
    <rect><x>0</x><y>0</y><width>340</width><height>240</height></rect>

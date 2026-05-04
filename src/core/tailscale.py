@@ -1,4 +1,5 @@
 import sys
+import os
 import re
 from PySide6.QtCore import QObject, Signal, QProcess
 
@@ -44,17 +45,34 @@ class TailscaleProcess(QObject):
 
 class TailscaleManager(QObject):
     connection_status_changed = Signal(bool, str) # (is_connected, status_text)
-
-    def __init__(self):
+    
+    def __init__(self, cache_dir: str = None):
         super().__init__()
         self.worker = TailscaleProcess()
         
-    def check_status(self):
-        # We can use another QProcess or a simple check
-        check_proc = QProcess()
-        check_proc.start("tailscale", ["status"])
-        check_proc.waitForFinished(5000)
-        output = check_proc.readAllStandardOutput().data().decode().lower()
+        # Initialize Cache
+        cache_file = os.path.join(cache_dir, "ts_cache.json") if cache_dir else "ts_cache.json"
+        from .cache_manager import CacheManager
+        self.cache = CacheManager(cache_file, expiry_seconds=30)
+        
+        # Async check process
+        self.status_proc = QProcess()
+        self.status_proc.finished.connect(self._on_status_finished)
+        
+    def check_status(self, force=False):
+        """Asynchronously check tailscale status."""
+        if not force:
+            cached_status = self.cache.get("status")
+            if cached_status:
+                self.connection_status_changed.emit(cached_status["connected"], cached_status["text"])
+                return cached_status["connected"], cached_status["text"]
+
+        if self.status_proc.state() == QProcess.NotRunning:
+            self.status_proc.start("tailscale", ["status"])
+        return False, "Checking..."
+
+    def _on_status_finished(self):
+        output = self.status_proc.readAllStandardOutput().data().decode().lower()
         
         is_connected = False
         status_text = "Disconnected"
@@ -66,15 +84,19 @@ class TailscaleManager(QObject):
             is_connected = True
             status_text = "Connected"
             
+        # Update Cache
+        self.cache.set("status", {"connected": is_connected, "text": status_text})
+        
         self.connection_status_changed.emit(is_connected, status_text)
-        return is_connected, status_text
 
     def connect(self, login_server, auth_key=None, use_sso=False):
         args = ["up", f"--login-server={login_server}", "--accept-routes"]
         if not use_sso and auth_key:
             args.insert(1, f"--auth-key={auth_key}")
         
+        self.cache.clear() # Clear cache on new connection attempt
         self.worker.run_command(args)
 
     def logout(self):
+        self.cache.clear()
         self.worker.run_command(["logout"])
