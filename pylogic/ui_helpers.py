@@ -63,11 +63,16 @@ def center_window(parent: QWidget, child: QWidget) -> None:
     """Centers a child window relative to its parent."""
     if parent is None:
         return
-    parent_geo = parent.geometry()
-    child_geo  = child.geometry()
-    x = parent_geo.x() + (parent_geo.width()  - child_geo.width())  // 2
-    y = parent_geo.y() + (parent_geo.height() - child_geo.height()) // 2
 
+    # Use global coordinates for centering
+    parent_global = parent.mapToGlobal(parent.rect().center())
+    child_geo     = child.geometry()
+
+    # Calculate top-left based on global center of parent
+    x = parent_global.x() - child_geo.width()  // 2
+    y = parent_global.y() - child_geo.height() // 2
+
+    # Ensure it stays on screen
     screen = parent.screen().availableGeometry()
     x = max(screen.x(), min(x, screen.x() + screen.width()  - child_geo.width()))
     y = max(screen.y(), min(y, screen.y() + screen.height() - child_geo.height()))

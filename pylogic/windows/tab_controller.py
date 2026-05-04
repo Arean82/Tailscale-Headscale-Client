@@ -129,7 +129,7 @@ class TabController(QWidget):
         dlg = CredentialsDialog(
             parent=self,
             tab_name=self.tab_name,
-            current_url=load_saved_url(self.tab_name),
+            current_url=self.lineEditUrl.text().strip(),
             current_key=load_saved_key(self.tab_name),
             save_callback=self._save_credentials,
         )

@@ -245,7 +245,7 @@ class AppController(QMainWindow):
             return
 
         try:
-            for fname in ("Tailscale_VPN_url", "Tailscale_VPN_key"):
+            for fname in ("Tailscale_VPN_url", "Tailscale_VPN_key", "auth_mode"):
                 fpath = get_file_path(fname, current_tab_name)
                 if os.path.exists(fpath):
                     os.remove(fpath)

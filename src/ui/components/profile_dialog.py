@@ -1,0 +1,89 @@
+import os
+from PySide6.QtWidgets import QDialog, QStackedWidget, QCheckBox, QLineEdit, QMessageBox, QPushButton
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtCore import QFile
+
+class ProfileDialog(QDialog):
+    def __init__(self, parent=None, profile=None):
+        super().__init__(parent)
+        
+        # 1. Load UI DIRECTLY into this instance
+        loader = QUiLoader()
+        ui_path = os.path.join("pygui", "dialogs", "credentials.ui")
+        ui_file = QFile(ui_path)
+        ui_file.open(QFile.ReadOnly)
+        loader.load(ui_file, self) # This populates 'self' with widgets from the UI
+        ui_file.close()
+        
+        self.setWindowTitle(self.windowTitle()) # Use title from UI
+        
+        # 2. Access widgets directly (they are now attributes of 'self')
+        self.chkUseSSO = self.findChild(QCheckBox, "chkUseSSO")
+        self.stackedWidget = self.findChild(QStackedWidget, "stackedWidget")
+        self.btnSave = self.findChild(QPushButton, "btnSave")
+        self.btnCancel = self.findChild(QPushButton, "btnCancel")
+        self.url_auth = self.findChild(QLineEdit, "lineEditUrlAuth")
+        self.url_sso = self.findChild(QLineEdit, "lineEditUrlSSO")
+        self.key_entry = self.findChild(QLineEdit, "lineEditKey")
+        
+        # 3. Connection Logic (Toggled is better than stateChanged)
+        if self.chkUseSSO:
+            self.chkUseSSO.toggled.connect(self._handle_sso_toggle)
+            
+        # 4. Sync URLs (so you don't type twice)
+        if self.url_auth and self.url_sso:
+            self.url_auth.textChanged.connect(self.url_sso.setText)
+            self.url_sso.textChanged.connect(self.url_auth.setText)
+            
+        # 5. Buttons
+        if self.btnSave:
+            self.btnSave.clicked.connect(self.accept)
+            self.btnSave.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+        if self.btnCancel:
+            self.btnCancel.clicked.connect(self.reject)
+            self.btnCancel.setStyleSheet("background-color: #a0a0a0; color: black; font-weight: bold;")
+            
+        # 6. Set Initial State
+        if profile:
+            if self.url_auth: self.url_auth.setText(profile.login_server)
+            if self.url_sso: self.url_sso.setText(profile.login_server)
+            if self.key_entry: self.key_entry.setText(profile.auth_key)
+            if profile.auth_mode == "google":
+                if self.chkUseSSO: self.chkUseSSO.setChecked(True)
+                if self.stackedWidget: self.stackedWidget.setCurrentIndex(1)
+        else:
+            if self.stackedWidget: self.stackedWidget.setCurrentIndex(0)
+
+    def _handle_sso_toggle(self, is_checked):
+        if self.stackedWidget:
+            # Page 0 = pageAuthKey (URL + Key)
+            # Page 1 = pageSSO (URL Only)
+            index = 1 if is_checked else 0
+            self.stackedWidget.setCurrentIndex(index)
+
+    def get_data(self):
+        use_sso = self.chkUseSSO.isChecked() if self.chkUseSSO else False
+        
+        if use_sso:
+            url = self.url_sso.text().strip() if self.url_sso else ""
+            if not url:
+                QMessageBox.warning(self, "Missing Data", "VPN URL is required.")
+                return None
+            return {
+                "name": url,
+                "login_server": url,
+                "auth_key": "",
+                "auth_mode": "google"
+            }
+        else:
+            url = self.url_auth.text().strip() if self.url_auth else ""
+            key = self.key_entry.text().strip() if self.key_entry else ""
+            if not url:
+                QMessageBox.warning(self, "Missing Data", "VPN URL is required.")
+                return None
+            return {
+                "name": url,
+                "login_server": url,
+                "auth_key": key,
+                "auth_mode": "auth_key"
+            }

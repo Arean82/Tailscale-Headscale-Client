@@ -55,6 +55,10 @@ class CredentialsDialog(QDialog):
         self.btnSave.clicked.connect(self._on_save)
         self.btnCancel.clicked.connect(self.reject)
 
+        # Synchronize URLs between pages
+        self.lineEditUrlAuth.textChanged.connect(self.lineEditUrlSSO.setText)
+        self.lineEditUrlSSO.textChanged.connect(self.lineEditUrlAuth.setText)
+
     # ------------------------------------------------------------------
 
     def _switch_page(self, use_sso: bool):
@@ -80,7 +84,6 @@ class CredentialsDialog(QDialog):
         if self.save_callback:
             self.save_callback(url, key, mode)
 
-        save_auth_mode(self.tab_name, mode)
         self.accept()
 
         QMessageBox.information(
