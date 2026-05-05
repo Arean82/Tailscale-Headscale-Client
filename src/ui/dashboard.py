@@ -152,27 +152,25 @@ class DashboardView(QWidget):
                 """)
             
             if is_sso:
-                from .components.progress_dialog import ProgressDialog
                 import webbrowser
-                
-                self.sso_dialog = ProgressDialog(self)
-                self.sso_dialog.set_message("Initializing SSO Login...")
-                self.sso_dialog.show()
                 
                 # Connect to SSO URL detection
                 def on_url_found(sso_url):
                     webbrowser.open(sso_url)
-                    self.sso_dialog.set_message("Please complete login in your browser...")
+                    # We don't need a dialog, the button already says "Connecting..."
                 
                 def on_finished(code, status):
-                    self.sso_dialog.close()
+                    # Refresh status once the process finishes/browser login is done
                     self.ts_manager.check_status()
                 
-                # Disconnect old connections to avoid duplicates
-                try: self.ts_manager.worker.sso_url_found.disconnect()
-                except: pass
-                try: self.ts_manager.worker.finished.disconnect()
-                except: pass
+                # Disconnect old connections to avoid duplicates (silently)
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", category=RuntimeWarning)
+                    try: self.ts_manager.worker.sso_url_found.disconnect()
+                    except: pass
+                    try: self.ts_manager.worker.finished.disconnect()
+                    except: pass
                 
                 self.ts_manager.worker.sso_url_found.connect(on_url_found)
                 self.ts_manager.worker.finished.connect(on_finished)

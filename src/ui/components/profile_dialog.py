@@ -8,7 +8,7 @@ from .simple_dialogs import BaseUiDialog
 class ProfileDialog(BaseUiDialog):
     def __init__(self, parent=None, profile=None):
         super().__init__("credentials.ui", parent)
-        self.setFixedSize(300, 200)
+        self.setFixedSize(300, 250)
         
         # Access widgets through self.ui
         self.chkUseSSO = self.ui.findChild(QCheckBox, "chkUseSSO")

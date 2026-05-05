@@ -18,6 +18,13 @@ class TailscaleProcess(QObject):
         self.process.finished.connect(self._handle_finished)
         self.current_command = ""
 
+    def __del__(self):
+        """Ensure process is cleaned up when object is destroyed."""
+        if hasattr(self, 'process') and self.process.state() != QProcess.NotRunning:
+            self.process.terminate()
+            if not self.process.waitForFinished(1000):
+                self.process.kill()
+
 
     def run_command(self, cmd_args, profile_name=None):
         self.current_command = " ".join(cmd_args)
@@ -44,6 +51,12 @@ class TailscaleProcess(QObject):
         data = self.process.readAllStandardError().data().decode().strip()
         if data:
             self.error_received.emit(data)
+            
+            # Tailscale often prints the login URL to stderr
+            if "https://" in data:
+                match = re.search(r'https://\S+', data)
+                if match:
+                    self.sso_url_found.emit(match.group(0))
 
     def _handle_finished(self, exit_code, exit_status):
         self.finished.emit(exit_code, str(exit_status))
