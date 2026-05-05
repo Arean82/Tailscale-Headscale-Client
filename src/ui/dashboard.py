@@ -38,15 +38,17 @@ class DashboardView(QWidget):
         # 5. Connect signals
         if self.btnVpnAction:
             self.btnVpnAction.clicked.connect(self.toggle_connection)
-            self.btnVpnAction.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+            # Initial state set by update_status
         if self.btnChangeCredentials:
             self.btnChangeCredentials.clicked.connect(self.change_credentials)
-            self.btnChangeCredentials.setStyleSheet("background-color: #a0a0a0; color: black; font-weight: bold;")
+            # Remove hardcoded gray - will be styled by MainWindow QSS
         if self.btnShowStats:
             self.btnShowStats.clicked.connect(self.show_traffic_stats)
-            self.btnShowStats.setStyleSheet("background-color: #666666; color: white; font-weight: bold;")
+            # Remove hardcoded gray - will be styled by MainWindow QSS
             
         self.ts_manager.connection_status_changed.connect(self.update_status)
+        # Initial status update
+        self.update_status(*self.ts_manager.check_status())
 
     def show_traffic_stats(self):
         from .components.simple_dialogs import TrafficDialog
@@ -76,16 +78,16 @@ class DashboardView(QWidget):
         
         if is_connected:
             self.labelStatus.setText("🟢 Connected")
-            self.labelStatus.setStyleSheet("color: #4CAF50; font-weight: bold;")
+            self.labelStatus.setStyleSheet("color: #22c55e; font-weight: bold;") # Emerald
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Logout")
-                self.btnVpnAction.setStyleSheet("background-color: #f44336; color: white; font-weight: bold;")
+                self.btnVpnAction.setStyleSheet("background-color: #ef4444; color: white; font-weight: bold; border-radius: 6px;") # Rose
         else:
             self.labelStatus.setText("🔴 Disconnected")
-            self.labelStatus.setStyleSheet("color: #FF6B6B; font-weight: bold;")
+            self.labelStatus.setStyleSheet("color: #ef4444; font-weight: bold;") # Rose
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Connect")
-                self.btnVpnAction.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+                self.btnVpnAction.setStyleSheet("background-color: #22c55e; color: white; font-weight: bold; border-radius: 6px;") # Emerald
 
     def toggle_connection(self):
         is_connected, _ = self.ts_manager.check_status()

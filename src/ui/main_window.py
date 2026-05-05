@@ -181,23 +181,43 @@ class MainWindow(QMainWindow):
         # 2. Determine Local Styles
         if target_theme == "dark":
             style = """
-                #tabWidget QTabWidget::pane { border: 1px solid #3c3c3c; background-color: #2b2b2b; }
-                #tabWidget QTabBar::tab { background-color: #3c3c3c; color: white; padding: 8px; border: 1px solid #2b2b2b; }
-                #tabWidget QTabBar::tab:selected { background-color: #2b2b2b; border-bottom: none; font-weight: bold; }
-                #tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox { background-color: #1a1a1a; color: white; border: 1px solid #3c3c3c; padding: 4px; }
-                #tabWidget QPushButton { background-color: #444; color: white; border: none; padding: 6px; border-radius: 3px; }
-                #tabWidget QPushButton:hover { background-color: #555; }
-                #tabWidget QLabel, #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: white; background-color: transparent; }
+                QTabWidget#tabWidget { background-color: #1a1e2e; }
+                #tabWidget QTabWidget::pane { border: 1px solid #3d4b7c; background-color: #1a1e2e; top: -1px; }
+                
+                /* Force background for the content area widgets */
+                #tabWidget QWidget { background-color: #1a1e2e; }
+                
+                #tabWidget QTabBar::tab { background-color: #1e243a; color: #9ca3af; padding: 10px 20px; border: 1px solid #3d4b7c; border-bottom: none; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px; font-size: 11px; font-weight: 600; }
+                #tabWidget QTabBar::tab:hover { background-color: #2a324b; color: #ffffff; }
+                #tabWidget QTabBar::tab:selected { background-color: #1a1e2e; color: #3b82f6; border-bottom: 2px solid #3b82f6; font-weight: bold; }
+                
+                #tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox { background-color: #0f111a; color: #ffffff; border: 1px solid #3d4b7c; padding: 8px; border-radius: 4px; selection-background-color: #3b82f6; }
+                #tabWidget QLineEdit:focus { border: 1px solid #3b82f6; background-color: #161b22; }
+                
+                #tabWidget QPushButton { background-color: #1e243a; color: #ffffff; border: 1px solid #3d4b7c; padding: 8px 20px; border-radius: 6px; font-weight: 600; }
+                #tabWidget QPushButton:hover { background-color: #2a324b; border-color: #3b82f6; }
+                #tabWidget QPushButton:pressed { background-color: #0f111a; }
+                
+                #tabWidget QLabel { color: #e5e7eb; background-color: transparent; font-weight: 500; }
+                #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: #d1d5db; background-color: transparent; font-weight: 500; }
+                
+                #tabWidget QCheckBox::indicator { width: 18px; height: 18px; border: 1px solid #3d4b7c; border-radius: 4px; background-color: #0f111a; }
+                #tabWidget QCheckBox::indicator:checked { background-color: #3b82f6; border-color: #3b82f6; }
             """
         else:
             style = """
-                #tabWidget QTabWidget::pane { border: 1px solid #d0d0d0; background-color: #f0f0f0; }
-                #tabWidget QTabBar::tab { background-color: #e0e0e0; color: #1a1a1a; padding: 8px; border: 1px solid #d0d0d0; }
-                #tabWidget QTabBar::tab:selected { background-color: #f0f0f0; border-bottom: none; font-weight: bold; }
-                #tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox { background-color: #ffffff; color: #1a1a1a; border: 1px solid #d0d0d0; padding: 4px; }
-                #tabWidget QPushButton { background-color: #e0e0e0; color: #1a1a1a; border: 1px solid #c0c0c0; padding: 6px; border-radius: 3px; }
-                #tabWidget QPushButton:hover { background-color: #d0d0d0; }
-                #tabWidget QLabel, #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: #1a1a1a; background-color: transparent; }
+                #tabWidget QTabWidget::pane { border: 1px solid #d0d0d0; background-color: #f8f9fa; top: -1px; }
+                #tabWidget QTabBar::tab { background-color: #e9ecef; color: #495057; padding: 10px 20px; border: 1px solid #dee2e6; border-bottom: none; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px; font-size: 11px; font-weight: 600; }
+                #tabWidget QTabBar::tab:hover { background-color: #f8f9fa; }
+                #tabWidget QTabBar::tab:selected { background-color: #f8f9fa; color: #0056b3; border-bottom: 2px solid #0056b3; font-weight: bold; }
+                
+                #tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox { background-color: #ffffff; color: #212529; border: 1px solid #ced4da; padding: 8px; border-radius: 4px; }
+                #tabWidget QLineEdit:focus { border: 1px solid #80bdff; outline: 0; }
+                
+                #tabWidget QPushButton { background-color: #f8f9fa; color: #212529; border: 1px solid #ced4da; padding: 8px 20px; border-radius: 6px; font-weight: 600; }
+                #tabWidget QPushButton:hover { background-color: #e2e6ea; border-color: #0056b3; }
+                
+                #tabWidget QLabel, #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: #212529; background-color: transparent; }
             """
             
         # 3. Apply style ONLY to the TabWidget
@@ -210,8 +230,8 @@ class MainWindow(QMainWindow):
     def _apply_theme_to_dialog(self, dialog):
         if hasattr(self, 'current_qss'):
             dialog_style = self.current_qss.replace("#tabWidget ", "")
-            bg = "#2b2b2b" if self.resolved_theme == "dark" else "#f0f0f0"
-            dialog_style = f"QDialog {{ background-color: {bg}; }} " + dialog_style
+            bg = "#1a1e2e" if self.resolved_theme == "dark" else "#f0f0f0"
+            dialog_style = f"QDialog {{ background-color: {bg}; color: {'#d1d5db' if self.resolved_theme == 'dark' else '#1a1a1a'}; }} " + dialog_style
             dialog.setStyleSheet(dialog_style)
 
 

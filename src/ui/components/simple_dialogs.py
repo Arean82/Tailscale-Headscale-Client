@@ -85,9 +85,11 @@ class ReadmeDialog(BaseUiDialog):
             except ImportError:
                 html_body = f"<pre>{md_text}</pre>"
             
-            bg_color = "#ffffff" if self.theme == "light" else "#1a1a1a"
-            text_color = "#1a1a1a" if self.theme == "light" else "#ffffff"
-            link_color = "#0056b3" if self.theme == "light" else "#40a9ff"
+            bg_color = "#ffffff" if self.theme == "light" else "#1a1e2e"
+            text_color = "#1a1a1a" if self.theme == "light" else "#e5e7eb"
+            link_color = "#0056b3" if self.theme == "light" else "#60a5fa"
+            code_bg = "#f6f8fa" if self.theme == "light" else "#0f111a"
+            border_color = "#eaecef" if self.theme == "light" else "#3d4b7c"
             
             content = f"""
             <html>
@@ -102,22 +104,22 @@ class ReadmeDialog(BaseUiDialog):
                         line-height: 1.6;
                         padding: 0 20px;
                     }}
-                    h1, h2, h3 {{ border-bottom: 1px solid #eaecef; padding-bottom: .3em; margin-top: 24px; margin-bottom: 16px; font-weight: 600; }}
+                    h1, h2, h3 {{ border-bottom: 1px solid {border_color}; padding-bottom: .3em; margin-top: 24px; margin-bottom: 16px; font-weight: 600; }}
                     pre {{ 
-                        background-color: #f6f8fa; 
+                        background-color: {code_bg}; 
                         padding: 16px; 
                         border-radius: 6px; 
-                        border: 1px solid #ddd;
+                        border: 1px solid {border_color};
                         overflow: auto;
                     }}
-                    code {{ background-color: rgba(27,31,35,.05); padding: .2em .4em; border-radius: 3px; font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace; }}
+                    code {{ background-color: {code_bg}; padding: .2em .4em; border-radius: 3px; font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace; }}
                     a {{ color: {link_color}; text-decoration: none; }}
                     a:hover {{ text-decoration: underline; }}
                     img {{ max-width: 100%; }}
                     table {{ border-spacing: 0; border-collapse: collapse; width: 100%; margin-bottom: 16px; }}
-                    table th, table td {{ border: 1px solid #dfe2e5; padding: 6px 13px; }}
-                    table tr {{ background-color: {bg_color}; border-top: 1px solid #c6cbd1; }}
-                    table tr:nth-child(2n) {{ background-color: #f6f8fa; }}
+                    table th, table td {{ border: 1px solid {border_color}; padding: 6px 13px; }}
+                    table tr {{ background-color: {bg_color}; border-top: 1px solid {border_color}; }}
+                    table tr:nth-child(2n) {{ background-color: {code_bg}; }}
                 </style>
             </head>
             <body>
