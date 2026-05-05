@@ -246,6 +246,7 @@ class MainWindow(QMainWindow):
     def add_profile_clicked(self):
         from .components.profile_dialog import ProfileDialog
         dialog = ProfileDialog(self)
+        dialog.setWindowTitle("Add New VPN Profile")
         self._apply_theme_to_dialog(dialog)
         if dialog.exec():
             data = dialog.get_data()
