@@ -2,95 +2,167 @@
 <ui version="4.0">
  <class>TrafficDialog</class>
  <widget class="QDialog" name="TrafficDialog">
-  <property name="windowTitle"><string>Traffic Stats</string></property>
   <property name="geometry">
-   <rect><x>0</x><y>0</y><width>450</width><height>500</height></rect>
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>450</width>
+    <height>500</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Traffic Stats</string>
   </property>
   <layout class="QVBoxLayout" name="mainLayout">
-   <property name="spacing"><number>15</number></property>
-   <property name="contentsMargins"><number>20</number><number>20</number><number>20</number><number>20</number></property>
-   
-   <!-- Section 1: Summary -->
+   <property name="spacing">
+    <number>15</number>
+   </property>
    <item>
     <widget class="QLabel" name="labelTitle">
-     <property name="text"><string>Traffic Statistics Summary</string></property>
      <property name="font">
-      <font><family>Segoe UI</family><pointsize>12</pointsize><bold>true</bold></font>
+      <font>
+       <family>Segoe UI</family>
+       <pointsize>12</pointsize>
+       <bold>true</bold>
+      </font>
      </property>
-     <property name="alignment"><enum>Qt::AlignCenter</enum></property>
+     <property name="text">
+      <string>Traffic Statistics Summary</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignCenter</set>
+     </property>
     </widget>
    </item>
-   
    <item>
     <widget class="QGroupBox" name="groupSummary">
-     <property name="title"><string>Current Totals</string></property>
+     <property name="title">
+      <string>Current Totals</string>
+     </property>
      <layout class="QVBoxLayout" name="summaryLayout">
       <item>
        <widget class="QLabel" name="labelStats">
-        <property name="text"><string>Session: Sent 0 B / Received 0 B</string></property>
-        <property name="font"><font><family>Courier New</family><pointsize>10</pointsize></font></property>
+        <property name="font">
+         <font>
+          <family>Courier New</family>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Session: Sent 0 B / Received 0 B</string>
+        </property>
        </widget>
       </item>
       <item>
        <widget class="QLabel" name="labelDailyStats">
-        <property name="text"><string>Today: Sent 0 B / Received 0 B</string></property>
-        <property name="font"><font><family>Courier New</family><pointsize>10</pointsize><bold>true</bold></font></property>
-        <property name="styleSheet"><string>color: #3b8ed0;</string></property>
+        <property name="font">
+         <font>
+          <family>Courier New</family>
+          <pointsize>10</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string>color: #3b8ed0;</string>
+        </property>
+        <property name="text">
+         <string>Today: Sent 0 B / Received 0 B</string>
+        </property>
        </widget>
       </item>
      </layout>
     </widget>
    </item>
-
-   <!-- Section 2: Recent History -->
    <item>
     <widget class="QLabel" name="labelHistoryTitle">
-     <property name="text"><string>Recent History</string></property>
-     <property name="font"><font><bold>true</bold></font></property>
+     <property name="font">
+      <font>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Recent History</string>
+     </property>
     </widget>
    </item>
-   
    <item>
-    <widget class="QScrollArea" name="scrollArea">
-     <property name="widgetResizable"><bool>true</bool></property>
-     <widget class="QWidget" name="scrollAreaWidgetContents">
-      <layout class="QVBoxLayout" name="scrollLayout">
-       <item>
-        <widget class="QLabel" name="labelHistory">
-         <property name="text"><string>Loading history...</string></property>
-         <property name="alignment"><enum>Qt::AlignTop|Qt::AlignLeft</enum></property>
-         <property name="wordWrap"><bool>true</bool></property>
-         <property name="textFormat"><enum>Qt::RichText</enum></property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation"><enum>Qt::Vertical</enum></property>
-         <property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property>
-        </spacer>
-       </item>
-      </layout>
-     </widget>
+    <widget class="QTableWidget" name="tableHistory">
+     <property name="editTriggers">
+      <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+     </property>
+     <property name="showGrid">
+      <bool>false</bool>
+     </property>
+     <attribute name="horizontalHeaderVisible">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <column>
+      <property name="text">
+       <string>Timestamp</string>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Sent</string>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Received</string>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+     </column>
     </widget>
    </item>
-
-   <!-- Bottom: Close -->
    <item>
     <layout class="QHBoxLayout" name="buttonLayout">
      <item>
       <spacer name="horizontalSpacer">
-       <property name="orientation"><enum>Qt::Horizontal</enum></property>
-       <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
       </spacer>
      </item>
      <item>
       <widget class="QPushButton" name="btnClose">
-       <property name="text"><string>Close</string></property>
-       <property name="minimumWidth"><number>100</number></property>
+       <property name="text">
+        <string>Close</string>
+       </property>
       </widget>
      </item>
     </layout>
    </item>
   </layout>
  </widget>
+ <resources/>
+ <connections/>
 </ui>

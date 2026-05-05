@@ -34,9 +34,7 @@ class MainWindow(QMainWindow):
             
         self.tabWidget = self.findChild(QTabWidget, "tabWidget")
         self.setWindowTitle("Tailscale Client Pro")
-        self.setMinimumSize(self.ui_window.minimumSize())
-        self.setMaximumSize(self.ui_window.maximumSize())
-        self.resize(self.ui_window.size())
+        self.setFixedSize(420, 280)
 
         self.current_theme = "light" # Default is LIGHT
         self.change_theme("light")
@@ -422,6 +420,13 @@ class MainWindow(QMainWindow):
 
 
     def add_profile_clicked(self):
+        # Enforce max tabs limit
+        if len(self.manager.profiles) >= self.manager.settings.max_tabs:
+            QMessageBox.warning(self, "Limit Reached", 
+                              f"You have reached the maximum limit of {self.manager.settings.max_tabs} profiles.\n"
+                              "You can increase this limit in File -> Settings.")
+            return False
+
         # 1. First Step: Get Profile Name using profile.ui
         from .components.profile_name_dialog import ProfileNameDialog
         

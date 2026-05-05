@@ -13,7 +13,7 @@ class LogViewerDialog(QDialog):
         self.display_name = display_name
         
         self.setWindowTitle(f"Log: {display_name}")
-        self.resize(900, 650)
+        self.setFixedSize(900, 650)
         
         # Load UI
         loader = QUiLoader()

@@ -10,6 +10,7 @@ from .simple_dialogs import BaseUiDialog
 class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
         super().__init__("settings.ui", parent)
+        self.setFixedSize(340, 200)
         self.manager = manager
         
         # Access widgets through self.ui
@@ -28,7 +29,8 @@ class SettingsDialog(BaseUiDialog):
             
         if self.labelLogPath:
             from src.utils.logger import get_global_log_dir
-            self.labelLogPath.setText(f"Path: {self.manager.base_dir}")
+            log_dir = get_global_log_dir(self.manager.base_dir)
+            self.labelLogPath.setText(f"Path: {log_dir}")
             
         # Access slider widgets from UI
         self.sliderMaxTabs = self.ui.findChild(QSlider, "sliderMaxTabs")
@@ -67,7 +69,8 @@ class SettingsDialog(BaseUiDialog):
         refresh_all_loggers(self.manager.base_dir, self.manager.settings.enable_logs)
 
     def _open_log_folder(self):
-        path = self.manager.base_dir
+        from src.utils.logger import get_global_log_dir
+        path = get_global_log_dir(self.manager.base_dir)
         if os.path.exists(path):
             import subprocess
             if os.name == 'nt':

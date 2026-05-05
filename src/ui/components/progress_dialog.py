@@ -8,6 +8,7 @@ class ProgressDialog(QDialog):
         super().__init__(parent)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setFixedSize(260, 44)
         
         loader = QUiLoader()
         ui_path = os.path.join("pygui", "dialogs", "progress.ui")

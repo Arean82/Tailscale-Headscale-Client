@@ -1,9 +1,7 @@
 import os
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QTextEdit, QPushButton, QLabel
-from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile
-
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QTextBrowser, QPushButton, QLabel
+from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QTextEdit, 
+                             QPushButton, QLabel, QTextBrowser, 
+                             QTableWidget, QTableWidgetItem, QHeaderView)
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, Qt
 from PySide6.QtGui import QTextOption
@@ -35,6 +33,7 @@ class BaseUiDialog(QDialog):
 class AboutDialog(BaseUiDialog):
     def __init__(self, parent=None):
         super().__init__("about.ui", parent)
+        self.setFixedSize(300, 180)
         
         # Set dynamic text to avoid hardcoding in UI files
         from ...logic.constants import APP_VERSION, APP_COPYRIGHT, APP_NAME
@@ -51,7 +50,7 @@ class ReadmeDialog(BaseUiDialog):
     def __init__(self, theme="light", parent=None):
         super().__init__("readme.ui", parent)
         self.theme = theme
-        self.resize(1000, 800)
+        self.setFixedSize(1000, 800)
         
         self.viewer = self.findChild(QTextBrowser, "textBrowser")
         self.btnClose = self.findChild(QPushButton, "closeBtn")
@@ -118,10 +117,11 @@ class ReadmeDialog(BaseUiDialog):
 class TrafficDialog(BaseUiDialog):
     def __init__(self, parent=None, session_text="", daily_text="", history=None):
         super().__init__("traffic.ui", parent)
+        self.setFixedSize(450, 500)
         
         label_stats = self.ui.findChild(QLabel, "labelStats")
         label_daily = self.ui.findChild(QLabel, "labelDailyStats")
-        label_history = self.ui.findChild(QLabel, "labelHistory")
+        table_history = self.ui.findChild(QTableWidget, "tableHistory")
         
         if label_stats:
             label_stats.setText(session_text)
@@ -129,41 +129,34 @@ class TrafficDialog(BaseUiDialog):
             label_daily.setText(daily_text)
             
         # Populate History Section
-        if label_history and history:
-            history_html = """
-                <table width='100%' border='0' cellspacing='0' cellpadding='5' style='font-family: Courier New;'>
-                    <tr style='background-color: #f0f0f0;'>
-                        <th align='left'><b>Timestamp</b></th>
-                        <th align='right'><b>Sent</b></th>
-                        <th align='right'><b>Received</b></th>
-                    </tr>
-            """
-            
+        if table_history and history:
             def format_b(b):
                 for unit in ['B', 'KB', 'MB', 'GB']:
                     if b < 1024: return f"{b:.2f} {unit}"
                     b /= 1024
                 return f"{b:.2f} TB"
 
+            table_history.setRowCount(len(history))
+            table_history.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            
             for i, (ts, sent, recv) in enumerate(history):
-                bg = "white" if i % 2 == 0 else "#fafafa"
-                history_html += f"""
-                    <tr bgcolor='{bg}'>
-                        <td style='border-bottom: 1px solid #eee;'>{ts}</td>
-                        <td align='right' style='border-bottom: 1px solid #eee;'>{format_b(sent)}</td>
-                        <td align='right' style='border-bottom: 1px solid #eee;'>{format_b(recv)}</td>
-                    </tr>
-                """
-            history_html += "</table>"
-            label_history.setText(history_html)
-        elif label_history:
-            label_history.setText("<i>No history available for this profile.</i>")
+                table_history.setItem(i, 0, QTableWidgetItem(ts))
+                table_history.setItem(i, 1, QTableWidgetItem(format_b(sent)))
+                table_history.setItem(i, 2, QTableWidgetItem(format_b(recv)))
+                
+                # Make items non-editable (redundant due to UI property but good practice)
+                for col in range(3):
+                    table_history.item(i, col).setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        elif table_history:
+            table_history.setRowCount(1)
+            table_history.setColumnCount(3)
+            table_history.setItem(0, 0, QTableWidgetItem("No history available"))
 
 class LicenseDialog(QDialog):
     def __init__(self, theme="dark", parent=None):
         super().__init__(parent)
         self.setWindowTitle("License")
-        self.resize(600, 450)
+        self.setFixedSize(600, 450)
         layout = QVBoxLayout(self)
         
         self.text_browser = QTextBrowser()

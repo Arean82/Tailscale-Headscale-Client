@@ -27,8 +27,7 @@ class ProfileNameDialog(QDialog):
             
             # Sync properties
             self.setWindowTitle(self.ui_content.windowTitle())
-            self.setMinimumSize(self.ui_content.minimumSize())
-            self.resize(self.ui_content.size())
+            self.setFixedSize(360, 150)
             
             # Access widgets
             self.line_edit = self.ui_content.findChild(QLineEdit, "lineEdit")
