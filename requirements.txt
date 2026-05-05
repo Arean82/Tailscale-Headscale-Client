@@ -2,4 +2,5 @@ PySide6
 cryptography
 psutil
 requests
+markdown
 PyInstaller
