@@ -19,14 +19,30 @@ class TailscaleProcess(QObject):
         self.current_command = ""
 
     def __del__(self):
-        """Ensure process is cleaned up when object is destroyed."""
-        if hasattr(self, 'process') and self.process.state() != QProcess.NotRunning:
-            self.process.terminate()
-            if not self.process.waitForFinished(1000):
-                self.process.kill()
+        """Ensure process is cleaned up safely."""
+        try:
+            # Check if the internal C++ object still exists
+            if hasattr(self, 'process') and self.process is not None:
+                if self.process.state() != QProcess.NotRunning:
+                    self.process.terminate()
+                    if not self.process.waitForFinished(500):
+                        self.process.kill()
+        except (RuntimeError, AttributeError):
+            # Object already deleted by Qt's parent-child system
+            pass
 
 
     def run_command(self, cmd_args, profile_name=None):
+        """Starts a tailscale command, ensuring any previous command is cleaned up."""
+        try:
+            if self.process.state() != QProcess.NotRunning:
+                self.process.terminate()
+                if not self.process.waitForFinished(1000):
+                    self.process.kill()
+        except (RuntimeError, AttributeError):
+            # Process object might be in a weird state during shutdown
+            pass
+
         self.current_command = " ".join(cmd_args)
         self.profile_name = profile_name
         self.process.start("tailscale", cmd_args)

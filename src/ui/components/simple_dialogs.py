@@ -33,6 +33,33 @@ class BaseUiDialog(QDialog):
                 self.btnClose.clicked.connect(self.accept)
                 self.btnClose.setStyleSheet("background-color: #a0a0a0; color: black; font-weight: bold;")
 
+    def showEvent(self, event):
+        """Play a smooth fade-in animation when the dialog opens."""
+        from PySide6.QtCore import QPropertyAnimation
+        self.setWindowOpacity(0)
+        self.fade_anim = QPropertyAnimation(self, b"windowOpacity")
+        self.fade_anim.setDuration(300)
+        self.fade_anim.setStartValue(0)
+        self.fade_anim.setEndValue(1)
+        self.fade_anim.start()
+        super().showEvent(event)
+
+    def _fade_out_and_close(self, result_code):
+        """Play fade-out and then close with the given result code."""
+        from PySide6.QtCore import QPropertyAnimation
+        self.exit_anim = QPropertyAnimation(self, b"windowOpacity")
+        self.exit_anim.setDuration(250)
+        self.exit_anim.setStartValue(1)
+        self.exit_anim.setEndValue(0)
+        self.exit_anim.finished.connect(lambda: self.done(result_code))
+        self.exit_anim.start()
+
+    def accept(self):
+        self._fade_out_and_close(QDialog.Accepted)
+
+    def reject(self):
+        self._fade_out_and_close(QDialog.Rejected)
+
 class AboutDialog(BaseUiDialog):
     def __init__(self, parent=None):
         super().__init__("about.ui", parent)

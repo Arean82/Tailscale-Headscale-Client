@@ -61,6 +61,15 @@ class MainWindow(QMainWindow):
         self.flush_timer.timeout.connect(self.manager.db.flush_buffer)
         self.flush_timer.start(300000) # 300,000 ms = 5 mins
 
+        # 9. Startup Animation (Fade In)
+        from PySide6.QtCore import QPropertyAnimation
+        self.setWindowOpacity(0)
+        self.fade_anim = QPropertyAnimation(self, b"windowOpacity")
+        self.fade_anim.setDuration(500) # 500ms
+        self.fade_anim.setStartValue(0)
+        self.fade_anim.setEndValue(1)
+        self.fade_anim.start()
+
     def _setup_tray(self):
         from PySide6.QtWidgets import QSystemTrayIcon
         from PySide6.QtGui import QIcon

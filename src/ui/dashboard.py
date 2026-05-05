@@ -58,6 +58,19 @@ class DashboardView(QWidget):
         self.stats_timer.timeout.connect(self._update_traffic_label)
         self.stats_timer.start(3000) # Every 3 seconds
 
+        # 7. Setup Pulse Animation (for "Connecting..." state)
+        from PySide6.QtWidgets import QGraphicsOpacityEffect
+        from PySide6.QtCore import QPropertyAnimation, Qt, QEasingCurve
+        self.opacity_effect = QGraphicsOpacityEffect(self.btnVpnAction)
+        self.btnVpnAction.setGraphicsEffect(self.opacity_effect)
+        
+        self.pulse_anim = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.pulse_anim.setDuration(1000)
+        self.pulse_anim.setStartValue(1.0)
+        self.pulse_anim.setEndValue(0.4)
+        self.pulse_anim.setLoopCount(-1) # Infinite
+        self.pulse_anim.setEasingCurve(QEasingCurve.InOutQuad)
+
     def show_traffic_stats(self):
         from .components.simple_dialogs import TrafficDialog
         
@@ -98,6 +111,12 @@ class DashboardView(QWidget):
     def update_status(self, is_connected, status_text):
         if not self.labelStatus: return
         
+        # Stop pulse if we are no longer connecting
+        if status_text != "Checking..." and "Connecting" not in self.btnVpnAction.text():
+            if hasattr(self, 'pulse_anim'):
+                self.pulse_anim.stop()
+                self.opacity_effect.setOpacity(1.0)
+        
         # If we are checking, don't revert to "Disconnected" if we were already connected
         if status_text == "Checking..." and self.labelStatus.text() == "🟢 Connected":
             return
@@ -106,18 +125,44 @@ class DashboardView(QWidget):
             self.labelStatus.setText("🟢 Connected")
             self.labelStatus.setStyleSheet("color: #22c55e; font-weight: bold;")
             
-            # Capture baseline if not already set (for session tracking)
+            self.prev_stats = None
+            
+        # Capture baseline if not already set (for session tracking)
+        if is_connected:
             if self.prev_stats is None:
                 self.prev_stats = self.ts_manager.get_stats()
             
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Logout")
                 self.btnVpnAction.setStyleSheet("""
-                    QPushButton { background-color: #f44336; color: white; font-weight: bold; border-radius: 6px; }
-                    QPushButton:hover { background-color: #da190b; }
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ef4444, stop:1 #b91c1c);
+                        color: white; 
+                        font-weight: bold; 
+                        border-radius: 6px;
+                        border: 1px solid #991b1b;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f87171, stop:1 #dc2626);
+                    }
                 """)
             if self.btnChangeCredentials:
                 self.btnChangeCredentials.setEnabled(False)
+                self.btnChangeCredentials.setStyleSheet("""
+                    QPushButton { 
+                        background-color: #374151; color: #9ca3af; font-weight: bold; border-radius: 6px; 
+                    }
+                """)
+            if self.btnShowStats:
+                self.btnShowStats.setStyleSheet("""
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e293b, stop:1 #0f172a);
+                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #334155;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #334155, stop:1 #1e293b);
+                    }
+                """)
         else:
             self.labelStatus.setText("🔴 Disconnected")
             self.labelStatus.setStyleSheet("color: #ef4444; font-weight: bold;")
@@ -128,11 +173,38 @@ class DashboardView(QWidget):
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Connect")
                 self.btnVpnAction.setStyleSheet("""
-                    QPushButton { background-color: #4CAF50; color: white; font-weight: bold; border-radius: 6px; }
-                    QPushButton:hover { background-color: #45a049; }
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #15803d);
+                        color: white; 
+                        font-weight: bold; 
+                        border-radius: 6px;
+                        border: 1px solid #166534;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ade80, stop:1 #16a34a);
+                    }
                 """)
             if self.btnChangeCredentials:
                 self.btnChangeCredentials.setEnabled(True)
+                self.btnChangeCredentials.setStyleSheet("""
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6366f1, stop:1 #4338ca);
+                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #4f46e5;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #818cf8, stop:1 #4f46e5);
+                    }
+                """)
+            if self.btnShowStats:
+                self.btnShowStats.setStyleSheet("""
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e293b, stop:1 #0f172a);
+                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #334155;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #334155, stop:1 #1e293b);
+                    }
+                """)
 
     def toggle_connection(self):
         is_connected, _ = self.ts_manager.check_status()
@@ -147,9 +219,17 @@ class DashboardView(QWidget):
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Connecting...")
                 self.btnVpnAction.setStyleSheet("""
-                    QPushButton { background-color: #FFA500; color: white; font-weight: bold; border-radius: 6px; }
-                    QPushButton:hover { background-color: #FF8C00; }
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f59e0b, stop:1 #d97706);
+                        color: white; 
+                        font-weight: bold; 
+                        border-radius: 6px;
+                        border: 1px solid #b45309;
+                    }
                 """)
+                # Start the pulse animation
+                if hasattr(self, 'pulse_anim'):
+                    self.pulse_anim.start()
             
             if is_sso:
                 import webbrowser
