@@ -7,6 +7,7 @@ import subprocess
 import threading
 import time
 import re
+import webbrowser
 from tkinter import messagebox
 from logic.statuscheck import wait_until_connected
 
@@ -132,154 +133,123 @@ class TailscaleClient:
             login_server = login_server.strip()
             save_key(auth_key, profile_name)
             save_url(login_server, profile_name)
-            self._show_progress("Starting Tailscale service...", 1)
-    
+            
+            self._show_progress("Preparing Tailscale...", 1)
+            self.connected = False
+            self.logged_in = False
+            
+            # 1. Ensure Tailscale Service is running
             if sys.platform == "win32":
                 self.run_command(["powershell", "-Command", "Start-Service Tailscale"], require_sudo=True)
-                time.sleep(2)
             elif sys.platform.startswith("linux"):
                 self.run_command(["systemctl", "start", "tailscaled"], require_sudo=True)
-                time.sleep(2)
-    
-            self._show_progress("Starting Tailscale service...", 2)
-            cmd = ["tailscale", "up", f"--login-server={login_server}", "--accept-routes"]
-    
+            time.sleep(1)
+
+            # 2. Determine auth mode
             from logic.vpn_logic import get_file_path
             mode_file = get_file_path("auth_mode", profile_name)
             auth_mode = "auth_key"
             if os.path.exists(mode_file):
                 with open(mode_file, "r") as f:
                     auth_mode = f.read().strip()
-    
+
+            cmd = ["tailscale", "up", f"--login-server={login_server}", "--accept-routes"]
             if auth_mode == "auth_key":
                 if not auth_key:
-                    self._print_output("Error: Auth key is missing.")
-                    self._update_status("🔴 Disconnected", "red")
-                    self._show_progress("Connection failed.", 0)
+                    self._update_status("🔴 Missing Auth Key", "red")
                     return
-                cmd.insert(2, f"--auth-key={auth_key}")
-            else:
-                self._print_output("Using Google Login (SSO) mode.")
-    
-            safe_cmd_display = [p if not p.startswith("--auth-key=") else "--auth-key=****" for p in cmd]
-            self._print_output(f"Running: {' '.join(safe_cmd_display)}")
-            self._show_progress("Waiting for SSO login...", 2)
-    
-            output_lines = []
-            process = subprocess.Popen(
-                ["pkexec"] + cmd if sys.platform.startswith("linux") else cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True
-            )
+                cmd.append(f"--auth-key={auth_key}")
+            
+            self._show_progress("Connecting...", 2)
+            safe_cmd = [p if not p.startswith("--auth-key=") else "--auth-key=****" for p in cmd]
+            app_logger.info(f"[{profile_name}] Executing: {' '.join(safe_cmd)}")
 
-            url_opened = False
-            for line in process.stdout:
-                line = line.strip()
-                output_lines.append(line)
-                self._print_output(line)
-                write_profile_log(profile_name, line)
+            # 3. Start Background Polling Thread (Track #1)
+            # This is our safety net if we miss the "Success." message in the stream
+            stop_polling = threading.Event()
+            def polling_watchdog():
+                app_logger.debug(f"[{profile_name}] Watchdog started.")
+                timeout = 180
+                start_time = time.time()
+                while not stop_polling.is_set() and (time.time() - start_time < timeout):
+                    if self.is_connected():
+                        app_logger.info(f"[{profile_name}] Watchdog detected connection!")
+                        self._trigger_connected_ui(profile_name)
+                        break
+                    time.sleep(3)
+                app_logger.debug(f"[{profile_name}] Watchdog stopped.")
 
-                if not url_opened and "https://" in line:
-                    match = re.search(r'https://\S+', line)
-                    if match:
-                        login_url = match.group(0)
-                        self._print_output(f"🔐 SSO Login URL: {login_url}")
-                        url_opened = True
-                        if self.message_popup_callback:
-                            self.message_popup_callback("SSO Login Required", f"Please authenticate in your browser:\n\n{login_url}")
+            threading.Thread(target=polling_watchdog, daemon=True).start()
 
-                if line.lower() == "success.":
-                    self.connected = True
-                    self.logged_in = True
-                    self._update_status("🟢 Connected", "green")
-                    self._notify_connected()
-                    self._stop_periodic_logger()
-                    self._periodic_logger_running.set()
-                    self._periodic_logger_thread = threading.Thread(
-                        target=self._periodic_traffic_logger, args=(profile_name,), daemon=True
-                    )
-                    self._periodic_logger_thread.start()
-                    self._show_progress("Connected successfully!", 0)
-
-            process.wait()
-            output = "\n".join(output_lines)
-
-            if not self.connected:
-                status_output = self.run_command(["tailscale", "status"])
-                self._print_output("Verifying connection...\n" + status_output)
-                
-                if "logged out" in status_output.lower() or "disconnected" in status_output.lower():
-                    self.connected = False
-                    self.logged_in = False
-                    self._update_status("🔴 Disconnected", "red")
-                    messagebox.showerror("Connection Failed", "Login failed. Check logs or try again.")
-                    self._notify_logged_out()
-                    self._stop_periodic_logger()
-                    self._show_progress("Connection failed.", 0)
-                else:
-                    self.connected = True
-                    self.logged_in = True
-                    self._update_status("🟢 Connected", "green")
-                    self._notify_connected()
-                    self._stop_periodic_logger()
-                    self._periodic_logger_running.set()
-                    self._periodic_logger_thread = threading.Thread(
-                        target=self._periodic_traffic_logger, args=(profile_name,), daemon=True
-                    )
-                    self._periodic_logger_thread.start()
-                    self._show_progress("Connected successfully!", 0)
-
-            if auth_mode != "auth_key" and not self.connected:
-                self._print_output("[DEBUG] Waiting for Tailscale to connect via SSO polling...")
-                if wait_until_connected():
-                    self.connected = True
-                    self.logged_in = True
-                    self._update_status("🟢 Connected", "green")
-                    self._notify_connected()
-                    self._stop_periodic_logger()
-                    self._periodic_logger_running.set()
-                    self._periodic_logger_thread = threading.Thread(
-                        target=self._periodic_traffic_logger, args=(profile_name,), daemon=True
-                    )
-                    self._periodic_logger_thread.start()
-                    self._show_progress("Connected successfully!", 0)
-                else:
-                    self.connected = False
-                    self.logged_in = False
-                    self._update_status("🔴 Disconnected", "red")
-                    self._notify_logged_out()
-                    self._stop_periodic_logger()
-                    self._show_progress("Connection failed.", 0)
-                    try:
-                        messagebox.showerror("Connection Failed", "Login via SSO timed out. Please try again.")
-                    except:
-                        pass
-
-            status_output = self.run_command(["tailscale", "status"])
-            self._print_output("Verifying connection...\n" + status_output)
-    
-            if "Logged out" in status_output or "disconnected" in status_output.lower() or "failed" in output.lower():
-                self.connected = False
-                self.logged_in = False
-                self._update_status("🔴 Disconnected", "red")
-                self._notify_logged_out()
-                self._stop_periodic_logger()
-                self._show_progress("Connection failed.", 0)
-            else:
-                self.connected = True
-                self.logged_in = True
-                self._update_status("🟢 Connected", "green")
-                self._notify_connected()
-                self._stop_periodic_logger()
-                self._periodic_logger_running.set()
-                self._periodic_logger_thread = threading.Thread(
-                    target=self._periodic_traffic_logger, args=(profile_name,), daemon=True
+            # 4. Start Tailscale Process and Stream Output (Track #2)
+            try:
+                process = subprocess.Popen(
+                    ["pkexec"] + cmd if sys.platform.startswith("linux") else cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1 # Line buffered
                 )
-                self._periodic_logger_thread.start()
-                self._show_progress("Connected successfully!", 0)
-    
+
+                url_opened = False
+                for line in process.stdout:
+                    line = line.strip()
+                    if not line: continue
+                    
+                    self._print_output(line)
+                    write_profile_log(profile_name, line)
+
+                    # Capture "Success." immediately
+                    if "success." in line.lower() or "connected" in line.lower():
+                        app_logger.info(f"[{profile_name}] Stream captured success message.")
+                        self._trigger_connected_ui(profile_name)
+
+                    # Capture and open SSO URL
+                    if not url_opened and "https://" in line:
+                        match = re.search(r'https://\S+', line)
+                        if match:
+                            login_url = match.group(0)
+                            self._print_output(f"🔐 Please authenticate: {login_url}")
+                            url_opened = True
+                            if self.message_popup_callback:
+                                self.message_popup_callback("SSO Login", f"Authenticate in browser:\n\n{login_url}")
+                            webbrowser.open(login_url)
+
+                process.wait()
+                
+            except Exception as e:
+                app_logger.error(f"[{profile_name}] Process error: {e}")
+            finally:
+                stop_polling.set()
+
+            # 5. Final Verification
+            time.sleep(1)
+            if not self.connected:
+                if self.is_connected():
+                    self._trigger_connected_ui(profile_name)
+                else:
+                    self._update_status("🔴 Connection Failed", "red")
+                    self._notify_logged_out()
+                    self._show_progress("Failed.", 0)
+
         threading.Thread(target=task, args=(key, server, tab_name), daemon=True).start()
+
+    def _trigger_connected_ui(self, profile_name):
+        """Helper to unify UI updates upon successful connection."""
+        if self.connected: return
+        self.connected = True
+        self.logged_in = True
+        self._update_status("🟢 Connected", "green")
+        self._notify_connected()
+        self._show_progress("Connected!", 0)
+        
+        # Start periodic traffic logging
+        self._stop_periodic_logger()
+        self._periodic_logger_running.set()
+        self._periodic_logger_thread = threading.Thread(
+            target=self._periodic_traffic_logger, args=(profile_name,), daemon=True
+        )
+        self._periodic_logger_thread.start()
 
     def disconnect(self, profile_name):
         def task():

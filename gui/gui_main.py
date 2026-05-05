@@ -40,8 +40,8 @@ class TabbedClientApp:
             theme_name = settings.get("theme", "light")
         
         self.icon_image = getattr(master, 'icon_image', None)
-        self.master.title("TAILSCALE VPN Client")
-        print("[DEBUG] >> Title set to 'TAILSCALE VPN Client'")
+        self.master.title("TAILSCALE VPN Client v4.2")
+        print("[DEBUG] >> Title set to 'TAILSCALE VPN Client v4.2'")
         
         # Set geometry based on OS
         if sys.platform == "win32":

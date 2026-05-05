@@ -40,7 +40,7 @@ class AboutWindow(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             self, 
-            text="Version 3.0"
+            text="Version 4.2"
         ).pack()
 
         ctk.CTkLabel(

@@ -223,6 +223,8 @@ class ClientTab(ctk.CTkFrame):
         if any(x in text.lower() for x in ["connected", "disconnected", "error", "failed"]):
             self.is_connecting = False
             self.vpn_action_btn.configure(state='normal')
+            if "connected" not in text.lower():
+                 self.vpn_action_btn.configure(text="Connect", fg_color="#4CAF50", hover_color="#45a049")
 
     def _update_progress_label(self, message, step):
         self.progress_popup.show_progress(message, step)
@@ -253,43 +255,11 @@ class ClientTab(ctk.CTkFrame):
         self.Entry1.configure(state='disabled')
         self.Entry1_1.configure(state='disabled')
         self.is_connecting = True
-        self.vpn_action_btn.configure(state='normal') # Keep enabled as requested
+        self.vpn_action_btn.configure(text="Connecting...", state='normal', fg_color="#FFA500", hover_color="#FF8C00") 
         self._update_change_credentials_button_state()
 
-        if is_sso_mode(self.tab_name):
-            cmd = ["tailscale", "up", f"--login-server={server}", "--accept-routes"]
-
-            def on_sso_connected():
-                self.client.logged_in = True  
-                self.client.connected = True  
-                self._post_connect_ui()
-                self._print_output("[INFO] SSO login completed and connected.")
-                self._update_status_label("🟢 Connected", "green")
-
-            run_sso_login(
-                cmd,
-                expected_url_part=server,
-                output_callback=self._print_output,
-                error_callback=lambda e: self._print_output(f"[SSO ERROR] {e}"),
-                success_callback=on_sso_connected,
-                cancel_event=self.cancel_event
-            )
-
-            def poll_and_update_gui():
-                if wait_until_connected():
-                    self._print_output("[INFO] SSO login completed and connected.")
-                    self.client.connected = True  
-                    self._post_connect_ui()
-                    self._update_status_label("🟢 Connected", "green")
-                else:
-                    self._print_output("[ERROR] SSO login timeout or failure.")
-                    self._update_status_label("❌ SSO login failed or timed out", "red")
-                    self.enable_tab_ui()
-
-            threading.Thread(target=poll_and_update_gui, daemon=True).start()
-
-        else:
-            self.client.connect(key, server, self.tab_name)
+        # Unified Connection (Handles both SSO and Auth-Key internally)
+        self.client.connect(key, server, self.tab_name)
     
         from logic.net_stats import get_tailscale_stats
         self.prev_stats = get_tailscale_stats()

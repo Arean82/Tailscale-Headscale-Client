@@ -14,7 +14,6 @@ The repository is highly modular, separating UI rendering (CustomTkinter) from c
 ```text
 C:.
 ├── .gitignore
-├── 1.txt
 ├── analysis_report.md             # 📊 Detailed technical audit and bug-fix record
 ├── config.py                      # ⚙️ Global configuration and OS-agnostic path definitions
 ├── icon.ico
@@ -82,14 +81,16 @@ C:.
 * **💾 Intelligent Caching Layer**: High-performance in-memory `DataCache` reduces disk I/O by over 80% for settings and profile configurations.
 * **📝 Dynamic Global Logging**: Built-in debugging engine that intercepts CLI outputs and Python streams, viewable through an interactive in-app Log Viewer with syntax highlighting and search.
 * **📊 Live Traffic Monitoring**: Real-time Sent/Received data tracking with persistent daily totals stored locally via SQLite.
-* **🔐 Dual Authentication**: Native support for pre-generated **Auth-Keys** and automated **OIDC (Google SSO)** login flows with Regex-hardened handshaking.
+* **🔐 Dual Authentication**: Native support for pre-generated **Auth-Keys** and automated **OIDC (Google SSO)** login flows.
+* **🛡️ Dual-Track Verification**: Combines real-time output stream monitoring with an independent background watchdog for 100% reliable connection state detection.
+* **⚡ Interactive 'Connecting...' UI**: Immediate visual feedback with button text and color transitions during handshakes.
 * **🔄 SSO Force Retry**: Optimized SSO flow allows for instant session reset and retry if a browser window is closed or authentication stalls.
 * **📌 Seamless Window Management**: Viewers, popups, and settings are correctly transient to the main window, preventing taskbar clutter.
 * **🎨 Modern UI/Theming**: Built on CustomTkinter, supporting high-contrast **Dark, Light, and System Default** themes with dynamic synchronization across all components.
 * **📥 System Tray Support**: Minimize the application to the system tray to keep your workspace clean while maintaining active VPN connections.
-* **🔐 Secure Encryption**: Uses a dynamically generated master key system (Fernet) to protect stored credentials, moving away from hardcoded secrets.
+* **🔐 Secure Encryption**: Uses a dynamically generated master key system (Fernet) to protect stored credentials.
 * **⚙️ Intelligent Boot**: Automatically monitors and waits for the Tailscale OS service to initialize before exposing connection controls.
-* **🔔 Progress Tracking**: Real-time step-by-step progress notifications for connection handshakes.
+* **🔔 Smart Progress Tracking**: Real-time step-by-step progress notifications for connection handshakes.
 
 ---
 
