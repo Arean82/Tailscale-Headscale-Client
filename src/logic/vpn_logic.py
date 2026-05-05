@@ -48,7 +48,7 @@ def initialize_app_storage():
         os.makedirs(APP_DATA_DIR, exist_ok=True)
         os.makedirs(LOG_DIR, exist_ok=True)
     except Exception as e:
-        messagebox.showerror("Storage Error", f"Could not create application directories:\n{e}")
+        app_logger.critical(f"Storage Error - Could not create application directories: {e}")
         sys.exit(1)
 
 # Initialize storage upon import/startup
