@@ -8,7 +8,6 @@ import threading
 import time
 import re
 import webbrowser
-from tkinter import messagebox
 from logic.statuscheck import wait_until_connected
 
 from logic.vpn_logic import save_key, save_url, write_profile_log, write_log
