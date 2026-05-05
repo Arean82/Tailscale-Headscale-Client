@@ -82,12 +82,16 @@ class DashboardView(QWidget):
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Logout")
                 self.btnVpnAction.setStyleSheet("background-color: #ef4444; color: white; font-weight: bold; border-radius: 6px;") # Rose
+            if self.btnChangeCredentials:
+                self.btnChangeCredentials.setEnabled(False)
         else:
             self.labelStatus.setText("🔴 Disconnected")
             self.labelStatus.setStyleSheet("color: #ef4444; font-weight: bold;") # Rose
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Connect")
                 self.btnVpnAction.setStyleSheet("background-color: #22c55e; color: white; font-weight: bold; border-radius: 6px;") # Emerald
+            if self.btnChangeCredentials:
+                self.btnChangeCredentials.setEnabled(True)
 
     def toggle_connection(self):
         is_connected, _ = self.ts_manager.check_status()

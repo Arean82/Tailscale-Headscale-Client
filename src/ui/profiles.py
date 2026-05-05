@@ -6,6 +6,7 @@ class ProfilesView(QWidget):
     def __init__(self, manager):
         super().__init__()
         self.manager = manager
+        self.refresh_requested = None
         
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(40, 40, 40, 40)
@@ -59,10 +60,13 @@ class ProfilesView(QWidget):
             new_profile = Profile(
                 name=data["name"],
                 login_server=data["login_server"],
-                auth_key=data["auth_key"]
+                auth_key=data["auth_key"],
+                auth_mode=data["auth_mode"]
             )
             self.manager.add_profile(new_profile)
             self.refresh_list()
+            if self.refresh_requested:
+                self.refresh_requested()
 
     def edit_profile(self):
         item = self.profiles_list.currentItem()
@@ -81,5 +85,21 @@ class ProfilesView(QWidget):
     def delete_profile(self):
         item = self.profiles_list.currentItem()
         if not item: return
-        self.manager.remove_profile(item.text())
-        self.refresh_list()
+        
+        name = item.text()
+        reply = QMessageBox.question(
+            self, 'Confirm Deletion',
+            f"Are you sure you want to delete the profile '{name}'?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            self.manager.remove_profile(name)
+            self.refresh_list()
+            if self.refresh_requested:
+                self.refresh_requested()
+
+    def set_edit_enabled(self, enabled):
+        self.add_btn.setEnabled(enabled)
+        self.edit_btn.setEnabled(enabled)
+        self.delete_btn.setEnabled(enabled)

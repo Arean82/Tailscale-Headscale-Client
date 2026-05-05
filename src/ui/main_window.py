@@ -2,13 +2,12 @@
 
 import sys
 import os
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QTabWidget, QMenu
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QTabWidget, QMenu, QMessageBox
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile
-from PySide6.QtGui import QAction
+from PySide6.QtCore import QFile, QTimer
+from PySide6.QtGui import QAction, QActionGroup
 from .components.log_viewer_dlg import LogViewerDialog
 from .dashboard import DashboardView
-from PySide6.QtGui import QAction, QActionGroup
 
 
 class MainWindow(QMainWindow):
@@ -42,6 +41,32 @@ class MainWindow(QMainWindow):
 
         # 4. Initialize tabs
         self.refresh_tabs()
+
+        # 5. Connect to status changes for disabling actions
+        self.ts_manager.connection_status_changed.connect(self._update_profile_actions_state)
+        # Initial check
+        self._update_profile_actions_state(*self.ts_manager.check_status())
+        
+        # 6. If no profiles exist, prompt to create one immediately
+        if not self.manager.profiles:
+            # Use a timer to ensure the window is ready before showing the dialog
+            QTimer.singleShot(500, self.ensure_initial_profile)
+
+    def ensure_initial_profile(self):
+        if not self.manager.profiles:
+            success = self.add_profile_clicked()
+            if not success and not self.manager.profiles:
+                # Ask for confirmation before closing
+                reply = QMessageBox.warning(
+                    self, 'Profile Required',
+                    "A profile is mandatory to use this application.\n\nWithout creating a profile, you cannot continue. Are you sure you want to close?",
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                )
+                if reply == QMessageBox.Yes:
+                    sys.exit(0)
+                else:
+                    # Try again
+                    self.ensure_initial_profile()
 
     def _create_menu_bar(self):
         
@@ -158,6 +183,16 @@ class MainWindow(QMainWindow):
             action.triggered.connect(lambda checked, p=full_path, n=lf: LogViewerDialog(p, n, self).show())
             self.menuGlobalLogs.addAction(action)
 
+    def _update_profile_actions_state(self, is_connected, status_text):
+        """Enable/disable profile actions based on connection status."""
+        can_edit = not is_connected
+        if hasattr(self, 'actionAddProfile'):
+            self.actionAddProfile.setEnabled(can_edit)
+        if hasattr(self, 'actionRemoveProfile'):
+            self.actionRemoveProfile.setEnabled(can_edit)
+        if hasattr(self, 'profiles_view'):
+            self.profiles_view.set_edit_enabled(can_edit)
+
     def change_theme(self, theme_name):
         from PySide6.QtWidgets import QApplication
         from PySide6.QtGui import QGuiApplication, Qt, QColor
@@ -264,22 +299,30 @@ class MainWindow(QMainWindow):
 
 
     def add_profile_clicked(self):
-        from .components.profile_dialog import ProfileDialog
-        dialog = ProfileDialog(self)
-        dialog.setWindowTitle("Add New VPN Profile")
-        self._apply_theme_to_dialog(dialog)
-        if dialog.exec():
-            data = dialog.get_data()
-            if not data or not data["name"]: return
+        # 1. First Step: Get Profile Name using profile.ui
+        from .components.profile_name_dialog import ProfileNameDialog
+        
+        name_dialog = ProfileNameDialog(self)
+        self._apply_theme_to_dialog(name_dialog)
+        
+        if name_dialog.exec():
+            profile_name = name_dialog.get_name()
+            if not profile_name:
+                QMessageBox.warning(self, "Error", "Profile name cannot be empty.")
+                return False
+            
+            if profile_name in self.manager.profiles:
+                QMessageBox.warning(self, "Error", "Profile name already exists.")
+                return False
+
+            # Create profile with default values - user can change credentials later
             from ..core.models import Profile
+            new_profile = Profile(name=profile_name)
             
-            # Map 'sso' to 'google' if that's what the thinker app expected
-            auth_mode = "google" if data["auth_mode"] == "sso" else data["auth_mode"]
-            data["auth_mode"] = auth_mode
-            
-            new_profile = Profile(name=data["name"], **data)
             self.manager.add_profile(new_profile)
             self.refresh_tabs()
+            return True
+        return False
 
 
     def remove_profile_clicked(self):
@@ -287,8 +330,17 @@ class MainWindow(QMainWindow):
         index = self.tabWidget.currentIndex()
         if index >= 0:
             name = self.tabWidget.tabText(index)
-            self.manager.remove_profile(name)
-            self.refresh_tabs()
+            
+            # Verification
+            reply = QMessageBox.question(
+                self, 'Confirm Deletion',
+                f"Are you sure you want to delete the profile '{name}'?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                self.manager.remove_profile(name)
+                self.refresh_tabs()
 
     def refresh_tabs(self):
         if not self.tabWidget:
@@ -297,9 +349,11 @@ class MainWindow(QMainWindow):
             
         if not self.tabWidget: return
         
+        # 1. Clear all tabs
         while self.tabWidget.count() > 0:
             self.tabWidget.removeTab(0)
             
+        # 2. Add Profile tabs
         for name, profile in self.manager.profiles.items():
             view = DashboardView(self.manager, self.ts_manager, profile)
             self.tabWidget.addTab(view, name)
@@ -307,3 +361,6 @@ class MainWindow(QMainWindow):
         if not self.manager.profiles:
             view = DashboardView(self.manager, self.ts_manager)
             self.tabWidget.addTab(view, "Default")
+        
+        # 3. Restore connection status disabling
+        self._update_profile_actions_state(*self.ts_manager.check_status())
