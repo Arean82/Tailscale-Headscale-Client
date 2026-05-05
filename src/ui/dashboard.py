@@ -156,11 +156,11 @@ class DashboardView(QWidget):
             if self.btnShowStats:
                 self.btnShowStats.setStyleSheet("""
                     QPushButton { 
-                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e293b, stop:1 #0f172a);
-                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #334155;
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #d97706, stop:1 #92400e);
+                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #b45309;
                     }
                     QPushButton:hover { 
-                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #334155, stop:1 #1e293b);
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f59e0b, stop:1 #d97706);
                     }
                 """)
         else:
@@ -198,11 +198,11 @@ class DashboardView(QWidget):
             if self.btnShowStats:
                 self.btnShowStats.setStyleSheet("""
                     QPushButton { 
-                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e293b, stop:1 #0f172a);
-                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #334155;
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #d97706, stop:1 #92400e);
+                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #b45309;
                     }
                     QPushButton:hover { 
-                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #334155, stop:1 #1e293b);
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f59e0b, stop:1 #d97706);
                     }
                 """)
 
