@@ -117,6 +117,25 @@ class ClientTab(ctk.CTkFrame):
         self._update_auth_mode_ui()
         self._update_change_credentials_button_state()
 
+        # Check current Tailscale status on startup to ensure GUI accuracy
+        threading.Thread(target=self._check_initial_vpn_status, daemon=True).start()
+
+    def _check_initial_vpn_status(self):
+        """Checks if Tailscale is already connected on app startup."""
+        if self.client.is_connected():
+            app_logger.info(f"[{self.tab_name}] Tailscale already connected on startup.")
+            self.client.connected = True
+            self.client.logged_in = True
+            self.after(0, self._post_connect_ui)
+            self.after(0, lambda: self._update_status_label("🟢 Connected", "green"))
+            
+            # Also start monitoring if connected
+            from logic.net_stats import get_tailscale_stats
+            self.prev_stats = get_tailscale_stats()
+            self._monitoring = True
+            if not any(t.name == f"monitor_{self.tab_name}" for t in threading.enumerate()):
+                threading.Thread(target=self._monitor_traffic_loop, name=f"monitor_{self.tab_name}", daemon=True).start()
+
     def _show_messagebox_popup(self, title, message):
         messagebox.showinfo(title, message)
 
@@ -274,8 +293,10 @@ class ClientTab(ctk.CTkFrame):
     
         from logic.net_stats import get_tailscale_stats
         self.prev_stats = get_tailscale_stats()
-        self._monitoring = True
-        threading.Thread(target=self._monitor_traffic_loop, daemon=True).start()
+        if not self._monitoring:
+            self._monitoring = True
+            if not any(t.name == f"monitor_{self.tab_name}" for t in threading.enumerate()):
+                threading.Thread(target=self._monitor_traffic_loop, name=f"monitor_{self.tab_name}", daemon=True).start()
     
     def _post_disconnect_ui(self):
         self.vpn_action_btn.configure(state='normal')

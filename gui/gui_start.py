@@ -50,10 +50,6 @@ def start_gui():
         tab_name = tab_instance.tab_name
         app.tabview.set(tab_name) # Select the tab
         app.update_tab_states()
-        
-        # Auto-connect if applicable
-        if hasattr(tab_instance, "vpn_status_change"):
-            root.after(500, tab_instance.vpn_status_change)
     else:
         # Default to the first available tab if tabs exist
         if app.tab_id_to_name:
@@ -61,10 +57,6 @@ def start_gui():
             first_name = app.tab_id_to_name[first_id]
             app.tabview.set(first_name)
             app.update_tab_states()
-            
-            first_tab_instance = app.tabs[first_id]
-            if hasattr(first_tab_instance, "vpn_status_change"):
-                root.after(500, first_tab_instance.vpn_status_change)
 
     root.protocol("WM_DELETE_WINDOW", app.on_close_app)
     print("[DEBUG] >> Entering mainloop")
