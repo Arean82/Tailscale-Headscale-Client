@@ -3,8 +3,11 @@ from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QTextEdit,
                              QPushButton, QLabel, QTextBrowser, 
                              QTableWidget, QTableWidgetItem, QHeaderView)
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, Qt
+from PySide6.QtCore import QFile, Qt, QUrl, QThread, Signal, QObject
 from PySide6.QtGui import QTextOption
+import hashlib
+import requests
+import re
 
 class BaseUiDialog(QDialog):
     def __init__(self, ui_name, parent=None):
@@ -46,11 +49,37 @@ class AboutDialog(BaseUiDialog):
         if lbl_version: lbl_version.setText(f"Version {APP_VERSION}")
         if lbl_copyright: lbl_copyright.setText(APP_COPYRIGHT)
 
+class ImageDownloadWorker(QObject):
+    image_ready = Signal()
+
+    def __init__(self, urls, cache_dir):
+        super().__init__()
+        self.urls = urls
+        self.cache_dir = cache_dir
+
+    def run(self):
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        for url in self.urls:
+            ext = url.split('.')[-1].split('?')[0]
+            if len(ext) > 4 or not ext: ext = 'png'
+            filename = hashlib.md5(url.encode()).hexdigest() + "." + ext
+            local_path = os.path.join(self.cache_dir, filename)
+            
+            if not os.path.exists(local_path):
+                try:
+                    r = requests.get(url, headers=headers, timeout=10)
+                    if r.status_code == 200:
+                        with open(local_path, 'wb') as f:
+                            f.write(r.content)
+                        self.image_ready.emit()
+                except Exception as e:
+                    print(f"DEBUG: Download failed for {url}: {e}")
+        
 class ReadmeDialog(BaseUiDialog):
     def __init__(self, theme="light", parent=None):
         super().__init__("readme.ui", parent)
         self.theme = theme
-        self.setFixedSize(1000, 800)
+        self.setFixedSize(800, 600)
         
         self.viewer = self.findChild(QTextBrowser, "textBrowser")
         self.btnClose = self.findChild(QPushButton, "closeBtn")
@@ -58,10 +87,17 @@ class ReadmeDialog(BaseUiDialog):
         if self.btnClose:
             self.btnClose.clicked.connect(self.accept)
             
+        # For background downloads
+        self.download_thread = None
+        self.worker = None
+        
         self.load_readme()
 
     def load_readme(self):
         if not self.viewer: return
+        
+        # Set base path for local images
+        self.viewer.setSearchPaths([os.getcwd()])
         
         md_text = ""
         if os.path.exists("README.md"):
@@ -69,9 +105,16 @@ class ReadmeDialog(BaseUiDialog):
                 md_text = f.read()
         
         if md_text:
+            # 1. First Pass: Replace already cached images and identify missing ones
+            md_text, missing_urls = self._prepare_readme_content(md_text)
+            
+            # 2. Start background downloader if needed
+            if missing_urls:
+                self._start_background_download(missing_urls)
+            
             try:
                 import markdown
-                html_body = markdown.markdown(md_text, extensions=["fenced_code", "tables"])
+                html_body = markdown.markdown(md_text, extensions=["fenced_code", "tables", "extra"])
             except ImportError:
                 html_body = f"<pre style='white-space: pre-wrap;'>{md_text}</pre>"
             
@@ -92,14 +135,16 @@ class ReadmeDialog(BaseUiDialog):
                         line-height: 1.6;
                         padding: 20px;
                     }}
+                    img {{ max-width: 100%; height: auto; display: inline-block; margin: 5px; }}
                     h1, h2, h3 {{ border-bottom: 1px solid {border_color}; padding-bottom: .3em; margin-top: 24px; margin-bottom: 16px; font-weight: 600; }}
                     pre {{ 
                         background-color: {code_bg}; 
                         padding: 16px; 
                         border-radius: 6px; 
                         border: 1px solid {border_color};
+                        overflow-x: auto;
                     }}
-                    code {{ background-color: {code_bg}; padding: .2em .4em; border-radius: 3px; font-family: monospace; }}
+                    code {{ background-color: {code_bg}; padding: .2em .4em; border-radius: 3px; font-family: 'Consolas', 'Monaco', monospace; }}
                     a {{ color: {link_color}; text-decoration: none; }}
                     table {{ border-spacing: 0; border-collapse: collapse; width: 100%; margin-bottom: 16px; }}
                     table th, table td {{ border: 1px solid {border_color}; padding: 6px 13px; }}
@@ -113,6 +158,47 @@ class ReadmeDialog(BaseUiDialog):
             self.viewer.setHtml(content)
         else:
             self.viewer.setPlainText("README.md not found.")
+
+    def _prepare_readme_content(self, md_text):
+        """Identifies which images are cached and which need downloading."""
+        cache_dir = os.path.join(os.getcwd(), "assets_cache")
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        img_urls = re.findall(r'!\[.*?\]\((https?://.*?)\)', md_text)
+        img_urls += re.findall(r'<img.*?src=["\'](https?://.*?)["\']', md_text)
+        
+        missing_urls = []
+        for url in set(img_urls):
+            ext = url.split('.')[-1].split('?')[0]
+            if len(ext) > 4 or not ext: ext = 'png'
+            filename = hashlib.md5(url.encode()).hexdigest() + "." + ext
+            local_path = os.path.join(cache_dir, filename)
+            
+            if os.path.exists(local_path):
+                local_url = QUrl.fromLocalFile(local_path).toString()
+                md_text = md_text.replace(url, local_url)
+            else:
+                missing_urls.append(url)
+            
+        return md_text, missing_urls
+
+    def _start_background_download(self, urls):
+        """Launches the background thread to fetch images."""
+        if self.download_thread and self.download_thread.isRunning():
+            return
+            
+        self.download_thread = QThread()
+        self.worker = ImageDownloadWorker(urls, os.path.join(os.getcwd(), "assets_cache"))
+        self.worker.moveToThread(self.download_thread)
+        
+        self.download_thread.started.connect(self.worker.run)
+        self.worker.image_ready.connect(self.load_readme) # Refresh on every image
+        
+        # Cleanup
+        self.worker.image_ready.connect(self.worker.deleteLater)
+        self.download_thread.finished.connect(self.download_thread.deleteLater)
+        
+        self.download_thread.start()
 
 class TrafficDialog(BaseUiDialog):
     def __init__(self, parent=None, session_text="", daily_text="", history=None):

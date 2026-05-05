@@ -47,19 +47,22 @@ if __name__ == "__main__":
                 break
             time.sleep(2)
 
-    # 3. Single Instance Check
-    from PySide6.QtCore import QLockFile
-    lock_path = os.path.join(app_dir, "app.lock")
-    lock_file = QLockFile(lock_path)
-    if not lock_file.tryLock(100):
-        logger.warning("Another instance is already running. Exiting.")
-        sys.exit(0)
-
-    # 4. Initialize Core & GUI
+    # 3. Initialize App & Check Lock
     app = QApplication(sys.argv)
     if sys.platform == "win32":
-        app.setStyle("WindowsVista") # Ensure native menu bar
+        app.setStyle("WindowsVista") 
     app.setApplicationName("Tailscale Client Pro")
+
+    from PySide6.QtCore import QLockFile
+    from PySide6.QtWidgets import QMessageBox
+    lock_path = os.path.join(app_dir, "app.lock")
+    lock_file = QLockFile(lock_path)
+    
+    if not lock_file.tryLock(100):
+        QMessageBox.warning(None, "Already Running", 
+                          "An instance of Tailscale Client Pro is already running.\n"
+                          "Please check your task manager or system tray.")
+        sys.exit(0)
 
     manager = Manager(app_dir)
     ts_manager = TailscaleManager(app_dir)

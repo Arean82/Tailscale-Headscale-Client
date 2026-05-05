@@ -55,6 +55,11 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(1000, self.auto_connect_if_enabled)
         else:
             QTimer.singleShot(500, self.ensure_initial_profile)
+            
+        # 8. Setup Periodic DB Flush (Every 5 minutes)
+        self.flush_timer = QTimer(self)
+        self.flush_timer.timeout.connect(self.manager.db.flush_buffer)
+        self.flush_timer.start(300000) # 300,000 ms = 5 mins
 
     def _setup_tray(self):
         from PySide6.QtWidgets import QSystemTrayIcon
@@ -502,3 +507,8 @@ class MainWindow(QMainWindow):
             except:
                 pass
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
+    def closeEvent(self, event):
+        # Final flush of traffic data before exit to prevent data loss
+        if hasattr(self.manager, 'db'):
+            self.manager.db.flush_buffer()
+        event.accept()

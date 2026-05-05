@@ -7,88 +7,72 @@
 
 ---
 
+## 📸 Interface Preview
+![Main Dashboard](assets/screenshots/01_main.png)
+*Modern Tabbed Interface with Real-time Status Monitoring*
+
+---
+
 ## 📂 Project Structure
 
 The repository is highly modular, separating UI rendering (PySide6) from core VPN logic and OS-specific functions:
 
 ```text
 C:.
-├── .gitignore
 ├── assets/                        # 🖼️ Graphical UI assets & Screenshots
-│   ├── cancel_icon.png
-│   ├── google_icon.png            # SSO login icon
-│   ├── icon.ico                   # App Icon (Windows)
-│   ├── icon.png                   # App Icon (PNG)
-│   ├── key_icon.png               # Auth-key authentication icon
-│   ├── save_logo.png
-│   └── screenshots/               # 🖼️ Application screenshots and diagrams
-│       ├── 01_connected.png
-│       ├── 01_main.png
-│       ├── 02_select_auth.png
-│       ├── 04_traffic_stats.png
-│       └── 05_close_disable_if_connected.png
-├── LICENSE                        # ⚖️ Application legal terms
-├── main.py                        # 🚀 Entry point: Checks service status and boots GUI
-├── README.md                      # 📖 Documentation (this file)
-├── requirements.txt               # 📦 Project dependencies
+├── assets_cache/                  # ⚡ Cached remote images (Background Loading)
+├── pygui/                         # 🎨 Qt Designer .ui files
+│   ├── dialogs/                   # Traffic, Settings, About, Profile UI
+│   └── windows/                   # Main Window & Tab layouts
 ├── src/                           # 🖥️ Application Source Code
-│   ├── ui/                        # UI Components & Tabs
-│   ├── core/                      # Data & Process Management
-│   ├── logic/                     # Business Logic (migrated)
+│   ├── ui/                        # UI Logic (Dashboard, Components)
+│   ├── core/                      # Process & Database Management
+│   ├── logic/                     # Shared Business Logic
 │   ├── utils/                     # Shared Utilities (Logger, Crypto)
 │   └── os_specific/               # Platform-specific handlers
-└── pygui/                         # 🎨 Qt Designer .ui files
+├── main.py                        # 🚀 Entry point: Boots GUI
+└── requirements.txt               # 📦 Project dependencies
 ```
 
 ---
 
 ## ✨ Key Features
 
-* **🚀 Multi-Profile Tabs**: Manage unique Headscale environments simultaneously via a clean, modern tabbed interface.
-* **📝 Dynamic Global Logging**: Built-in debugging engine that intercepts CLI outputs and Python streams, viewable through an interactive in-app Log Viewer.
-* **📊 Live Traffic Monitoring**: Real-time Sent/Received data tracking with persistent daily totals stored locally.
-* **🔐 Dual Authentication**: Native support for pre-generated **Auth-Keys** and automated **OIDC (Google SSO)** login flows.
-* **🎨 Modern UI/Theming**: Built on PySide6, supporting high-contrast Dark and Light themes with fluid transitions.
-* **⚙️ Intelligent Boot**: Automatically monitors and waits for the Tailscale OS service to initialize before exposing connection controls.
+* **🚀 Multi-Profile Tabs**: Manage unique Headscale environments simultaneously via a clean interface.
+* **📝 Dynamic Global Logging**: Built-in debugging engine viewable through an interactive in-app Log Viewer.
+* **📊 Live Traffic Monitoring**: Real-time tracking with persistent daily totals stored in SQLite.
+* **🔐 Dual Authentication**: Support for **Auth-Keys** and automated **OIDC (Google SSO)** flows.
+![Traffic Stats](assets/screenshots/04_traffic_stats.png)
 
 ---
 
 ## 🚀 Getting Started
 
 ### 📋 Prerequisites
-
-* **Tailscale**: The Tailscale backend engine must be installed and the system service should be actively running.
+* **Tailscale**: The Tailscale backend engine must be installed.
 * **Headscale Server**: A reachable URL for your private network coordinator.
 
-### 🛠️ Installation & Usage
+### 🛠️ Installation
+1. **Clone**: `git clone https://github.com/user/Tailscale-Headscale-Client.git`
+2. **Install**: `pip install -r requirements.txt`
+3. **Launch**: Run `python main.py`
 
-1. **Clone the Repo**: `git clone https://github.com/user/Tailscale-Headscale-Client.git`
-2. **Install Dependencies**: `pip install -r requirements.txt`
-3. **Launch**: Run `python main.py` (or compile to a standalone `.exe` using PyInstaller).
-4. **Connect**:
-   * Navigate to `Profile > Add New Profile`.
-   * Enter your **TAILSCALE VPN URL** and **Auth Key** (or select SSO).
-   * Click **Connect**.
+![Connection Flow](assets/screenshots/02_select_auth.png)
 
 ---
 
 ## 🛠 Configuration
 
-* **Profile & Data Storage**: Profiles, encrypted credentials, and databases are stored securely in `%AppData%/Tailscale_VPN_Client_Pro` (Windows) or `~/.local/share/Tailscale_VPN_Client_Pro` (Linux).
-* **Auto-Connect**: Enable via `File > Settings` to automatically reconnect the last active profile on launch.
-* **Diagnostic Logs**: Enable via `File > Settings`. When activated, dedicated logs are generated and viewable directly via `Logs > Global logs`.
+* **Data Storage**: Profiles and encrypted credentials are stored in `%AppData%/Tailscale_VPN_Client_Pro`.
+* **Auto-Connect**: Automatically reconnect the last active profile on launch via `File > Settings`.
+* **Diagnostic Logs**: Features auto-scrolling and severity tagging in the Log Viewer.
 
 ---
 
 ## 📜 Logging & Diagnostics
-
-TAILSCALE VPN Client includes a powerful, opt-in diagnostic logging engine to help troubleshoot VPN handshakes, routing issues, and UI events.
-
-* **Enable/Disable**: Navigate to `File > Settings` and check **Enable Global App Logs**.
-* **In-App Viewer**: View logs without leaving the application by navigating to `Logs > Global logs`. The built-in viewer features auto-scrolling and severity tagging.
+Navigate to `Logs > Global logs` to view real-time handshake events and background process outputs.
 
 ---
 
 ## ⚠️ Disclaimer
-
-This project is an independent effort and is **not** officially affiliated with Tailscale Inc. or the Headscale project. Use this software at your own risk.
+This project is an independent effort and is **not** officially affiliated with Tailscale Inc. or the Headscale project.

@@ -39,7 +39,6 @@ MANIFEST
 # PyInstaller
 # =========================
 *.manifest
-*.spec
 
 # =========================
 # Installer logs
@@ -194,3 +193,13 @@ __marimo__/
 # GitHub (DO NOT ignore for public repos)
 # =====================
 
+# =========================
+# App-Generated Data
+# =========================
+assets_cache/
+data/
+GlobalLogs/
+traffic_stats.db
+master.key
+settings.json
+app.log

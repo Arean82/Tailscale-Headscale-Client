@@ -66,11 +66,15 @@ class DashboardView(QWidget):
         
         # 2. Get daily totals from DB
         profile_name = self.profile.name if self.profile else "Default"
+        
+        # Flush buffer so the user sees the latest data
+        self.manager.db.flush_buffer()
+        
         sent_daily, recv_daily = self.manager.db.get_daily_total(profile_name)
         daily_text = f"Today: Sent {self._format_bytes(sent_daily)} / Received {self._format_bytes(recv_daily)}"
         
-        # 3. Get history
-        history = self.manager.db.get_traffic_history(profile_name, limit=10)
+        # 3. Get history (Daily totals for last 10 days)
+        history = self.manager.db.get_daily_history(profile_name, days=10)
         
         dialog = TrafficDialog(self, session_stats, daily_text, history)
         dialog.exec()

@@ -36,7 +36,12 @@ class ProfileDialog(BaseUiDialog):
             self.btnCancel.clicked.connect(self.reject)
             self.btnCancel.setStyleSheet("background-color: #a0a0a0; color: black; font-weight: bold;")
             
-        # 6. Set Initial State
+        # 6. Eye Toggle for Auth Key
+        self.btnToggleKey = self.ui.findChild(QPushButton, "btnToggleKey")
+        if self.btnToggleKey:
+            self.btnToggleKey.clicked.connect(self._toggle_key_visibility)
+            
+        # 7. Set Initial State
         if profile:
             if self.url_auth: self.url_auth.setText(profile.login_server)
             if self.url_sso: self.url_sso.setText(profile.login_server)
@@ -80,3 +85,15 @@ class ProfileDialog(BaseUiDialog):
                 "auth_key": key,
                 "auth_mode": "auth_key"
             }
+
+    def _toggle_key_visibility(self):
+        """Switches the Auth Key between masked and visible."""
+        if not self.key_entry or not self.btnToggleKey:
+            return
+            
+        if self.key_entry.echoMode() == QLineEdit.Password:
+            self.key_entry.setEchoMode(QLineEdit.Normal)
+            self.btnToggleKey.setText("🙈") # Monkey Covering Eyes (Hide)
+        else:
+            self.key_entry.setEchoMode(QLineEdit.Password)
+            self.btnToggleKey.setText("👁️") # Eye (Show)
