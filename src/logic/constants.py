@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "Tailscale Client Pro"
-APP_VERSION = "4.0.0 Pro"
+APP_VERSION = "5.0.0 Pro"
 APP_COPYRIGHT = "© 2026 TAILSCALE VPN Client"
 
 # Application paths
