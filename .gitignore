@@ -39,7 +39,6 @@ MANIFEST
 # PyInstaller
 # =========================
 *.manifest
-*.spec
 
 # =========================
 # Installer logs
