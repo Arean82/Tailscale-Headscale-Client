@@ -15,7 +15,10 @@ import threading
 import time
 
 from ..utils.logger import app_logger, get_profile_logger
-
+from .constants import (
+    APP_BASE_DIR, APP_DATA_DIR, LOG_DIR, 
+    TAB_NAMES_FILE, LAST_TAB_FILE, SETTINGS_FILE, LOCK_FILE
+)
 
 # Import OS-specific mutex functions
 from ..os_specific.mutex_handler import acquire_mutex, release_mutex, set_lock_file_path
@@ -24,31 +27,15 @@ from ..os_specific.mutex_handler import acquire_mutex, release_mutex, set_lock_f
 
 def write_log(msg, level="INFO"): print(f"[{level}] {msg}")
 
-from config import APP_BASE_DIR, APP_DATA_DIR, LOG_DIR
-
 # --- Global Configuration and Utilities ---
 PASSWORD = "some-hardcoded-passphrase" # Consider getting this more securely
 KEY = base64.urlsafe_b64encode(hashlib.sha256(PASSWORD.encode()).digest())
 fernet = Fernet(KEY)
 
-# Secure File Path Setup (OS-agnostic base directory)
-if sys.platform == "win32":
-    APP_BASE_DIR = os.path.join(os.environ.get('APPDATA'), "Tailscale_VPN_Client")
-elif sys.platform.startswith("linux"):
-    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
-else:
-    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), "Tailscale_VPN_Client")
-
-APP_DATA_DIR = os.path.join(APP_BASE_DIR, "data")
-LOG_DIR = os.path.join(APP_BASE_DIR, "log")
-TAB_NAMES_FILE = os.path.join(APP_DATA_DIR, "tab_names.json")
-LAST_TAB_FILE = os.path.join(APP_DATA_DIR, "last_tab.json")
-LOG_FILE = os.path.join(LOG_DIR, "app_log.txt")
-LOCK_FILE = os.path.join(APP_BASE_DIR, "app.lock") # Lock file in base directory
-SETTINGS_FILE = os.path.join(APP_BASE_DIR, "settings.json")
-
 # Set the lock file path for the mutex handler (important for Linux)
 set_lock_file_path(LOCK_FILE)
+
+LOG_FILE = os.path.join(LOG_DIR, "app_log.txt") # Profile-specific legacy log
 
 # --- General Utilities ---
 def check_tailscale_installed():

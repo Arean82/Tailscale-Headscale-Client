@@ -34,6 +34,17 @@ class BaseUiDialog(QDialog):
 class AboutDialog(BaseUiDialog):
     def __init__(self, parent=None):
         super().__init__("about.ui", parent)
+        
+        # Set dynamic text to avoid hardcoding in UI files
+        from ...logic.constants import APP_VERSION, APP_COPYRIGHT, APP_NAME
+        
+        lbl_name = self.ui.findChild(QLabel, "labelAppName")
+        lbl_version = self.ui.findChild(QLabel, "labelVersion")
+        lbl_copyright = self.ui.findChild(QLabel, "labelCopyright")
+        
+        if lbl_name: lbl_name.setText(APP_NAME)
+        if lbl_version: lbl_version.setText(f"Version {APP_VERSION}")
+        if lbl_copyright: lbl_copyright.setText(APP_COPYRIGHT)
 
 class ReadmeDialog(BaseUiDialog):
     def __init__(self, theme="light", parent=None):
