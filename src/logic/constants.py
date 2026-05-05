@@ -11,11 +11,11 @@ APP_COPYRIGHT = "© 2026 TAILSCALE VPN Client"
 
 # Application paths
 if sys.platform == "win32":
-    APP_BASE_DIR = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client_Pro")
+    APP_BASE_DIR = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
 elif sys.platform.startswith("linux"):
-    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client_Pro")
+    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
 else:
-    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), "Tailscale_VPN_Client_Pro")
+    APP_BASE_DIR = os.path.join(os.path.expanduser("~"), "Tailscale_VPN_Client")
 
 APP_DATA_DIR = os.path.join(APP_BASE_DIR, "data")
 LOG_DIR = os.path.join(APP_BASE_DIR, "log")

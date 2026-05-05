@@ -1,7 +1,7 @@
 import os
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile
+from PySide6.QtCore import QFile, QTimer
 
 class DashboardView(QWidget):
     def __init__(self, manager, ts_manager, profile=None):
@@ -20,12 +20,13 @@ class DashboardView(QWidget):
         
         # 2. Embed the content using a layout
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
         layout.addWidget(self.ui_content)
         
         # 3. Find widgets within the loaded content
         self.lineEditUrl = self.ui_content.findChild(QLineEdit, "lineEditUrl")
-        self.btnVpnAction = self.ui_content.findChild(QPushButton, "btnVpnAction")
+        self.btnVpnAction = self.ui_content.findChild(QPushButton, "btn_connect")
         self.labelStatus = self.ui_content.findChild(QLabel, "labelStatus")
         self.btnChangeCredentials = self.ui_content.findChild(QPushButton, "btnChangeCredentials")
         self.btnShowStats = self.ui_content.findChild(QPushButton, "btnShowStats")
@@ -37,6 +38,7 @@ class DashboardView(QWidget):
         
         # 5. Connect signals
         if self.btnVpnAction:
+            self.btnVpnAction.setProperty("colored", "true")
             self.btnVpnAction.clicked.connect(self.toggle_connection)
             # Initial state set by update_status
         if self.btnChangeCredentials:
@@ -50,12 +52,28 @@ class DashboardView(QWidget):
         # Initial status update
         self.update_status(*self.ts_manager.check_status())
 
+        # 6. Setup Traffic Monitoring
+        self.prev_stats = None
+        self.stats_timer = QTimer(self)
+        self.stats_timer.timeout.connect(self._update_traffic_label)
+        self.stats_timer.start(3000) # Every 3 seconds
+
     def show_traffic_stats(self):
         from .components.simple_dialogs import TrafficDialog
-        # In the original app, it updates labelTraffic on the tab
-        # We can pass the current text to the dialog
-        stats = self.labelTraffic.text() if self.labelTraffic else "No stats available."
-        TrafficDialog(self, stats).exec()
+        
+        # 1. Get current session stats (from label)
+        session_stats = self.labelTraffic.text() if self.labelTraffic else "No session data."
+        
+        # 2. Get daily totals from DB
+        profile_name = self.profile.name if self.profile else "Default"
+        sent_daily, recv_daily = self.manager.db.get_daily_total(profile_name)
+        daily_text = f"Today: Sent {self._format_bytes(sent_daily)} / Received {self._format_bytes(recv_daily)}"
+        
+        # 3. Get history
+        history = self.manager.db.get_traffic_history(profile_name, limit=10)
+        
+        dialog = TrafficDialog(self, session_stats, daily_text, history)
+        dialog.exec()
 
     def change_credentials(self):
         from .components.profile_dialog import ProfileDialog
@@ -76,32 +94,58 @@ class DashboardView(QWidget):
     def update_status(self, is_connected, status_text):
         if not self.labelStatus: return
         
+        # If we are checking, don't revert to "Disconnected" if we were already connected
+        if status_text == "Checking..." and self.labelStatus.text() == "🟢 Connected":
+            return
+
         if is_connected:
             self.labelStatus.setText("🟢 Connected")
-            self.labelStatus.setStyleSheet("color: #22c55e; font-weight: bold;") # Emerald
+            self.labelStatus.setStyleSheet("color: #22c55e; font-weight: bold;")
+            
+            # Capture baseline if not already set (for session tracking)
+            if self.prev_stats is None:
+                self.prev_stats = self.ts_manager.get_stats()
+            
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Logout")
-                self.btnVpnAction.setStyleSheet("background-color: #ef4444; color: white; font-weight: bold; border-radius: 6px;") # Rose
+                self.btnVpnAction.setStyleSheet("""
+                    QPushButton { background-color: #f44336; color: white; font-weight: bold; border-radius: 6px; }
+                    QPushButton:hover { background-color: #da190b; }
+                """)
             if self.btnChangeCredentials:
                 self.btnChangeCredentials.setEnabled(False)
         else:
             self.labelStatus.setText("🔴 Disconnected")
-            self.labelStatus.setStyleSheet("color: #ef4444; font-weight: bold;") # Rose
+            self.labelStatus.setStyleSheet("color: #ef4444; font-weight: bold;")
+            
+            # Reset baseline when disconnected
+            self.prev_stats = None
+            
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Connect")
-                self.btnVpnAction.setStyleSheet("background-color: #22c55e; color: white; font-weight: bold; border-radius: 6px;") # Emerald
+                self.btnVpnAction.setStyleSheet("""
+                    QPushButton { background-color: #4CAF50; color: white; font-weight: bold; border-radius: 6px; }
+                    QPushButton:hover { background-color: #45a049; }
+                """)
             if self.btnChangeCredentials:
                 self.btnChangeCredentials.setEnabled(True)
 
     def toggle_connection(self):
         is_connected, _ = self.ts_manager.check_status()
         if is_connected:
-            self.ts_manager.logout()
+            self.ts_manager.logout(self.profile.name if self.profile else None)
         else:
             url = self.lineEditUrl.text() if self.lineEditUrl else "https://controlplane.tailscale.com"
             key = self.profile.auth_key if self.profile else ""
             # Original app uses 'google' for SSO
             is_sso = self.profile.auth_mode == "google" if self.profile else False
+            
+            if self.btnVpnAction:
+                self.btnVpnAction.setText("Connecting...")
+                self.btnVpnAction.setStyleSheet("""
+                    QPushButton { background-color: #FFA500; color: white; font-weight: bold; border-radius: 6px; }
+                    QPushButton:hover { background-color: #FF8C00; }
+                """)
             
             if is_sso:
                 from .components.progress_dialog import ProgressDialog
@@ -129,10 +173,35 @@ class DashboardView(QWidget):
                 self.ts_manager.worker.sso_url_found.connect(on_url_found)
                 self.ts_manager.worker.finished.connect(on_finished)
                 
-                self.ts_manager.connect(url, None, True)
+                self.ts_manager.connect(url, None, True, self.profile.name if self.profile else None)
             else:
-                self.ts_manager.connect(url, key, False)
+                self.ts_manager.connect(url, key, False, self.profile.name if self.profile else None)
                 # Brief delay to allow command to start before checking status
                 from PySide6.QtCore import QTimer
                 QTimer.singleShot(2000, self.ts_manager.check_status)
 
+    def _update_traffic_label(self):
+        if not self.labelTraffic: return
+        
+        stats = self.ts_manager.get_stats()
+        if stats and self.prev_stats:
+            # Match original app: Show traffic SINCE the session started
+            sent = stats.bytes_sent - self.prev_stats.bytes_sent
+            recv = stats.bytes_recv - self.prev_stats.bytes_recv
+            
+            text = f"Traffic: Sent {self._format_bytes(sent)} / Received {self._format_bytes(recv)}"
+            self.labelTraffic.setText(text)
+            
+            # Log to DB (if profile exists)
+            if self.profile:
+                self.manager.db.insert_traffic_data(self.profile.name, stats.bytes_sent, stats.bytes_recv)
+        elif stats and not self.prev_stats:
+            # Baseline not yet captured
+            self.prev_stats = stats
+
+    def _format_bytes(self, size):
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if size < 1024.0:
+                return f"{size:.2f} {unit}"
+            size /= 1024.0
+        return f"{size:.2f} PB"

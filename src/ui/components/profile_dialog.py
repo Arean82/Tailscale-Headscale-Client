@@ -3,28 +3,20 @@ from PySide6.QtWidgets import QDialog, QStackedWidget, QCheckBox, QLineEdit, QMe
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
 
-class ProfileDialog(QDialog):
+from .simple_dialogs import BaseUiDialog
+
+class ProfileDialog(BaseUiDialog):
     def __init__(self, parent=None, profile=None):
-        super().__init__(parent)
+        super().__init__("credentials.ui", parent)
         
-        # 1. Load UI DIRECTLY into this instance
-        loader = QUiLoader()
-        ui_path = os.path.join("pygui", "dialogs", "credentials.ui")
-        ui_file = QFile(ui_path)
-        ui_file.open(QFile.ReadOnly)
-        loader.load(ui_file, self) # This populates 'self' with widgets from the UI
-        ui_file.close()
-        
-        self.setWindowTitle(self.windowTitle()) # Use title from UI
-        
-        # 2. Access widgets directly (they are now attributes of 'self')
-        self.chkUseSSO = self.findChild(QCheckBox, "chkUseSSO")
-        self.stackedWidget = self.findChild(QStackedWidget, "stackedWidget")
-        self.btnSave = self.findChild(QPushButton, "btnSave")
-        self.btnCancel = self.findChild(QPushButton, "btnCancel")
-        self.url_auth = self.findChild(QLineEdit, "lineEditUrlAuth")
-        self.url_sso = self.findChild(QLineEdit, "lineEditUrlSSO")
-        self.key_entry = self.findChild(QLineEdit, "lineEditKey")
+        # Access widgets through self.ui
+        self.chkUseSSO = self.ui.findChild(QCheckBox, "chkUseSSO")
+        self.stackedWidget = self.ui.findChild(QStackedWidget, "stackedWidget")
+        self.btnSave = self.ui.findChild(QPushButton, "btnSave")
+        self.btnCancel = self.ui.findChild(QPushButton, "btnCancel")
+        self.url_auth = self.ui.findChild(QLineEdit, "lineEditUrlAuth")
+        self.url_sso = self.ui.findChild(QLineEdit, "lineEditUrlSSO")
+        self.key_entry = self.ui.findChild(QLineEdit, "lineEditKey")
         
         # 3. Connection Logic (Toggled is better than stateChanged)
         if self.chkUseSSO:

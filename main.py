@@ -25,9 +25,9 @@ if __name__ == "__main__":
 
     # 1. Setup App Data & Logger
     if sys.platform == "win32":
-        app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client_Pro")
+        app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
     else:
-        app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client_Pro")
+        app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
     
     os.makedirs(app_dir, exist_ok=True)
     log_file = os.path.join(app_dir, "app.log")
@@ -47,7 +47,15 @@ if __name__ == "__main__":
                 break
             time.sleep(2)
 
-    # 3. Initialize Core & GUI
+    # 3. Single Instance Check
+    from PySide6.QtCore import QLockFile
+    lock_path = os.path.join(app_dir, "app.lock")
+    lock_file = QLockFile(lock_path)
+    if not lock_file.tryLock(100):
+        logger.warning("Another instance is already running. Exiting.")
+        sys.exit(0)
+
+    # 4. Initialize Core & GUI
     app = QApplication(sys.argv)
     if sys.platform == "win32":
         app.setStyle("WindowsVista") # Ensure native menu bar
@@ -62,4 +70,6 @@ if __name__ == "__main__":
     window = MainWindow(manager, ts_manager)
     window.show()
     
-    sys.exit(app.exec())
+    exit_code = app.exec()
+    lock_file.unlock()
+    sys.exit(exit_code)

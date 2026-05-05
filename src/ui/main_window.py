@@ -1,10 +1,11 @@
 # src/ui/main_window.py
 
+from PySide6.QtWidgets import QSystemTrayIcon
 import sys
 import os
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QTabWidget, QMenu, QMessageBox
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, QTimer
+from PySide6.QtCore import QFile, QTimer, Qt, QEvent
 from PySide6.QtGui import QAction, QActionGroup
 from .components.log_viewer_dlg import LogViewerDialog
 from .dashboard import DashboardView
@@ -15,6 +16,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.manager = manager
         self.ts_manager = ts_manager
+        self.ts_manager.setParent(self)
         
         # 1. Load your UI file
         loader = QUiLoader()
@@ -47,10 +49,132 @@ class MainWindow(QMainWindow):
         # Initial check
         self._update_profile_actions_state(*self.ts_manager.check_status())
         
-        # 6. If no profiles exist, prompt to create one immediately
-        if not self.manager.profiles:
-            # Use a timer to ensure the window is ready before showing the dialog
+        # 6. Setup System Tray
+        self._setup_tray()
+
+        # 7. Auto-connect if no dialog is showing
+        if self.manager.profiles:
+            QTimer.singleShot(1000, self.auto_connect_if_enabled)
+        else:
             QTimer.singleShot(500, self.ensure_initial_profile)
+
+    def _setup_tray(self):
+        from PySide6.QtWidgets import QSystemTrayIcon
+        from PySide6.QtGui import QIcon
+        
+        self.tray_icon = QSystemTrayIcon(self)
+        # Try to find icon.png in the project root or assets
+        icon_path = os.path.join(os.getcwd(), "icon.png")
+        if not os.path.exists(icon_path):
+            icon_path = os.path.join(os.getcwd(), "assets", "icon.png")
+        
+        if os.path.exists(icon_path):
+            self.tray_icon.setIcon(QIcon(icon_path))
+        else:
+            # Fallback to a standard icon
+            from PySide6.QtWidgets import QStyle
+            self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
+            
+        tray_menu = QMenu(self)
+        show_action = tray_menu.addAction("Show")
+        show_action.triggered.connect(self.showNormal)
+        show_action.triggered.connect(self.activateWindow)
+        
+        tray_menu.addSeparator()
+        quit_action = tray_menu.addAction("Exit")
+        quit_action.triggered.connect(self._force_quit)
+        
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.activated.connect(self._tray_icon_activated)
+        self.tray_icon.show()
+
+    def _tray_icon_activated(self, reason):
+        from PySide6.QtWidgets import QSystemTrayIcon
+        if reason == QSystemTrayIcon.Trigger:
+            if self.isVisible():
+                self.hide()
+            else:
+                self.showNormal()
+                self.activateWindow()
+
+    def _force_quit(self):
+        # Synchronous check for 100% accuracy before exit
+        is_connected, _ = self.ts_manager.check_status_sync()
+        if is_connected:
+            reply = QMessageBox.warning(
+                self, 'Active Connection',
+                "VPN is still connected. Do you want to logout and exit?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                return
+            
+            # Use synchronous logout to ensure it finishes before the app exits
+            self.ts_manager.logout_sync()
+        
+        # Clean up lock file is handled in main.py, so we just exit
+        import sys
+        sys.exit(0)
+
+    def closeEvent(self, event):
+        # Match strict legacy logic (gui/gui_main.py:447-450)
+        # Use sync check to avoid async lag during window closure
+        is_connected, _ = self.ts_manager.check_status_sync()
+        if is_connected:
+            QMessageBox.warning(
+                self, 
+                "WARNING !", 
+                "Please logout from all connections first."
+            )
+            event.ignore()
+            return
+
+        # Cleanup empty profile directories
+        for name in self.manager.profiles.keys():
+            profile_dir = self.manager._get_tab_dir(name)
+            if os.path.exists(profile_dir) and not os.listdir(profile_dir):
+                try: os.rmdir(profile_dir)
+                except: pass
+                
+        event.accept()
+
+    def changeEvent(self, event):
+        # Match legacy logic: Hide to tray on minimize (gui/gui_main.py:171-172)
+        if event.type() == QEvent.WindowStateChange:
+            if self.isMinimized():
+                self.hide()
+                self.tray_icon.showMessage(
+                    "Tailscale Client Pro",
+                    "Application minimized to tray.",
+                    QSystemTrayIcon.Information,
+                    2000
+                )
+        super().changeEvent(event)
+
+    def _on_tab_changed(self, index):
+        if index >= 0:
+            name = self.tabWidget.tabText(index)
+            if name != "Default":
+                self.manager.settings.last_profile = name
+                self.manager.save_settings()
+
+    def auto_connect_if_enabled(self):
+        if self.manager.settings.auto_connect:
+            last_name = self.manager.settings.last_profile
+            target_idx = 0
+            
+            if last_name:
+                for i in range(self.tabWidget.count()):
+                    if self.tabWidget.tabText(i) == last_name:
+                        target_idx = i
+                        break
+            
+            if self.tabWidget.count() > target_idx:
+                self.tabWidget.setCurrentIndex(target_idx)
+                view = self.tabWidget.widget(target_idx)
+                if hasattr(view, "toggle_connection"):
+                    if not self.ts_manager.check_status()[0]:
+                        view.toggle_connection()
 
     def ensure_initial_profile(self):
         if not self.manager.profiles:
@@ -77,7 +201,7 @@ class MainWindow(QMainWindow):
 
 
         self.actionExit = QAction("&Exit", self)
-        self.actionExit.triggered.connect(self.close)
+        self.actionExit.triggered.connect(self._force_quit)
         file_menu.addAction(self.actionExit)
         
         self.actionSettings = QAction("&Settings", self)
@@ -156,11 +280,8 @@ class MainWindow(QMainWindow):
 
         self.menuGlobalLogs.clear()
         
-        # Determine log directory (sync with pyside_launcher.py logic)
-        if sys.platform == "win32":
-            app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client_Pro")
-        else:
-            app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client_Pro")
+        # Determine log directory (sync with main.py logic)
+        app_dir = self.manager.base_dir
         
         print(f"DEBUG: Scanning log directory: {app_dir}")
         
@@ -236,8 +357,8 @@ class MainWindow(QMainWindow):
                 #tabWidget QLabel { color: #e5e7eb; background-color: transparent; font-weight: 500; }
                 #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: #d1d5db; background-color: transparent; font-weight: 500; }
                 
-                #tabWidget QCheckBox::indicator { width: 18px; height: 18px; border: 1px solid #3d4b7c; border-radius: 4px; background-color: #0f111a; }
-                #tabWidget QCheckBox::indicator:checked { background-color: #3b82f6; border-color: #3b82f6; }
+                /* Explicitly allow colored buttons to keep their styles */
+                #tabWidget QPushButton[colored="true"] { border: none; }
             """
         else:
             style = """
@@ -253,6 +374,8 @@ class MainWindow(QMainWindow):
                 #tabWidget QPushButton:hover { background-color: #e2e6ea; border-color: #0056b3; }
                 
                 #tabWidget QLabel, #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: #212529; background-color: transparent; }
+                
+                #tabWidget QPushButton[colored="true"] { border: none; }
             """
             
         # 3. Apply style ONLY to the TabWidget
@@ -364,3 +487,13 @@ class MainWindow(QMainWindow):
         
         # 3. Restore connection status disabling
         self._update_profile_actions_state(*self.ts_manager.check_status())
+        
+        # 4. Connect tab change signal to track last profile
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            try:
+                self.tabWidget.currentChanged.disconnect(self._on_tab_changed)
+            except:
+                pass
+        self.tabWidget.currentChanged.connect(self._on_tab_changed)

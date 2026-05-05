@@ -2,71 +2,175 @@
 <ui version="4.0">
  <class>SettingsDialog</class>
  <widget class="QWidget" name="SettingsDialog">
-  <property name="windowTitle"><string>Settings</string></property>
   <property name="geometry">
-   <rect><x>0</x><y>0</y><width>340</width><height>240</height></rect>
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>340</width>
+    <height>200</height>
+   </rect>
   </property>
-  <property name="sizeGripEnabled"><bool>false</bool></property>
+  <property name="windowTitle">
+   <string>Settings</string>
+  </property>
+  <property name="sizeGripEnabled" stdset="0">
+   <bool>false</bool>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="contentsMargins">
-    <number>20</number><number>16</number><number>20</number><number>16</number>
+   <property name="spacing">
+    <number>10</number>
    </property>
-   <property name="spacing"><number>10</number></property>
-
    <item>
-    <widget class="QCheckBox" name="chkAutoConnect">
-     <property name="text"><string>Enable Auto-connect on startup</string></property>
-    </widget>
+    <layout class="QVBoxLayout" name="Layout">
+     <item>
+      <widget class="QCheckBox" name="chkAutoConnect">
+       <property name="text">
+        <string>Enable Auto-connect on startup</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="chkEnableLogs">
+       <property name="text">
+        <string>Enable Global App Logs</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelLogPath">
+       <property name="font">
+        <font>
+         <pointsize>8</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Path: (loading...)</string>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>10</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelMaxTabs">
+       <property name="text">
+        <string>Max Profile Limit:</string>
+       </property>
+       <property name="font">
+        <font>
+         <bold>true</bold>
+        </font>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSlider" name="sliderMaxTabs">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>10</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelMaxTabsValue">
+       <property name="text">
+        <string>Value: 5</string>
+       </property>
+       <property name="alignment">
+        <enum>Qt::AlignmentFlag::AlignCenter</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="1">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="3">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="2">
+        <widget class="QPushButton" name="btnOpenLogFolder">
+         <property name="text">
+          <string>Open Log Folder</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QPushButton" name="btnClose">
+         <property name="text">
+          <string>Close</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <spacer name="horizontalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="1" column="3">
+        <spacer name="horizontalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
    </item>
-
-   <item>
-    <widget class="QCheckBox" name="chkEnableLogs">
-     <property name="text"><string>Enable Global App Logs</string></property>
-    </widget>
-   </item>
-
-   <!-- Log detail frame (shown/hidden by chkEnableLogs) -->
-   <item>
-    <widget class="QFrame" name="frameLogDetails">
-     <property name="frameShape"><enum>QFrame::StyledPanel</enum></property>
-     <layout class="QVBoxLayout" name="vLayoutLog">
-      <property name="contentsMargins">
-       <number>8</number><number>6</number><number>8</number><number>6</number>
-      </property>
-      <property name="spacing"><number>6</number></property>
-      <item>
-       <widget class="QLabel" name="labelLogPath">
-        <property name="text"><string>Path: (loading...)</string></property>
-        <property name="wordWrap"><bool>true</bool></property>
-        <property name="font">
-         <font><pointsize>8</pointsize></font>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="btnOpenLogFolder">
-        <property name="text"><string>Open Log Folder</string></property>
-        <property name="maximumWidth"><number>140</number></property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-
-   <item>
-    <spacer>
-     <property name="orientation"><enum>Qt::Vertical</enum></property>
-     <property name="sizeHint" stdset="0"><size><width>20</width><height>10</height></size></property>
-    </spacer>
-   </item>
-
-   <item>
-    <widget class="QPushButton" name="btnClose">
-     <property name="text"><string>Close</string></property>
-     <property name="maximumWidth"><number>100</number></property>
-    </widget>
-   </item>
-
   </layout>
  </widget>
  <resources/>

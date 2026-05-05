@@ -20,7 +20,8 @@ class BaseUiDialog(QDialog):
             ui_file.close()
             
             layout = QVBoxLayout(self)
-            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setContentsMargins(20, 20, 20, 20)
+            layout.setSpacing(15)
             layout.addWidget(self.ui)
             
             self.setWindowTitle(self.ui.windowTitle())
@@ -52,19 +53,8 @@ class ReadmeDialog(BaseUiDialog):
         self.theme = theme
         self.resize(1000, 800)
         
-        # Replace QTextBrowser with QWebEngineView for badge support
-        self.old_viewer = self.findChild(QTextBrowser, "textBrowser")
+        self.viewer = self.findChild(QTextBrowser, "textBrowser")
         self.btnClose = self.findChild(QPushButton, "closeBtn")
-        
-        from PySide6.QtWebEngineWidgets import QWebEngineView
-        self.viewer = QWebEngineView()
-        
-        # Replace the old viewer in the layout
-        if self.old_viewer and self.old_viewer.parentWidget():
-            layout = self.old_viewer.parentWidget().layout()
-            if layout:
-                layout.replaceWidget(self.old_viewer, self.viewer)
-                self.old_viewer.deleteLater()
         
         if self.btnClose:
             self.btnClose.clicked.connect(self.accept)
@@ -72,7 +62,8 @@ class ReadmeDialog(BaseUiDialog):
         self.load_readme()
 
     def load_readme(self):
-        content = "README.md not found."
+        if not self.viewer: return
+        
         md_text = ""
         if os.path.exists("README.md"):
             with open("README.md", "r", encoding="utf-8") as f:
@@ -83,7 +74,7 @@ class ReadmeDialog(BaseUiDialog):
                 import markdown
                 html_body = markdown.markdown(md_text, extensions=["fenced_code", "tables"])
             except ImportError:
-                html_body = f"<pre>{md_text}</pre>"
+                html_body = f"<pre style='white-space: pre-wrap;'>{md_text}</pre>"
             
             bg_color = "#ffffff" if self.theme == "light" else "#1a1e2e"
             text_color = "#1a1a1a" if self.theme == "light" else "#e5e7eb"
@@ -97,12 +88,10 @@ class ReadmeDialog(BaseUiDialog):
                 <style>
                     body {{
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-                        margin: 40px auto;
-                        max-width: 900px;
                         background-color: {bg_color};
                         color: {text_color};
                         line-height: 1.6;
-                        padding: 0 20px;
+                        padding: 20px;
                     }}
                     h1, h2, h3 {{ border-bottom: 1px solid {border_color}; padding-bottom: .3em; margin-top: 24px; margin-bottom: 16px; font-weight: 600; }}
                     pre {{ 
@@ -110,16 +99,11 @@ class ReadmeDialog(BaseUiDialog):
                         padding: 16px; 
                         border-radius: 6px; 
                         border: 1px solid {border_color};
-                        overflow: auto;
                     }}
-                    code {{ background-color: {code_bg}; padding: .2em .4em; border-radius: 3px; font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace; }}
+                    code {{ background-color: {code_bg}; padding: .2em .4em; border-radius: 3px; font-family: monospace; }}
                     a {{ color: {link_color}; text-decoration: none; }}
-                    a:hover {{ text-decoration: underline; }}
-                    img {{ max-width: 100%; }}
                     table {{ border-spacing: 0; border-collapse: collapse; width: 100%; margin-bottom: 16px; }}
                     table th, table td {{ border: 1px solid {border_color}; padding: 6px 13px; }}
-                    table tr {{ background-color: {bg_color}; border-top: 1px solid {border_color}; }}
-                    table tr:nth-child(2n) {{ background-color: {code_bg}; }}
                 </style>
             </head>
             <body>
@@ -127,14 +111,53 @@ class ReadmeDialog(BaseUiDialog):
             </body>
             </html>
             """
-        self.viewer.setHtml(content)
+            self.viewer.setHtml(content)
+        else:
+            self.viewer.setPlainText("README.md not found.")
 
 class TrafficDialog(BaseUiDialog):
-    def __init__(self, parent=None, stats_text=""):
+    def __init__(self, parent=None, session_text="", daily_text="", history=None):
         super().__init__("traffic.ui", parent)
-        label_stats = self.findChild(QLabel, "labelStats")
+        
+        label_stats = self.ui.findChild(QLabel, "labelStats")
+        label_daily = self.ui.findChild(QLabel, "labelDailyStats")
+        label_history = self.ui.findChild(QLabel, "labelHistory")
+        
         if label_stats:
-            label_stats.setText(stats_text)
+            label_stats.setText(session_text)
+        if label_daily:
+            label_daily.setText(daily_text)
+            
+        # Populate History Section
+        if label_history and history:
+            history_html = """
+                <table width='100%' border='0' cellspacing='0' cellpadding='5' style='font-family: Courier New;'>
+                    <tr style='background-color: #f0f0f0;'>
+                        <th align='left'><b>Timestamp</b></th>
+                        <th align='right'><b>Sent</b></th>
+                        <th align='right'><b>Received</b></th>
+                    </tr>
+            """
+            
+            def format_b(b):
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if b < 1024: return f"{b:.2f} {unit}"
+                    b /= 1024
+                return f"{b:.2f} TB"
+
+            for i, (ts, sent, recv) in enumerate(history):
+                bg = "white" if i % 2 == 0 else "#fafafa"
+                history_html += f"""
+                    <tr bgcolor='{bg}'>
+                        <td style='border-bottom: 1px solid #eee;'>{ts}</td>
+                        <td align='right' style='border-bottom: 1px solid #eee;'>{format_b(sent)}</td>
+                        <td align='right' style='border-bottom: 1px solid #eee;'>{format_b(recv)}</td>
+                    </tr>
+                """
+            history_html += "</table>"
+            label_history.setText(history_html)
+        elif label_history:
+            label_history.setText("<i>No history available for this profile.</i>")
 
 class LicenseDialog(QDialog):
     def __init__(self, theme="dark", parent=None):

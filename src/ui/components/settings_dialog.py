@@ -1,31 +1,23 @@
 # src/ui/components/settings_dialog.py
 
 import os
-from PySide6.QtWidgets import QDialog, QCheckBox, QPushButton, QLabel, QMessageBox
+from PySide6.QtWidgets import QDialog, QCheckBox, QPushButton, QLabel, QMessageBox, QSlider, QVBoxLayout, QHBoxLayout
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile
+from PySide6.QtCore import QFile, Qt
 
-class SettingsDialog(QDialog):
+from .simple_dialogs import BaseUiDialog
+
+class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
-        super().__init__(parent)
+        super().__init__("settings.ui", parent)
         self.manager = manager
         
-        # Load UI
-        loader = QUiLoader()
-        ui_path = os.path.join("pygui", "dialogs", "settings.ui")
-        ui_file = QFile(ui_path)
-        ui_file.open(QFile.ReadOnly)
-        loader.load(ui_file, self)
-        ui_file.close()
-        
-        self.setWindowTitle("Settings")
-        
-        # Access widgets
-        self.chkAutoConnect = self.findChild(QCheckBox, "chkAutoConnect")
-        self.chkEnableLogs = self.findChild(QCheckBox, "chkEnableLogs")
-        self.labelLogPath = self.findChild(QLabel, "labelLogPath")
-        self.btnOpenLogFolder = self.findChild(QPushButton, "btnOpenLogFolder")
-        self.btnClose = self.findChild(QPushButton, "btnClose")
+        # Access widgets through self.ui
+        self.chkAutoConnect = self.ui.findChild(QCheckBox, "chkAutoConnect")
+        self.chkEnableLogs = self.ui.findChild(QCheckBox, "chkEnableLogs")
+        self.labelLogPath = self.ui.findChild(QLabel, "labelLogPath")
+        self.btnOpenLogFolder = self.ui.findChild(QPushButton, "btnOpenLogFolder")
+        self.btnClose = self.ui.findChild(QPushButton, "btnClose")
         
         # Set initial values
         if self.chkAutoConnect:
@@ -36,7 +28,18 @@ class SettingsDialog(QDialog):
             
         if self.labelLogPath:
             from src.utils.logger import get_global_log_dir
-            self.labelLogPath.setText(f"Path: {get_global_log_dir(self.manager.base_dir)}")
+            self.labelLogPath.setText(f"Path: {self.manager.base_dir}")
+            
+        # Access slider widgets from UI
+        self.sliderMaxTabs = self.ui.findChild(QSlider, "sliderMaxTabs")
+        self.labelMaxTabsValue = self.ui.findChild(QLabel, "labelMaxTabsValue")
+        
+        if self.sliderMaxTabs:
+            self.sliderMaxTabs.setValue(self.manager.settings.max_tabs)
+            self.sliderMaxTabs.valueChanged.connect(self._on_slider_changed)
+            
+        if self.labelMaxTabsValue:
+            self.labelMaxTabsValue.setText(f"Value: {self.manager.settings.max_tabs}")
             
         # Connections
         if self.chkAutoConnect:
@@ -48,6 +51,12 @@ class SettingsDialog(QDialog):
         if self.btnClose:
             self.btnClose.clicked.connect(self.accept)
 
+    def _on_slider_changed(self, value):
+        if self.labelMaxTabsValue:
+            self.labelMaxTabsValue.setText(f"Value: {value}")
+        self.manager.settings.max_tabs = value
+        self.manager.save_settings()
+
     def _save_settings(self):
         self.manager.settings.auto_connect = self.chkAutoConnect.isChecked() if self.chkAutoConnect else False
         self.manager.settings.enable_logs = self.chkEnableLogs.isChecked() if self.chkEnableLogs else False
@@ -58,8 +67,7 @@ class SettingsDialog(QDialog):
         refresh_all_loggers(self.manager.base_dir, self.manager.settings.enable_logs)
 
     def _open_log_folder(self):
-        from src.utils.logger import get_global_log_dir
-        path = get_global_log_dir(self.manager.base_dir)
+        path = self.manager.base_dir
         if os.path.exists(path):
             import subprocess
             if os.name == 'nt':
