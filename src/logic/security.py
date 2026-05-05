@@ -5,7 +5,7 @@ import base64
 import hashlib
 import os
 from cryptography.fernet import Fernet
-from logic.logger import app_logger
+from ..utils.logger import app_logger
 
 try:
     import keyring

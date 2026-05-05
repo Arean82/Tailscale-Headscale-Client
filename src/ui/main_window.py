@@ -2,11 +2,14 @@
 
 import sys
 import os
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QMenuBar, QTabWidget, QMenu
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QTabWidget, QMenu
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile
-
+from PySide6.QtGui import QAction
+from .components.log_viewer_dlg import LogViewerDialog
 from .dashboard import DashboardView
+from PySide6.QtGui import QAction, QActionGroup
+
 
 class MainWindow(QMainWindow):
     def __init__(self, manager, ts_manager):
@@ -41,18 +44,25 @@ class MainWindow(QMainWindow):
         self.refresh_tabs()
 
     def _create_menu_bar(self):
-        from PySide6.QtGui import QAction, QActionGroup
-        from PySide6.QtWidgets import QApplication
+        
         menubar = self.menuBar()
         
         # --- File Menu ---
         file_menu = menubar.addMenu("&File")
+
+
         self.actionExit = QAction("&Exit", self)
         self.actionExit.triggered.connect(self.close)
         file_menu.addAction(self.actionExit)
         
+        self.actionSettings = QAction("&Settings", self)
+        self.actionSettings.triggered.connect(self.show_settings)
+        file_menu.addAction(self.actionSettings)
+        
         # --- Profile Menu ---
         profile_menu = menubar.addMenu("&Profile")
+
+
         self.actionAddProfile = QAction("&Add New Profile", self)
         self.actionAddProfile.triggered.connect(self.add_profile_clicked)
         profile_menu.addAction(self.actionAddProfile)
@@ -63,6 +73,8 @@ class MainWindow(QMainWindow):
         
         # --- Theme Menu ---
         theme_menu = menubar.addMenu("&Theme")
+
+
         self.theme_group = QActionGroup(self)
         
         self.actionSystemTheme = QAction("&System Default", self)
@@ -89,6 +101,7 @@ class MainWindow(QMainWindow):
         # --- Logs Menu ---
         logs_menu = menubar.addMenu("&Logs")
         self.menuGlobalLogs = logs_menu.addMenu("&Global Logs")
+
         self.menuGlobalLogs.aboutToShow.connect(self.populate_logs_menu)
         
         # --- Help Menu ---
@@ -107,8 +120,7 @@ class MainWindow(QMainWindow):
         help_menu.addAction(self.actionReadme)
 
     def populate_logs_menu(self):
-        from PySide6.QtGui import QAction
-        from .components.log_viewer_dlg import LogViewerDialog
+
         
         if not self.menuGlobalLogs:
             # Try finding it again recursively if it was missed
@@ -119,7 +131,7 @@ class MainWindow(QMainWindow):
 
         self.menuGlobalLogs.clear()
         
-        # Determine log directory (sync with src/main.py logic)
+        # Determine log directory (sync with pyside_launcher.py logic)
         if sys.platform == "win32":
             app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client_Pro")
         else:
@@ -148,13 +160,12 @@ class MainWindow(QMainWindow):
 
     def change_theme(self, theme_name):
         from PySide6.QtWidgets import QApplication
-        from PySide6.QtGui import QGuiApplication, Qt
+        from PySide6.QtGui import QGuiApplication, Qt, QColor
         
         self.current_theme = theme_name
         
         target_theme = theme_name
         if theme_name == "system":
-            # Detect system theme
             hints = QGuiApplication.styleHints()
             if hasattr(hints, "colorScheme"):
                 scheme = hints.colorScheme()
@@ -162,48 +173,80 @@ class MainWindow(QMainWindow):
             else:
                 target_theme = "light"
         
+        self.resolved_theme = target_theme
+        
+        # 1. DO NOT touch QApplication stylesheet or MainWindow Palette
+        # This keeps the Menu Bar 100% Native.
+
+        # 2. Determine Local Styles
         if target_theme == "dark":
-            QApplication.instance().setStyleSheet("""
-                QMainWindow, QDialog, QWidget { background-color: #2b2b2b; color: white; }
-                QMenuBar { background-color: #2b2b2b; color: white; }
-                QMenuBar::item:selected { background-color: #3c3c3c; }
-                QMenu { background-color: #2b2b2b; color: white; border: 1px solid #3c3c3c; }
-                QMenu::item:selected { background-color: #3c3c3c; }
-                QTabWidget::pane { border: 1px solid #3c3c3c; }
-                QLineEdit { background-color: #1a1a1a; color: white; border: 1px solid #3c3c3c; padding: 4px; }
-                QPushButton { background-color: #444; color: white; border: none; padding: 6px; border-radius: 3px; }
-                QPushButton:hover { background-color: #555; }
-            """)
+            style = """
+                #tabWidget QTabWidget::pane { border: 1px solid #3c3c3c; background-color: #2b2b2b; }
+                #tabWidget QTabBar::tab { background-color: #3c3c3c; color: white; padding: 8px; border: 1px solid #2b2b2b; }
+                #tabWidget QTabBar::tab:selected { background-color: #2b2b2b; border-bottom: none; font-weight: bold; }
+                #tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox { background-color: #1a1a1a; color: white; border: 1px solid #3c3c3c; padding: 4px; }
+                #tabWidget QPushButton { background-color: #444; color: white; border: none; padding: 6px; border-radius: 3px; }
+                #tabWidget QPushButton:hover { background-color: #555; }
+                #tabWidget QLabel, #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: white; background-color: transparent; }
+            """
         else:
-            QApplication.instance().setStyleSheet("""
-                QMainWindow, QDialog, QWidget { background-color: #f0f0f0; color: #1a1a1a; }
-                QMenuBar { background-color: #ffffff; color: #1a1a1a; }
-                QMenuBar::item:selected { background-color: #e0e0e0; }
-                QMenu { background-color: #ffffff; color: #1a1a1a; border: 1px solid #d0d0d0; }
-                QMenu::item:selected { background-color: #e0e0e0; }
-                QTabWidget::pane { border: 1px solid #d0d0d0; }
-                QLineEdit { background-color: #ffffff; color: #1a1a1a; border: 1px solid #d0d0d0; padding: 4px; }
-                QPushButton { background-color: #e0e0e0; color: #1a1a1a; border: 1px solid #c0c0c0; padding: 6px; border-radius: 3px; }
-                QPushButton:hover { background-color: #d0d0d0; }
-            """)
+            style = """
+                #tabWidget QTabWidget::pane { border: 1px solid #d0d0d0; background-color: #f0f0f0; }
+                #tabWidget QTabBar::tab { background-color: #e0e0e0; color: #1a1a1a; padding: 8px; border: 1px solid #d0d0d0; }
+                #tabWidget QTabBar::tab:selected { background-color: #f0f0f0; border-bottom: none; font-weight: bold; }
+                #tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox { background-color: #ffffff; color: #1a1a1a; border: 1px solid #d0d0d0; padding: 4px; }
+                #tabWidget QPushButton { background-color: #e0e0e0; color: #1a1a1a; border: 1px solid #c0c0c0; padding: 6px; border-radius: 3px; }
+                #tabWidget QPushButton:hover { background-color: #d0d0d0; }
+                #tabWidget QLabel, #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: #1a1a1a; background-color: transparent; }
+            """
+            
+        # 3. Apply style ONLY to the TabWidget
+        if self.tabWidget:
+            self.tabWidget.setObjectName("tabWidget")
+            self.tabWidget.setStyleSheet(style)
+        
+        self.current_qss = style
+
+    def _apply_theme_to_dialog(self, dialog):
+        if hasattr(self, 'current_qss'):
+            dialog_style = self.current_qss.replace("#tabWidget ", "")
+            bg = "#2b2b2b" if self.resolved_theme == "dark" else "#f0f0f0"
+            dialog_style = f"QDialog {{ background-color: {bg}; }} " + dialog_style
+            dialog.setStyleSheet(dialog_style)
+
+
+
 
 
     def show_about(self):
         from .components.simple_dialogs import AboutDialog
-        AboutDialog(self).exec()
+        dlg = AboutDialog(self)
+        self._apply_theme_to_dialog(dlg)
+        dlg.exec()
+
+    def show_settings(self):
+        from .components.settings_dialog import SettingsDialog
+        dlg = SettingsDialog(self.manager, self)
+        self._apply_theme_to_dialog(dlg)
+        dlg.exec()
 
     def show_license(self):
         from .components.simple_dialogs import LicenseDialog
-        LicenseDialog(self.current_theme, self).exec()
+        dlg = LicenseDialog(self.resolved_theme, self)
+        self._apply_theme_to_dialog(dlg)
+        dlg.exec()
 
     def show_readme(self):
         from .components.simple_dialogs import ReadmeDialog
-        ReadmeDialog(self.current_theme, self).exec()
+        dlg = ReadmeDialog(self.resolved_theme, self)
+        self._apply_theme_to_dialog(dlg)
+        dlg.exec()
 
 
     def add_profile_clicked(self):
         from .components.profile_dialog import ProfileDialog
         dialog = ProfileDialog(self)
+        self._apply_theme_to_dialog(dialog)
         if dialog.exec():
             data = dialog.get_data()
             if not data or not data["name"]: return

@@ -12,6 +12,8 @@ class Profile:
 @dataclass
 class AppSettings:
     auto_start: bool = False
+    auto_connect: bool = False
+    enable_logs: bool = False
     max_tabs: int = 5
     last_profile: Optional[str] = None
 

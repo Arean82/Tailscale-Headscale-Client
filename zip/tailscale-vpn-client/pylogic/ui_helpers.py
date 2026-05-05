@@ -274,16 +274,6 @@ def build_stylesheet(theme_name: str = "light") -> str:
     QTabBar::tab:selected {{ background-color: {t['tab_sel']}; }}
     QTabBar::tab:hover    {{ background-color: {t['tab_hover']}; }}
 
-    QMenuBar {{
-        background-color: {t['bg']};
-        color: {t['fg']};
-    }}
-    QMenuBar::item:selected {{ background-color: {t['tab_hover']}; }}
-    QMenu {{
-        background-color: {t['bg']};
-        color: {t['fg']};
-    }}
-    QMenu::item:selected {{ background-color: {t['tab_sel']}; }}
 
     QCheckBox {{ color: {t['fg']}; }}
     QScrollBar:vertical {{

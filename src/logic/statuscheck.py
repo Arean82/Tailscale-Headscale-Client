@@ -3,7 +3,7 @@
 import subprocess
 import time
 import json
-from logic.logger import app_logger
+from ..utils.logger import app_logger
 
 def is_logged_out():
     try:

@@ -51,67 +51,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>420</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <!-- File menu -->
-   <widget class="QMenu" name="menuFile">
-    <property name="title">
-     <string>File</string>
-    </property>
-    <addaction name="actionSettings"/>
-    <addaction name="separator"/>
-    <addaction name="actionExit"/>
-   </widget>
-   <!-- Profile menu -->
-   <widget class="QMenu" name="menuProfile">
-    <property name="title">
-     <string>Profile</string>
-    </property>
-    <addaction name="actionAddProfile"/>
-    <addaction name="actionRemoveProfile"/>
-   </widget>
-   <!-- Theme menu -->
-   <widget class="QMenu" name="menuTheme">
-    <property name="title">
-     <string>Theme</string>
-    </property>
-    <addaction name="actionLightTheme"/>
-    <addaction name="actionDarkTheme"/>
-   </widget>
-   <!-- Logs menu -->
-   <widget class="QMenu" name="menuLogs">
-    <property name="title">
-     <string>Logs</string>
-    </property>
-    <widget class="QMenu" name="menuGlobalLogs">
-     <property name="title">
-      <string>Global Logs</string>
-     </property>
-    </widget>
-    <addaction name="menuGlobalLogs"/>
-   </widget>
-   <!-- Help menu -->
-   <widget class="QMenu" name="menuHelp">
-    <property name="title">
-     <string>Help</string>
-    </property>
-    <addaction name="actionAbout"/>
-    <addaction name="actionLicense"/>
-    <addaction name="actionReadme"/>
-   </widget>
-   <addaction name="menuFile"/>
-   <addaction name="menuProfile"/>
-   <addaction name="menuTheme"/>
-   <addaction name="menuLogs"/>
-   <addaction name="menuHelp"/>
-  </widget>
+
   <!-- Actions -->
   <action name="actionSettings">
    <property name="text"><string>Settings</string></property>

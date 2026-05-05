@@ -14,11 +14,11 @@ import json
 import threading
 import time
 
-from logic.logger import app_logger, get_profile_logger
+from ..utils.logger import app_logger, get_profile_logger
 
 
 # Import OS-specific mutex functions
-from os_specific.mutex_handler import acquire_mutex, release_mutex, set_lock_file_path
+from ..os_specific.mutex_handler import acquire_mutex, release_mutex, set_lock_file_path
 
 # Assuming net_stats.py is available and handles its own platform specifics
 
