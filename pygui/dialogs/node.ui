@@ -1,38 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>TabWidget</class>
- <widget class="QWidget" name="TabWidget">
+ <class>NodeDialog</class>
+ <widget class="QDialog" name="NodeDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>130</height>
+    <height>320</height>
    </rect>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <property name="verticalSpacing">
-    <number>4</number>
+  <property name="windowTitle">
+   <string>Advanced Options</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>10</number>
    </property>
-   <item row="0" column="0" colspan="2">
-    <layout class="QGridLayout" name="advancedGridLayout">
-     <property name="leftMargin">
-      <number>0</number>
-     </property>
-     <property name="topMargin">
-      <number>4</number>
-     </property>
-     <property name="rightMargin">
-      <number>0</number>
-     </property>
-     <property name="bottomMargin">
-      <number>4</number>
+   <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <property name="verticalSpacing">
+      <number>8</number>
      </property>
      <item row="0" column="0">
       <widget class="QLabel" name="labelExitNode">
        <property name="font">
         <font>
-         <pointsize>10</pointsize>
+         <pointsize>9</pointsize>
          <bold>true</bold>
         </font>
        </property>
@@ -42,9 +36,9 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QLineEdit" name="lineEditExitNode">
-       <property name="placeholderText">
-        <string>e.g. exit-node-name</string>
+      <widget class="QComboBox" name="comboBoxExitNode">
+       <property name="editable">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -52,7 +46,7 @@
       <widget class="QLabel" name="labelRoutes">
        <property name="font">
         <font>
-         <pointsize>10</pointsize>
+         <pointsize>9</pointsize>
          <bold>true</bold>
         </font>
        </property>
@@ -72,19 +66,43 @@
       <widget class="QLabel" name="labelNativeProfile">
        <property name="font">
         <font>
-         <pointsize>10</pointsize>
+         <pointsize>9</pointsize>
          <bold>true</bold>
         </font>
        </property>
        <property name="text">
-        <string>Native Profile :</string>
+        <string>Instant Switch Group :</string>
        </property>
       </widget>
      </item>
      <item row="2" column="1">
-      <widget class="QLineEdit" name="lineEditNativeProfile">
-       <property name="placeholderText">
-        <string>e.g. personal, work</string>
+      <widget class="QListWidget" name="listNativeSwitch">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>120</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonLayout">
+     <property name="spacing">
+      <number>10</number>
+     </property>
+     <item>
+      <widget class="QPushButton" name="btnSave">
+       <property name="text">
+        <string>Save Settings</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnCancel">
+       <property name="text">
+        <string>Cancel</string>
        </property>
       </widget>
      </item>

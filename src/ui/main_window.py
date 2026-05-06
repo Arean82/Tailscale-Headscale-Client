@@ -406,6 +406,24 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'profiles_view'):
             self.profiles_view.set_edit_enabled(can_edit)
 
+        # Smart Tab Locking Matrix based on active Native Switch state
+        if self.tabWidget:
+            current_idx = self.tabWidget.currentIndex()
+            if current_idx >= 0:
+                current_name = self.tabWidget.tabText(current_idx)
+                current_profile = self.manager.profiles.get(current_name)
+                
+                if is_connected and current_profile and current_profile.is_native_switch and self.manager.settings.advanced_features:
+                    for idx in range(self.tabWidget.count()):
+                        p_name = self.tabWidget.tabText(idx)
+                        profile = self.manager.profiles.get(p_name)
+                        if profile:
+                            self.tabWidget.setTabEnabled(idx, profile.is_native_switch)
+                else:
+                    # Disconnected or not a native switch - enable all tabs
+                    for idx in range(self.tabWidget.count()):
+                        self.tabWidget.setTabEnabled(idx, True)
+
     def change_theme(self, theme_name):
         from PySide6.QtWidgets import QApplication
         from PySide6.QtGui import QGuiApplication, Qt, QColor
@@ -575,8 +593,14 @@ class MainWindow(QMainWindow):
         while self.tabWidget.count() > 0:
             self.tabWidget.removeTab(0)
             
-        # 2. Add Profile tabs
-        for name, profile in self.manager.profiles.items():
+        # 2. Add Profile tabs (Sort by is_native_switch so they group together at the front)
+        sorted_profiles = sorted(
+            self.manager.profiles.items(),
+            key=lambda x: x[1].is_native_switch,
+            reverse=True
+        )
+        
+        for name, profile in sorted_profiles:
             view = DashboardView(self.manager, self.ts_manager, profile)
             self.tabWidget.addTab(view, name)
         

@@ -47,6 +47,7 @@ class Manager:
                         exit_node = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_exit_node"))
                         routes = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_routes"))
                         native_profile = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_native_profile"))
+                        is_native_switch = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_is_native_switch")) == "True"
                         
                         key = self.crypto.decrypt(enc_key)
                         self.profiles[name] = Profile(
@@ -56,7 +57,8 @@ class Manager:
                             auth_mode=mode,
                             exit_node=exit_node,
                             routes=routes,
-                            native_profile=native_profile
+                            native_profile=native_profile,
+                            is_native_switch=is_native_switch
                         )
             except Exception:
                 pass
@@ -89,6 +91,9 @@ class Manager:
 
             with open(os.path.join(profile_dir, "Tailscale_VPN_native_profile"), "w") as f:
                 f.write(profile.native_profile)
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_is_native_switch"), "w") as f:
+                f.write(str(profile.is_native_switch))
 
     def load_settings(self):
         if os.path.exists(self.settings_file):

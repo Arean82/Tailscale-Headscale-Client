@@ -212,6 +212,19 @@ class DashboardView(QWidget):
         if is_connected:
             self.ts_manager.logout(self.profile.name if self.profile else None)
         else:
+            # Safety Confirmation Box if another connection is already active on the system
+            is_any_connected, _ = self.ts_manager.check_status_sync()
+            if is_any_connected:
+                from PySide6.QtWidgets import QMessageBox
+                reply = QMessageBox.question(
+                    self, 'Confirm Connection Switch',
+                    f"You are currently connected to another active VPN session.\n\n"
+                    f"Are you sure you want to switch your active connection to '{self.profile.name if self.profile else 'this profile'}'?",
+                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                )
+                if reply == QMessageBox.No:
+                    return
+
             url = self.lineEditUrl.text() if self.lineEditUrl else "https://controlplane.tailscale.com"
             key = self.profile.auth_key if self.profile else ""
             # Original app uses 'google' for SSO

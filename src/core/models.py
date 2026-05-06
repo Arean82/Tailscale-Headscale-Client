@@ -11,6 +11,7 @@ class Profile:
     exit_node: str = ""
     routes: str = ""
     native_profile: str = ""
+    is_native_switch: bool = False
 
 @dataclass
 class AppSettings:
