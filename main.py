@@ -35,26 +35,15 @@ if __name__ == "__main__":
     
     logger.info("Application starting up (PySide6 Edition)...")
 
-    # 2. Windows Service Check
-    if platform.system() == "Windows":
-        SERVICE_NAME = "Tailscale"
-        timeout = 60
-        start_time = time.time()
-
-        while not is_service_running(SERVICE_NAME, logger):
-            if time.time() - start_time > timeout:
-                logger.warning("Tailscale did not start within 60s. Launching GUI anyway.")
-                break
-            time.sleep(2)
-
-    # 3. Initialize App & Check Lock
+    # 2. Initialize App & Check Lock
     app = QApplication(sys.argv)
     if sys.platform == "win32":
         app.setStyle("WindowsVista") 
     app.setApplicationName("Tailscale Client Pro")
 
-    from PySide6.QtCore import QLockFile
-    from PySide6.QtWidgets import QMessageBox
+    from PySide6.QtCore import QLockFile, Qt, QTimer, QEventLoop
+    from PySide6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QLabel, QProgressBar
+    
     lock_path = os.path.join(app_dir, "app.lock")
     lock_file = QLockFile(lock_path)
     
@@ -63,6 +52,58 @@ if __name__ == "__main__":
                           "An instance of Tailscale Client Pro is already running.\n"
                           "Please check your task manager or system tray.")
         sys.exit(0)
+
+    # 3. Windows Service Check with UI
+    if platform.system() == "Windows":
+        SERVICE_NAME = "Tailscale"
+        
+        if not is_service_running(SERVICE_NAME, logger):
+            # Attempt to start the service first
+            import subprocess
+            try:
+                subprocess.Popen(
+                    ["powershell", "-Command", "Start-Service Tailscale"],
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+            except Exception as e:
+                logger.error(f"Failed to attempt starting service: {e}")
+                
+            wait_dialog = QDialog()
+            wait_dialog.setWindowTitle("Starting Service")
+            wait_dialog.setStyleSheet("QDialog { background-color: #1a1e2e; color: white; } QLabel { color: white; font-weight: bold; }")
+            wait_dialog.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+            wait_dialog.setFixedSize(320, 120)
+            
+            layout = QVBoxLayout(wait_dialog)
+            label = QLabel("Waiting for Tailscale Service...")
+            label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(label)
+            
+            progress = QProgressBar()
+            progress.setRange(0, 0)
+            progress.setTextVisible(False)
+            layout.addWidget(progress)
+            
+            wait_dialog.show()
+            
+            timeout = 60
+            start_time = time.time()
+            
+            loop = QEventLoop()
+            timer = QTimer()
+            
+            def check_service():
+                if is_service_running(SERVICE_NAME, logger) or time.time() - start_time > timeout:
+                    if time.time() - start_time > timeout:
+                        logger.warning("Tailscale did not start within 60s. Launching GUI anyway.")
+                    timer.stop()
+                    loop.quit()
+                    
+            timer.timeout.connect(check_service)
+            timer.start(500)
+            loop.exec()
+            
+            wait_dialog.close()
 
     manager = Manager(app_dir)
     ts_manager = TailscaleManager(app_dir)
