@@ -8,7 +8,7 @@ import multiprocessing
 
 from PySide6.QtWidgets import QApplication
 from src.core.manager import Manager
-from src.core.tailscale import TailscaleManager
+from src.core.tailscale import TailscaleManager, get_tailscale_path
 from src.ui.main_window import MainWindow
 from src.utils.logger import setup_logger, manage_sys_streams
 
@@ -23,7 +23,7 @@ def is_daemon_running(logger):
             creationflags = subprocess.CREATE_NO_WINDOW
         
         result = subprocess.run(
-            ["tailscale", "status", "--json"], 
+            [get_tailscale_path(), "status", "--json"], 
             capture_output=True, 
             text=True, 
             startupinfo=startupinfo,

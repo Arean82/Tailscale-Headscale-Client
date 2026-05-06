@@ -105,12 +105,24 @@ class SettingsDialog(BaseUiDialog):
 
     def _open_log_folder(self):
         from src.utils.logger import get_global_log_dir
+        import sys
         path = get_global_log_dir(self.manager.base_dir)
         if os.path.exists(path):
             import subprocess
-            if os.name == 'nt':
-                os.startfile(path)
-            else:
-                subprocess.Popen(['xdg-open', path])
+            try:
+                if sys.platform == 'win32':
+                    os.startfile(path)
+                elif sys.platform == 'darwin':
+                    subprocess.Popen(['open', path])
+                else:
+                    subprocess.Popen(['xdg-open', path])
+            except (FileNotFoundError, Exception) as e:
+                QMessageBox.warning(
+                    self, 
+                    "Open Folder Failed", 
+                    f"Could not open the log folder automatically.\n\n"
+                    f"Please locate it manually at:\n{path}\n\n"
+                    f"Details: {e}"
+                )
         else:
             QMessageBox.warning(self, "Error", "Log folder does not exist yet.")

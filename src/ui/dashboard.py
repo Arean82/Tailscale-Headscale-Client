@@ -53,11 +53,8 @@ class DashboardView(QWidget):
         # Initial status update
         self.update_status(*self.ts_manager.check_status())
 
-        # 6. Setup Traffic Monitoring
+        # 6. Setup Traffic Monitoring Baseline
         self.prev_stats = None
-        self.stats_timer = QTimer(self)
-        self.stats_timer.timeout.connect(self._update_traffic_label)
-        self.stats_timer.start(3000) # Every 3 seconds
 
         # 7. Setup Pulse Animation (for "Connecting..." state)
         from PySide6.QtWidgets import QGraphicsOpacityEffect
@@ -287,12 +284,4 @@ class DashboardView(QWidget):
             size /= 1024.0
         return f"{size:.2f} PB"
 
-    def showEvent(self, event):
-        super().showEvent(event)
-        if hasattr(self, 'stats_timer') and not self.stats_timer.isActive():
-            self.stats_timer.start(3000)
 
-    def hideEvent(self, event):
-        if hasattr(self, 'stats_timer') and self.stats_timer.isActive():
-            self.stats_timer.stop()
-        super().hideEvent(event)

@@ -26,7 +26,14 @@ class Manager:
     def _get_tab_dir(self, tab_name):
         sanitized_name = "".join(c for c in tab_name if c.isalnum() or c in (' ', '.', '_', '-')).strip()
         sanitized_name = sanitized_name.replace(' ', '_')
-        return os.path.join(self.data_dir, sanitized_name)
+        if not sanitized_name:
+            raise ValueError(f"Invalid profile name: '{tab_name}' resolves to empty.")
+            
+        resolved_path = os.path.abspath(os.path.join(self.data_dir, sanitized_name))
+        if not resolved_path.startswith(os.path.abspath(self.data_dir)):
+            raise PermissionError(f"Directory traversal attempt detected: '{tab_name}'")
+            
+        return resolved_path
 
     def _read_file(self, path):
         if os.path.exists(path):

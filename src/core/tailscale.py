@@ -1,7 +1,53 @@
 import sys
 import os
 import re
+import shutil
 from PySide6.QtCore import QObject, Signal, QProcess
+
+def get_tailscale_path():
+    """Dynamically resolve the absolute path to the Tailscale executable on macOS, Windows, and Linux."""
+    # 1. Check if tailscale is in system PATH
+    resolved = shutil.which("tailscale")
+    if resolved:
+        return resolved
+        
+    if sys.platform == "darwin":
+        # Check standard macOS installation paths
+        mac_paths = [
+            "/Applications/Tailscale.app/Contents/Resources/cli/tailscale",
+            "/opt/homebrew/bin/tailscale",
+            "/usr/local/bin/tailscale",
+            "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+        ]
+        for path in mac_paths:
+            if os.path.exists(path):
+                return path
+                
+    elif sys.platform == "win32":
+        # Check standard Windows installation paths
+        win_paths = [
+            os.path.join(os.environ.get("ProgramFiles", "C:\\Program Files"), "Tailscale", "tailscale.exe"),
+            os.path.join(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)"), "Tailscale", "tailscale.exe"),
+            os.path.join(os.environ.get("LocalAppData", ""), "Programs", "Tailscale", "tailscale.exe")
+        ]
+        for path in win_paths:
+            if os.path.exists(path):
+                return path
+                
+    elif sys.platform.startswith("linux"):
+        # Check standard Linux installation paths
+        linux_paths = [
+            "/usr/sbin/tailscale",
+            "/usr/bin/tailscale",
+            "/usr/local/bin/tailscale",
+            "/sbin/tailscale"
+        ]
+        for path in linux_paths:
+            if os.path.exists(path):
+                return path
+                
+    # Fallback default
+    return "tailscale"
 
 class TailscaleProcess(QObject):
     output_received = Signal(str)
@@ -16,7 +62,14 @@ class TailscaleProcess(QObject):
         self.process.readyReadStandardOutput.connect(self._handle_stdout)
         self.process.readyReadStandardError.connect(self._handle_stderr)
         self.process.finished.connect(self._handle_finished)
+        self.process.errorOccurred.connect(self._handle_error)
         self.current_command = ""
+
+    def _handle_error(self, error):
+        if error == QProcess.FailedToStart:
+            msg = "Tailscale is not installed on this system or is not found in your system's PATH. Please install Tailscale."
+            self.error_received.emit(msg)
+            self.finished.emit(-1, "FailedToStart")
 
     def __del__(self):
         """Ensure process is cleaned up safely."""
@@ -47,7 +100,7 @@ class TailscaleProcess(QObject):
 
         self.current_command = " ".join(cmd_args)
         self.profile_name = profile_name
-        self.process.start("tailscale", cmd_args)
+        self.process.start(get_tailscale_path(), cmd_args)
 
     def _handle_stdout(self):
         data = self.process.readAllStandardOutput().data().decode().strip()
@@ -127,7 +180,7 @@ class TailscaleManager(QObject):
             return cached_status["connected"], cached_status["text"]
 
         if self.status_proc.state() == QProcess.NotRunning:
-            self.status_proc.start("tailscale", ["status", "--json"])
+            self.status_proc.start(get_tailscale_path(), ["status", "--json"])
         
         # Return cached status as a placeholder if we have it, otherwise "Checking"
         if cached_status:
@@ -219,7 +272,7 @@ class TailscaleManager(QObject):
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
                 creationflags = subprocess.CREATE_NO_WINDOW
             
-            subprocess.run(["tailscale", "logout"], capture_output=True, startupinfo=startupinfo, creationflags=creationflags)
+            subprocess.run([get_tailscale_path(), "logout"], capture_output=True, startupinfo=startupinfo, creationflags=creationflags)
         except:
             pass
 
@@ -266,7 +319,7 @@ class TailscaleManager(QObject):
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
                 creationflags = subprocess.CREATE_NO_WINDOW
             
-            result = subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True, startupinfo=startupinfo, creationflags=creationflags)
+            result = subprocess.run([get_tailscale_path(), "status", "--json"], capture_output=True, text=True, startupinfo=startupinfo, creationflags=creationflags)
             data = json.loads(result.stdout)
             state = data.get("BackendState")
             

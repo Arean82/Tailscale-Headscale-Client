@@ -36,6 +36,20 @@ class ProfileNameDialog(QDialog):
             
             if self.btn_create:
                 self.btn_create.clicked.connect(self.accept)
-        
+            
+    def accept(self):
+        name = self.get_name()
+        sanitized = "".join(c for c in name if c.isalnum() or c in (' ', '.', '_', '-')).strip()
+        if not name:
+            QMessageBox.warning(self, "Invalid Name", "Profile name cannot be empty.")
+            return
+        if not sanitized:
+            QMessageBox.warning(self, "Invalid Name", "Profile name must contain at least one valid alphanumeric character.")
+            return
+        if ".." in sanitized:
+            QMessageBox.warning(self, "Invalid Name", "Profile name cannot contain path traversal sequences like '..'.")
+            return
+        super().accept()
+
     def get_name(self):
         return self.line_edit.text().strip() if self.line_edit else ""

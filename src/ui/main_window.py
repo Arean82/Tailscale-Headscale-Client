@@ -9,6 +9,7 @@ from PySide6.QtCore import QFile, QTimer, Qt, QEvent
 from PySide6.QtGui import QAction, QActionGroup
 from .components.log_viewer_dlg import LogViewerDialog
 from .dashboard import DashboardView
+from ..core.tailscale import get_tailscale_path
 
 
 class MainWindow(QMainWindow):
@@ -45,6 +46,7 @@ class MainWindow(QMainWindow):
 
         # 5. Connect to status changes for disabling actions
         self.ts_manager.connection_status_changed.connect(self._update_profile_actions_state)
+        self.ts_manager.worker.error_received.connect(self._show_worker_error)
         # Initial check
         self._update_profile_actions_state(*self.ts_manager.check_status())
         
@@ -73,6 +75,11 @@ class MainWindow(QMainWindow):
         
         # 10. Asynchronous Service Check
         QTimer.singleShot(100, self.check_daemon_async)
+
+        # 11. Centralized Traffic Polling (Every 3 seconds, only active tab)
+        self.central_polling_timer = QTimer(self)
+        self.central_polling_timer.timeout.connect(self._poll_active_tab)
+        self.central_polling_timer.start(3000)
 
     def _setup_tray(self):
         from PySide6.QtWidgets import QSystemTrayIcon
@@ -116,7 +123,7 @@ class MainWindow(QMainWindow):
                 self.show_service_wait_dialog()
                 
         self.daemon_check_proc.finished.connect(on_check_finished)
-        self.daemon_check_proc.start("tailscale", ["status", "--json"])
+        self.daemon_check_proc.start(get_tailscale_path(), ["status", "--json"])
 
     def show_service_wait_dialog(self):
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
@@ -165,7 +172,7 @@ class MainWindow(QMainWindow):
                 self.refresh_tabs()
                 
         self.poll_proc.finished.connect(on_poll_finished)
-        self.poll_proc.start("tailscale", ["status", "--json"])
+        self.poll_proc.start(get_tailscale_path(), ["status", "--json"])
 
     def _tray_icon_activated(self, reason):
         from PySide6.QtWidgets import QSystemTrayIcon
@@ -381,26 +388,53 @@ class MainWindow(QMainWindow):
         # Determine log directory (sync with main.py logic)
         app_dir = self.manager.base_dir
         
-        print(f"DEBUG: Scanning log directory: {app_dir}")
-        
         if not os.path.exists(app_dir):
-            print("DEBUG: Log directory does not exist.")
             self.menuGlobalLogs.addAction("No logs found").setEnabled(False)
             return
             
-        log_files = [f for f in os.listdir(app_dir) if f.endswith(".log")]
-        print(f"DEBUG: Found log files: {log_files}")
+        # 1. Main logs directly in app_dir
+        log_files = [(f, os.path.join(app_dir, f)) for f in os.listdir(app_dir) if f.endswith(".log")]
         
+        # 2. Connection logs in GlobalLogs/
+        global_logs_dir = os.path.join(app_dir, "GlobalLogs")
+        if os.path.exists(global_logs_dir):
+            conn_logs = [(f"Profile: {f.replace('_connection.log', '')}", os.path.join(global_logs_dir, f)) 
+                         for f in os.listdir(global_logs_dir) if f.endswith(".log")]
+            log_files.extend(conn_logs)
+            
         if not log_files:
             self.menuGlobalLogs.addAction("No .log files found").setEnabled(False)
             return
             
-        for lf in sorted(log_files):
-            action = QAction(lf, self)
-            full_path = os.path.join(app_dir, lf)
-            # Use a default argument in lambda to capture the current path
-            action.triggered.connect(lambda checked, p=full_path, n=lf: LogViewerDialog(p, n, self).show())
+        for display_name, full_path in sorted(log_files, key=lambda x: x[0]):
+            action = QAction(display_name, self)
+            action.triggered.connect(lambda checked, p=full_path, n=display_name: LogViewerDialog(p, n, self).show())
             self.menuGlobalLogs.addAction(action)
+
+    def _poll_active_tab(self):
+        if hasattr(self, 'tabWidget') and self.tabWidget:
+            active_widget = self.tabWidget.currentWidget()
+            if active_widget and hasattr(active_widget, "_update_traffic_label"):
+                active_widget._update_traffic_label()
+
+    def _show_worker_error(self, message):
+        """Displays an interactive premium Dependency Wizard if Tailscale is missing."""
+        from PySide6.QtGui import QDesktopServices
+        from PySide6.QtCore import QUrl
+        
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Critical)
+        msg_box.setWindowTitle("Tailscale Dependency Required")
+        msg_box.setText(f"{message}\n\nTailscale is required to run this VPN client.")
+        msg_box.setInformativeText("Would you like to open the official Tailscale download page now?")
+        
+        download_btn = msg_box.addButton("Download Tailscale", QMessageBox.AcceptRole)
+        cancel_btn = msg_box.addButton("Cancel", QMessageBox.RejectRole)
+        
+        msg_box.exec()
+        
+        if msg_box.clickedButton() == download_btn:
+            QDesktopServices.openUrl(QUrl("https://tailscale.com/download"))
 
     def _update_profile_actions_state(self, is_connected, status_text):
         """Enable/disable profile actions based on connection status."""

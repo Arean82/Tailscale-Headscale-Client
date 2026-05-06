@@ -84,7 +84,12 @@ class LogViewerDialog(QDialog):
 
         try:
             with open(self.log_file, "r", encoding="utf-8", errors="ignore") as f:
-                for line in f:
+                lines = f.readlines()
+                
+            tail_lines = lines[-1000:] if len(lines) > 1000 else lines
+            
+            cursor.beginEditBlock()
+            for line in tail_lines:
                     up = line.upper()
                     
                     is_error = "ERROR" in up or "CRITICAL" in up or "EXCEPTION" in up
@@ -106,6 +111,7 @@ class LogViewerDialog(QDialog):
                     else: fmt = fmt_info
                     
                     cursor.insertText(line, fmt)
+            cursor.endEditBlock()
         except Exception as e:
             cursor.insertText(f"Failed to read log: {e}")
 
