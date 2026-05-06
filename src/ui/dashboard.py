@@ -286,3 +286,13 @@ class DashboardView(QWidget):
                 return f"{size:.2f} {unit}"
             size /= 1024.0
         return f"{size:.2f} PB"
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if hasattr(self, 'stats_timer') and not self.stats_timer.isActive():
+            self.stats_timer.start(3000)
+
+    def hideEvent(self, event):
+        if hasattr(self, 'stats_timer') and self.stats_timer.isActive():
+            self.stats_timer.stop()
+        super().hideEvent(event)

@@ -444,49 +444,14 @@ class MainWindow(QMainWindow):
         # 1. DO NOT touch QApplication stylesheet or MainWindow Palette
         # This keeps the Menu Bar 100% Native.
 
-        # 2. Determine Local Styles
-        if target_theme == "dark":
-            style = """
-                QTabWidget#tabWidget { background-color: #1a1e2e; }
-                #tabWidget QTabWidget::pane { border: 1px solid #3d4b7c; background-color: #1a1e2e; top: -1px; }
-                
-                /* Force background for the content area widgets */
-                #tabWidget QWidget { background-color: #1a1e2e; }
-                
-                #tabWidget QTabBar::tab { background-color: #1e243a; color: #9ca3af; padding: 10px 20px; border: 1px solid #3d4b7c; border-bottom: none; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px; font-size: 11px; font-weight: 600; }
-                #tabWidget QTabBar::tab:hover { background-color: #2a324b; color: #ffffff; }
-                #tabWidget QTabBar::tab:selected { background-color: #1a1e2e; color: #3b82f6; border-bottom: 2px solid #3b82f6; font-weight: bold; }
-                
-                #tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox { background-color: #0f111a; color: #ffffff; border: 1px solid #3d4b7c; padding: 8px; border-radius: 4px; selection-background-color: #3b82f6; }
-                #tabWidget QLineEdit:focus { border: 1px solid #3b82f6; background-color: #161b22; }
-                
-                #tabWidget QPushButton { background-color: #1e243a; color: #ffffff; border: 1px solid #3d4b7c; padding: 8px 20px; border-radius: 6px; font-weight: 600; }
-                #tabWidget QPushButton:hover { background-color: #2a324b; border-color: #3b82f6; }
-                #tabWidget QPushButton:pressed { background-color: #0f111a; }
-                
-                #tabWidget QLabel { color: #e5e7eb; background-color: transparent; font-weight: 500; }
-                #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: #d1d5db; background-color: transparent; font-weight: 500; }
-                
-                /* Explicitly allow colored buttons to keep their styles */
-                #tabWidget QPushButton[colored="true"] { border: none; }
-            """
-        else:
-            style = """
-                #tabWidget QTabWidget::pane { border: 1px solid #d0d0d0; background-color: #f8f9fa; top: -1px; }
-                #tabWidget QTabBar::tab { background-color: #e9ecef; color: #495057; padding: 10px 20px; border: 1px solid #dee2e6; border-bottom: none; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px; font-size: 11px; font-weight: 600; }
-                #tabWidget QTabBar::tab:hover { background-color: #f8f9fa; }
-                #tabWidget QTabBar::tab:selected { background-color: #f8f9fa; color: #0056b3; border-bottom: 2px solid #0056b3; font-weight: bold; }
-                
-                #tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox { background-color: #ffffff; color: #212529; border: 1px solid #ced4da; padding: 8px; border-radius: 4px; }
-                #tabWidget QLineEdit:focus { border: 1px solid #80bdff; outline: 0; }
-                
-                #tabWidget QPushButton { background-color: #f8f9fa; color: #212529; border: 1px solid #ced4da; padding: 8px 20px; border-radius: 6px; font-weight: 600; }
-                #tabWidget QPushButton:hover { background-color: #e2e6ea; border-color: #0056b3; }
-                
-                #tabWidget QLabel, #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox { color: #212529; background-color: transparent; }
-                
-                #tabWidget QPushButton[colored="true"] { border: none; }
-            """
+        # 2. Determine Local Styles dynamically from QSS files
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        qss_path = os.path.join(base_dir, "assets", "themes", f"{target_theme}.qss")
+        try:
+            with open(qss_path, "r", encoding="utf-8") as f:
+                style = f.read()
+        except Exception:
+            style = ""
             
         # 3. Apply style ONLY to the TabWidget
         if self.tabWidget:

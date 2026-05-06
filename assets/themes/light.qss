@@ -1,0 +1,67 @@
+/* assets/themes/light.qss */
+
+#tabWidget QTabWidget::pane {
+    border: 1px solid #d0d0d0;
+    background-color: #f8f9fa;
+    top: -1px;
+}
+
+#tabWidget QTabBar::tab {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 10px 20px;
+    border: 1px solid #dee2e6;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    margin-right: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+#tabWidget QTabBar::tab:hover {
+    background-color: #f8f9fa;
+}
+
+#tabWidget QTabBar::tab:selected {
+    background-color: #f8f9fa;
+    color: #0056b3;
+    border-bottom: 2px solid #0056b3;
+    font-weight: bold;
+}
+
+#tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox {
+    background-color: #ffffff;
+    color: #212529;
+    border: 1px solid #ced4da;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+#tabWidget QLineEdit:focus {
+    border: 1px solid #80bdff;
+    outline: 0;
+}
+
+#tabWidget QPushButton {
+    background-color: #f8f9fa;
+    color: #212529;
+    border: 1px solid #ced4da;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+#tabWidget QPushButton:hover {
+    background-color: #e2e6ea;
+    border-color: #0056b3;
+}
+
+#tabWidget QLabel, #tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox {
+    color: #212529;
+    background-color: transparent;
+}
+
+#tabWidget QPushButton[colored="true"] {
+    border: none;
+}
