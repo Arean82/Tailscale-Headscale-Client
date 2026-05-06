@@ -232,10 +232,18 @@ class DashboardView(QWidget):
                 if hasattr(self, 'pulse_anim'):
                     self.pulse_anim.start()
             
-            if is_sso:
-                self.ts_manager.connect(url, None, True, self.profile.name if self.profile else None)
+            exit_node = self.profile.exit_node if (self.profile and self.manager.settings.advanced_features) else ""
+            routes = self.profile.routes if (self.profile and self.manager.settings.advanced_features) else ""
+            native_profile = self.profile.native_profile if (self.profile and self.manager.settings.advanced_features) else ""
+
+            if native_profile:
+                self.ts_manager.switch_profile(native_profile, self.profile.name if self.profile else None)
+                from PySide6.QtCore import QTimer
+                QTimer.singleShot(1500, self.ts_manager.check_status)
+            elif is_sso:
+                self.ts_manager.connect(url, None, True, self.profile.name if self.profile else None, exit_node, routes)
             else:
-                self.ts_manager.connect(url, key, False, self.profile.name if self.profile else None)
+                self.ts_manager.connect(url, key, False, self.profile.name if self.profile else None, exit_node, routes)
                 # Brief delay to allow command to start before checking status
                 from PySide6.QtCore import QTimer
                 QTimer.singleShot(2000, self.ts_manager.check_status)

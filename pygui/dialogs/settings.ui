@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>340</width>
-    <height>230</height>
+    <height>260</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -40,6 +40,13 @@
        <widget class="QCheckBox" name="chkRunAtStartup">
         <property name="text">
          <string>Enable Run at startup</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="chkAdvanced">
+        <property name="text">
+         <string>Enable Advanced Features</string>
         </property>
        </widget>
      </item>

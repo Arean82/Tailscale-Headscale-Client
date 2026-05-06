@@ -338,6 +338,13 @@ class MainWindow(QMainWindow):
 
         self.menuGlobalLogs.aboutToShow.connect(self.populate_logs_menu)
         
+        # --- Advanced Menu ---
+        self.advanced_menu = menubar.addMenu("&Advanced")
+        self.actionAdvanced = QAction("&Advanced Options...", self)
+        self.actionAdvanced.triggered.connect(self.show_advanced_dialog)
+        self.advanced_menu.addAction(self.actionAdvanced)
+        self.update_advanced_menu_state()
+        
         # --- Help Menu ---
         help_menu = menubar.addMenu("&Help")
         
@@ -589,3 +596,26 @@ class MainWindow(QMainWindow):
             except:
                 pass
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
+
+    def update_advanced_menu_state(self):
+        """Enable or disable the Advanced Options menu based on app settings."""
+        if hasattr(self, 'advanced_menu') and self.advanced_menu is not None:
+            self.advanced_menu.setEnabled(self.manager.settings.advanced_features)
+
+    def show_advanced_dialog(self):
+        """Open the advanced options dialog for the active tab's profile."""
+        current_idx = self.tabWidget.currentIndex()
+        if current_idx < 0:
+            QMessageBox.warning(self, "No Active Profile", "Please create or select a profile first.")
+            return
+            
+        profile_name = self.tabWidget.tabText(current_idx)
+        profile = self.manager.profiles.get(profile_name)
+        
+        if not profile:
+            QMessageBox.warning(self, "No Active Profile", "Please create or select a profile first.")
+            return
+            
+        from .components.node_dialog import NodeDialog
+        dlg = NodeDialog(profile, self.manager, self)
+        dlg.exec()

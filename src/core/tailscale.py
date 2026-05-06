@@ -178,7 +178,7 @@ class TailscaleManager(QObject):
         elif sys.platform == "darwin":
             QProcess.startDetached("launchctl", ["start", "com.tailscale.tailscaled"])
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None):
+    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None):
         # 1. Best-effort service start
         self.start_service()
         
@@ -186,9 +186,20 @@ class TailscaleManager(QObject):
         args = ["up", f"--login-server={login_server}", "--accept-routes"]
         if not use_sso and auth_key:
             args.insert(1, f"--auth-key={auth_key}")
+            
+        if exit_node:
+            args.append(f"--exit-node={exit_node}")
+            
+        if routes:
+            args.append(f"--advertise-routes={routes}")
         
         self.cache.clear() # Clear cache on new connection attempt
         self.worker.run_command(args, profile_name)
+
+    def switch_profile(self, native_profile_name, profile_name=None):
+        """Instantly switch to a native Tailscale profile."""
+        self.cache.clear()
+        self.worker.run_command(["switch", native_profile_name], profile_name)
 
     def logout(self, profile_name=None):
         self.cache.clear()

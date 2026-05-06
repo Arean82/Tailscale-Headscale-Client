@@ -10,13 +10,14 @@ from .simple_dialogs import BaseUiDialog
 class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
         super().__init__("settings.ui", parent)
-        self.setFixedSize(340, 230)
+        self.setFixedSize(340, 260)
         self.manager = manager
         
         # Access widgets through self.ui
         self.chkAutoConnect = self.ui.findChild(QCheckBox, "chkAutoConnect")
         self.chkEnableLogs = self.ui.findChild(QCheckBox, "chkEnableLogs")
         self.chkRunAtStartup = self.ui.findChild(QCheckBox, "chkRunAtStartup")
+        self.chkAdvanced = self.ui.findChild(QCheckBox, "chkAdvanced")
         self.labelLogPath = self.ui.findChild(QLabel, "labelLogPath")
         self.btnOpenLogFolder = self.ui.findChild(QPushButton, "btnOpenLogFolder")
         self.btnClose = self.ui.findChild(QPushButton, "btnClose")
@@ -30,6 +31,9 @@ class SettingsDialog(BaseUiDialog):
             
         if self.chkRunAtStartup:
             self.chkRunAtStartup.setChecked(self.manager.settings.auto_start)
+
+        if self.chkAdvanced:
+            self.chkAdvanced.setChecked(self.manager.settings.advanced_features)
             
         if self.labelLogPath:
             from src.utils.logger import get_global_log_dir
@@ -54,6 +58,8 @@ class SettingsDialog(BaseUiDialog):
             self.chkEnableLogs.toggled.connect(self._save_settings)
         if self.chkRunAtStartup:
             self.chkRunAtStartup.toggled.connect(self._save_settings)
+        if self.chkAdvanced:
+            self.chkAdvanced.toggled.connect(self._save_settings)
         if self.btnOpenLogFolder:
             self.btnOpenLogFolder.clicked.connect(self._open_log_folder)
         if self.btnClose:
@@ -82,6 +88,7 @@ class SettingsDialog(BaseUiDialog):
         self.manager.settings.auto_connect = self.chkAutoConnect.isChecked() if self.chkAutoConnect else False
         self.manager.settings.enable_logs = self.chkEnableLogs.isChecked() if self.chkEnableLogs else False
         self.manager.settings.auto_start = self.chkRunAtStartup.isChecked() if self.chkRunAtStartup else False
+        self.manager.settings.advanced_features = self.chkAdvanced.isChecked() if self.chkAdvanced else False
         self.manager.save_settings()
         
         # Trigger autostart configuration for the current OS
@@ -91,6 +98,10 @@ class SettingsDialog(BaseUiDialog):
         # Refresh loggers if log setting changed
         from src.utils.logger import refresh_all_loggers
         refresh_all_loggers(self.manager.base_dir, self.manager.settings.enable_logs)
+        
+        # Dynamically update advanced menu in main window
+        if self.parent() and hasattr(self.parent(), "update_advanced_menu_state"):
+            self.parent().update_advanced_menu_state()
 
     def _open_log_folder(self):
         from src.utils.logger import get_global_log_dir

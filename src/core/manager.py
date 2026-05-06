@@ -44,13 +44,19 @@ class Manager:
                         url = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_url"))
                         enc_key = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_key"))
                         mode = self._read_file(os.path.join(profile_dir, "auth_mode")) or "auth_key"
+                        exit_node = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_exit_node"))
+                        routes = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_routes"))
+                        native_profile = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_native_profile"))
                         
                         key = self.crypto.decrypt(enc_key)
                         self.profiles[name] = Profile(
                             name=name,
                             login_server=url or "https://controlplane.tailscale.com",
                             auth_key=key,
-                            auth_mode=mode
+                            auth_mode=mode,
+                            exit_node=exit_node,
+                            routes=routes,
+                            native_profile=native_profile
                         )
             except Exception:
                 pass
@@ -74,6 +80,15 @@ class Manager:
                 
             with open(os.path.join(profile_dir, "auth_mode"), "w") as f:
                 f.write(profile.auth_mode)
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_exit_node"), "w") as f:
+                f.write(profile.exit_node)
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_routes"), "w") as f:
+                f.write(profile.routes)
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_native_profile"), "w") as f:
+                f.write(profile.native_profile)
 
     def load_settings(self):
         if os.path.exists(self.settings_file):
