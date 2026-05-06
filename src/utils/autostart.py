@@ -4,9 +4,7 @@ import os
 def set_autostart(enabled: bool):
     """Enable or disable application run at OS startup across Windows, Linux, and macOS."""
     app_name = "TailscaleClientPro"
-    # Get absolute path to the main.py or executable running
-    import main
-    exec_path = os.path.abspath(main.__file__)
+    exec_path = os.path.abspath(sys.argv[0])
     
     # If running as python script, we want to launch it with python interpreter
     if exec_path.endswith(".py"):

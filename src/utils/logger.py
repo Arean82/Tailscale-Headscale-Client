@@ -77,5 +77,23 @@ def refresh_all_loggers(base_dir, enabled):
     manage_sys_streams(enabled, logger)
     return logger
 
+def write_profile_log(profile_name, data):
+    """Safely append connection standard output to a profile-specific log file."""
+    try:
+        safe_name = "".join(c for c in profile_name if c.isalnum() or c in (' ', '.', '_', '-')).strip().replace(' ', '_')
+        if sys.platform == "win32":
+            app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
+        else:
+            app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
+        
+        log_dir = os.path.join(app_dir, "GlobalLogs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, f"{safe_name}_connection.log")
+        
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(data + "\n")
+    except Exception:
+        pass
+
 # Global instance for easy access
 app_logger = None

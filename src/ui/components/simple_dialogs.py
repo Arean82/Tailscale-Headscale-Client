@@ -67,7 +67,7 @@ class AboutDialog(BaseUiDialog):
         self.setFixedSize(300, 180)
         
         # Set dynamic text to avoid hardcoding in UI files
-        from ...logic.constants import APP_VERSION, APP_COPYRIGHT, APP_NAME
+        from ...utils.constants import APP_VERSION, APP_COPYRIGHT, APP_NAME
         
         lbl_name = self.ui.findChild(QLabel, "labelAppName")
         lbl_version = self.ui.findChild(QLabel, "labelVersion")
