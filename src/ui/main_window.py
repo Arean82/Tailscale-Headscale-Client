@@ -20,7 +20,8 @@ class MainWindow(QMainWindow):
         
         # 1. Load your UI file
         loader = QUiLoader()
-        ui_path = os.path.join("pygui", "windows", "main_window.ui")
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        ui_path = os.path.join(base_dir, "pygui", "windows", "main_window.ui")
         ui_file = QFile(ui_path)
         ui_file.open(QFile.ReadOnly)
         self.ui_window = loader.load(ui_file) # This is the QMainWindow from your UI

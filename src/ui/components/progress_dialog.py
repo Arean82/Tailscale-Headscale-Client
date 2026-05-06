@@ -11,7 +11,8 @@ class ProgressDialog(QDialog):
         self.setFixedSize(260, 44)
         
         loader = QUiLoader()
-        ui_path = os.path.join("pygui", "dialogs", "progress.ui")
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        ui_path = os.path.join(base_dir, "pygui", "dialogs", "progress.ui")
         ui_file = QFile(ui_path)
         ui_file.open(QFile.ReadOnly)
         self.ui = loader.load(ui_file)

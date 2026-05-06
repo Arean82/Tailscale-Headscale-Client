@@ -12,7 +12,8 @@ class DashboardView(QWidget):
         
         # 1. Load your UI file
         loader = QUiLoader()
-        ui_path = os.path.join("pygui", "windows", "tab_widget.ui")
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        ui_path = os.path.join(base_dir, "pygui", "windows", "tab_widget.ui")
         ui_file = QFile(ui_path)
         ui_file.open(QFile.ReadOnly)
         self.ui_content = loader.load(ui_file) # The top-level QWidget from your UI

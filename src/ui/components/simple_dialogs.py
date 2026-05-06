@@ -13,7 +13,8 @@ class BaseUiDialog(QDialog):
     def __init__(self, ui_name, parent=None):
         super().__init__(parent)
         loader = QUiLoader()
-        ui_path = os.path.join("pygui", "dialogs", ui_name)
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        ui_path = os.path.join(base_dir, "pygui", "dialogs", ui_name)
         ui_file = QFile(ui_path)
         if ui_file.exists():
             ui_file.open(QFile.ReadOnly)

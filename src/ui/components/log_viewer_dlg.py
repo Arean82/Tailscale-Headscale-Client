@@ -17,7 +17,8 @@ class LogViewerDialog(QDialog):
         
         # Load UI
         loader = QUiLoader()
-        ui_path = os.path.join("pygui", "dialogs", "log_viewer.ui")
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        ui_path = os.path.join(base_dir, "pygui", "dialogs", "log_viewer.ui")
         ui_file = QFile(ui_path)
         ui_file.open(QFile.ReadOnly)
         self.ui = loader.load(ui_file)

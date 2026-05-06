@@ -8,7 +8,8 @@ class ProfileNameDialog(QDialog):
         super().__init__(parent)
         
         loader = QUiLoader()
-        ui_path = os.path.join("pygui", "dialogs", "profile.ui")
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        ui_path = os.path.join(base_dir, "pygui", "dialogs", "profile.ui")
         ui_file = QFile(ui_path)
         
         if not ui_file.exists():
