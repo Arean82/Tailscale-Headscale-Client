@@ -12,13 +12,46 @@ from src.core.tailscale import TailscaleManager
 from src.ui.main_window import MainWindow
 from src.utils.logger import setup_logger, manage_sys_streams
 
-def is_service_running(name, logger):
+def is_daemon_running(logger):
     try:
-        service = psutil.win_service_get(name)
-        return service.as_dict()["status"] == "running"
+        import subprocess
+        startupinfo = None
+        creationflags = 0
+        if sys.platform == "win32":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            creationflags = subprocess.CREATE_NO_WINDOW
+        
+        result = subprocess.run(
+            ["tailscale", "status", "--json"], 
+            capture_output=True, 
+            text=True, 
+            startupinfo=startupinfo,
+            creationflags=creationflags
+        )
+        if result.returncode == 0:
+            return True
+        if "failed to connect" in result.stderr.lower() or "tailscaled may not be running" in result.stderr.lower():
+            return False
+        return True
     except Exception as e:
-        logger.error(f"Error checking service: {e}")
+        logger.error(f"Error checking tailscaled daemon: {e}")
         return False
+
+def start_daemon_service(logger):
+    import subprocess
+    try:
+        if sys.platform == "win32":
+            subprocess.Popen(
+                ["powershell", "-Command", "Start-Service Tailscale"],
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+        elif sys.platform.startswith("linux"):
+            subprocess.Popen(["systemctl", "start", "tailscaled"])
+        elif sys.platform == "darwin":
+            subprocess.Popen(["launchctl", "start", "com.tailscale.tailscaled"])
+    except Exception as e:
+        logger.error(f"Failed to start daemon service: {e}")
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
@@ -53,57 +86,46 @@ if __name__ == "__main__":
                           "Please check your task manager or system tray.")
         sys.exit(0)
 
-    # 3. Windows Service Check with UI
-    if platform.system() == "Windows":
-        SERVICE_NAME = "Tailscale"
+    # 3. OS-Independent Daemon Check with UI
+    if not is_daemon_running(logger):
+        start_daemon_service(logger)
+            
+        wait_dialog = QDialog()
+        wait_dialog.setWindowTitle("Starting Service")
+        wait_dialog.setStyleSheet("QDialog { background-color: #1a1e2e; color: white; } QLabel { color: white; font-weight: bold; }")
+        wait_dialog.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        wait_dialog.setFixedSize(320, 120)
         
-        if not is_service_running(SERVICE_NAME, logger):
-            # Attempt to start the service first
-            import subprocess
-            try:
-                subprocess.Popen(
-                    ["powershell", "-Command", "Start-Service Tailscale"],
-                    creationflags=subprocess.CREATE_NO_WINDOW
-                )
-            except Exception as e:
-                logger.error(f"Failed to attempt starting service: {e}")
+        layout = QVBoxLayout(wait_dialog)
+        label = QLabel("Waiting for Tailscale Service...")
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+        
+        progress = QProgressBar()
+        progress.setRange(0, 0)
+        progress.setTextVisible(False)
+        layout.addWidget(progress)
+        
+        wait_dialog.show()
+        
+        timeout = 60
+        start_time = time.time()
+        
+        loop = QEventLoop()
+        timer = QTimer()
+        
+        def check_service():
+            if is_daemon_running(logger) or time.time() - start_time > timeout:
+                if time.time() - start_time > timeout:
+                    logger.warning("Tailscale daemon did not start within 60s. Launching GUI anyway.")
+                timer.stop()
+                loop.quit()
                 
-            wait_dialog = QDialog()
-            wait_dialog.setWindowTitle("Starting Service")
-            wait_dialog.setStyleSheet("QDialog { background-color: #1a1e2e; color: white; } QLabel { color: white; font-weight: bold; }")
-            wait_dialog.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
-            wait_dialog.setFixedSize(320, 120)
-            
-            layout = QVBoxLayout(wait_dialog)
-            label = QLabel("Waiting for Tailscale Service...")
-            label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(label)
-            
-            progress = QProgressBar()
-            progress.setRange(0, 0)
-            progress.setTextVisible(False)
-            layout.addWidget(progress)
-            
-            wait_dialog.show()
-            
-            timeout = 60
-            start_time = time.time()
-            
-            loop = QEventLoop()
-            timer = QTimer()
-            
-            def check_service():
-                if is_service_running(SERVICE_NAME, logger) or time.time() - start_time > timeout:
-                    if time.time() - start_time > timeout:
-                        logger.warning("Tailscale did not start within 60s. Launching GUI anyway.")
-                    timer.stop()
-                    loop.quit()
-                    
-            timer.timeout.connect(check_service)
-            timer.start(500)
-            loop.exec()
-            
-            wait_dialog.close()
+        timer.timeout.connect(check_service)
+        timer.start(500)
+        loop.exec()
+        
+        wait_dialog.close()
 
     manager = Manager(app_dir)
     ts_manager = TailscaleManager(app_dir)
