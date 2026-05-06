@@ -149,6 +149,10 @@ class MainWindow(QMainWindow):
                 try: os.rmdir(profile_dir)
                 except: pass
                 
+        # Final flush of traffic data before exit to prevent data loss
+        if hasattr(self.manager, 'db'):
+            self.manager.db.flush_buffer()
+                
         event.accept()
 
     def changeEvent(self, event):
@@ -517,8 +521,3 @@ class MainWindow(QMainWindow):
             except:
                 pass
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
-    def closeEvent(self, event):
-        # Final flush of traffic data before exit to prevent data loss
-        if hasattr(self.manager, 'db'):
-            self.manager.db.flush_buffer()
-        event.accept()
