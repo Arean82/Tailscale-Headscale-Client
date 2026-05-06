@@ -329,6 +329,12 @@ class MainWindow(QMainWindow):
         self.theme_group.addAction(self.actionDarkTheme)
         theme_menu.addAction(self.actionDarkTheme)
         
+        self.actionVibrantTheme = QAction("&Vibrant Pro Theme", self)
+        self.actionVibrantTheme.setCheckable(True)
+        self.actionVibrantTheme.triggered.connect(lambda: self.change_theme("vibrant"))
+        self.theme_group.addAction(self.actionVibrantTheme)
+        theme_menu.addAction(self.actionVibrantTheme)
+        
         # Set initial check
         self.actionLightTheme.setChecked(True)
         

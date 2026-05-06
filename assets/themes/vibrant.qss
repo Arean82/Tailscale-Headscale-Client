@@ -1,0 +1,104 @@
+/* assets/themes/vibrant.qss */
+
+/* Premium Glassmorphic Canvas */
+QTabWidget#tabWidget {
+    background-color: #04060d;
+}
+
+#tabWidget QTabWidget::pane {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 2px solid #10b981; /* Neon Emerald glow header */
+    background-color: rgba(10, 15, 30, 0.75); /* Frosted Glassmorphism */
+    top: -1px;
+    border-radius: 12px;
+}
+
+/* Frosted content panel background */
+#tabWidget QWidget {
+    background-color: rgba(10, 15, 30, 0.75);
+}
+
+/* Glassmorphic Tabs with Micro-Interactions */
+#tabWidget QTabBar::tab {
+    background-color: rgba(11, 19, 43, 0.45);
+    color: #94a3b8;
+    padding: 10px 22px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: none;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    margin-right: 6px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* Hover Micro-Animation: Neon Cyan Shift */
+#tabWidget QTabBar::tab:hover {
+    background-color: rgba(28, 37, 65, 0.75);
+    color: #ffffff;
+    border-color: rgba(0, 245, 255, 0.4);
+    font-weight: 800;
+}
+
+/* Selected Micro-Animation: Neon Emerald Shift */
+#tabWidget QTabBar::tab:selected {
+    background-color: rgba(10, 15, 30, 0.9);
+    color: #10b981; /* Vibrant Electric Emerald */
+    border-bottom: 3px solid #10b981;
+    font-weight: 800;
+}
+
+/* Glassmorphic Fields with Glowing Cyan Focus */
+#tabWidget QLineEdit, #tabWidget QTextEdit, #tabWidget QPlainTextEdit, #tabWidget QSpinBox {
+    background-color: rgba(3, 7, 18, 0.85);
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px;
+    border-radius: 8px;
+    selection-background-color: #10b981;
+}
+
+#tabWidget QLineEdit:focus {
+    border: 1px solid #00f5ff; /* Glowing Neon Cyan focus ring */
+    background-color: rgba(11, 19, 43, 0.9);
+}
+
+/* Glassmorphic & Gradient Buttons with Hover Micro-Animations */
+#tabWidget QPushButton {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(30, 41, 59, 0.6), stop:1 rgba(15, 23, 42, 0.8));
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+/* Hover Micro-Animation: Shift to Glowing Emerald Accent */
+#tabWidget QPushButton:hover {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(51, 65, 85, 0.8), stop:1 rgba(30, 41, 59, 0.95));
+    border-color: #10b981; /* Glowing Neon Emerald border */
+    color: #ffffff;
+}
+
+#tabWidget QPushButton:pressed {
+    background-color: rgba(3, 7, 18, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Vibrant Typography */
+#tabWidget QLabel {
+    color: #f8fafc;
+    background-color: transparent;
+    font-weight: 600;
+}
+
+#tabWidget QCheckBox, #tabWidget QRadioButton, #tabWidget QGroupBox {
+    color: #e2e8f0;
+    background-color: transparent;
+    font-weight: 600;
+}
+
+/* Explicitly allow colored buttons to keep their styles */
+#tabWidget QPushButton[colored="true"] {
+    border: none;
+}
