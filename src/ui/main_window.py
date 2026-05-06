@@ -499,12 +499,27 @@ class MainWindow(QMainWindow):
             self.tabWidget.setStyleSheet(style)
         
         self.current_qss = style
+        
+        # 4. Instantly refresh tab buttons to reflect the new theme
+        if self.tabWidget:
+            for i in range(self.tabWidget.count()):
+                widget = self.tabWidget.widget(i)
+                if widget and hasattr(widget, "update_status"):
+                    widget.update_status(*self.ts_manager.check_status())
 
     def _apply_theme_to_dialog(self, dialog):
         if hasattr(self, 'current_qss'):
             dialog_style = self.current_qss.replace("#tabWidget ", "")
-            bg = "#1a1e2e" if self.resolved_theme == "dark" else "#f0f0f0"
-            dialog_style = f"QDialog {{ background-color: {bg}; color: {'#d1d5db' if self.resolved_theme == 'dark' else '#1a1a1a'}; }} " + dialog_style
+            if self.resolved_theme == "dark":
+                bg = "#1a1e2e"
+                text_color = "#d1d5db"
+            elif self.resolved_theme == "vibrant":
+                bg = "#04060d"
+                text_color = "#f8fafc"
+            else:
+                bg = "#f0f0f0"
+                text_color = "#1a1a1a"
+            dialog_style = f"QDialog {{ background-color: {bg}; color: {text_color}; }} " + dialog_style
             dialog.setStyleSheet(dialog_style)
 
 
