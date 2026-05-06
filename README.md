@@ -10,6 +10,7 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 
 ### 🎨 Visual & UX Excellence
 - **Modern Premium UI:** Clean aesthetic featuring vibrant emerald, ruby, indigo, and amber gradients for intuitive interaction.
+- **Unified QSS Theming:** Separates layout styling completely from Python code using standalone external `.qss` theme stylesheets (`assets/themes/`).
 - **Premium Animations:** 
     - Smooth 500ms startup fade-in.
     - Dynamic "heartbeat" pulse for connection states.
@@ -20,6 +21,7 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 ### ⚡ Power Features & Smart Routing (Advanced Features)
 - **Granular Exit Node & Subnet Selection:** Advanced options (`node.ui`) per-profile tab allowing customizable `--exit-node` and `--advertise-routes` parameters.
 - **Intelligent Route Auto-Suggestion:** Selecting an exit node instantly queries its advertised IP routes and automatically populates the Subnet Routes field in real-time, eliminating manual copying.
+- **Traffic Monitor Throttling:** Pauses OS statistics polling and database writes when the client window is minimized or hidden in the system tray, optimizing CPU, disk I/O, and battery usage.
 - **Native Multi-Account Switching:** Support for rapid native profile swapping (`tailscale switch`) under 0.5s with zero authentication barriers.
 - **Automatic Tab Grouping:** Advanced native-switch profiles are automatically arranged side-by-side at the front of the tab bar for perfect visual organization.
 - **Smart Tab Locking Matrix:** Connecting to an active native switch profile automatically locks standard custom-server tabs (greying them out), leaving only compatible instant-switch tabs unlocked for complete session safety.
@@ -70,6 +72,9 @@ python main.py
 ```text
 📂 Tailscale-Headscale-Client/
 ├── 🖼️ assets/                     # Icons, logos, and branding assets
+│   └── 🎨 themes/                 # Dynamic stylesheet sheets (.qss)
+│       ├── 📄 dark.qss
+│       └── 📄 light.qss
 ├── 🎨 pygui/                      # UI Definition Files (.ui)
 │   ├── 🪟 dialogs/                # Popup windows
 │   │   ├── 📄 about.ui
@@ -90,6 +95,7 @@ python main.py
 │   │   ├── 🧩 dashboard.py         # Tab View logic
 │   │   └── 🧩 main_window.py       # Main Application logic
 │   └── 🛠️ utils/                  # Helpers
+│       ├── ⚙️ constants.py         # Global application constants
 │       ├── ⚙️ crypto.py            # Key encryption/decryption
 │       ├── ⚙️ logger.py            # Event/Activity Logging
 │       └── ⚙️ autostart.py         # Native Boot Configuration Manager
