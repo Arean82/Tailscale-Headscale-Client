@@ -10,12 +10,13 @@ from .simple_dialogs import BaseUiDialog
 class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
         super().__init__("settings.ui", parent)
-        self.setFixedSize(340, 200)
+        self.setFixedSize(340, 230)
         self.manager = manager
         
         # Access widgets through self.ui
         self.chkAutoConnect = self.ui.findChild(QCheckBox, "chkAutoConnect")
         self.chkEnableLogs = self.ui.findChild(QCheckBox, "chkEnableLogs")
+        self.chkRunAtStartup = self.ui.findChild(QCheckBox, "chkRunAtStartup")
         self.labelLogPath = self.ui.findChild(QLabel, "labelLogPath")
         self.btnOpenLogFolder = self.ui.findChild(QPushButton, "btnOpenLogFolder")
         self.btnClose = self.ui.findChild(QPushButton, "btnClose")
@@ -26,6 +27,9 @@ class SettingsDialog(BaseUiDialog):
             
         if self.chkEnableLogs:
             self.chkEnableLogs.setChecked(self.manager.settings.enable_logs)
+            
+        if self.chkRunAtStartup:
+            self.chkRunAtStartup.setChecked(self.manager.settings.auto_start)
             
         if self.labelLogPath:
             from src.utils.logger import get_global_log_dir
@@ -45,9 +49,11 @@ class SettingsDialog(BaseUiDialog):
             
         # Connections
         if self.chkAutoConnect:
-            self.chkAutoConnect.toggled.connect(self._save_settings)
+            self.chkAutoConnect.toggled.connect(self._on_auto_connect_toggled)
         if self.chkEnableLogs:
             self.chkEnableLogs.toggled.connect(self._save_settings)
+        if self.chkRunAtStartup:
+            self.chkRunAtStartup.toggled.connect(self._save_settings)
         if self.btnOpenLogFolder:
             self.btnOpenLogFolder.clicked.connect(self._open_log_folder)
         if self.btnClose:
@@ -59,10 +65,28 @@ class SettingsDialog(BaseUiDialog):
         self.manager.settings.max_tabs = value
         self.manager.save_settings()
 
+    def _on_auto_connect_toggled(self, checked):
+        if checked and self.chkRunAtStartup and not self.chkRunAtStartup.isChecked():
+            # Temporarily disconnect the chkRunAtStartup signal to prevent redundant saves
+            self.chkRunAtStartup.toggled.disconnect(self._save_settings)
+            self.chkRunAtStartup.setChecked(True)
+            self.chkRunAtStartup.toggled.connect(self._save_settings)
+            
+            QMessageBox.information(
+                self, "Auto-Start Enabled",
+                "Enabled 'Run at startup' automatically to allow auto-connection when your system starts!"
+            )
+        self._save_settings()
+
     def _save_settings(self):
         self.manager.settings.auto_connect = self.chkAutoConnect.isChecked() if self.chkAutoConnect else False
         self.manager.settings.enable_logs = self.chkEnableLogs.isChecked() if self.chkEnableLogs else False
+        self.manager.settings.auto_start = self.chkRunAtStartup.isChecked() if self.chkRunAtStartup else False
         self.manager.save_settings()
+        
+        # Trigger autostart configuration for the current OS
+        from src.utils.autostart import set_autostart
+        set_autostart(self.manager.settings.auto_start)
         
         # Refresh loggers if log setting changed
         from src.utils.logger import refresh_all_loggers

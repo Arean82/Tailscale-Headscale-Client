@@ -83,6 +83,8 @@ class TailscaleManager(QObject):
     def __init__(self, cache_dir: str = None, parent=None):
         super().__init__(parent)
         self.worker = TailscaleProcess()
+        self.worker.sso_url_found.connect(self._on_sso_url_found)
+        self.worker.finished.connect(self._on_worker_finished)
         
         # Initialize Cache
         cache_file = os.path.join(cache_dir, "ts_cache.json") if cache_dir else "ts_cache.json"
@@ -92,6 +94,13 @@ class TailscaleManager(QObject):
         # Async check process
         self.status_proc = QProcess(self)
         self.status_proc.finished.connect(self._on_status_finished)
+
+    def _on_sso_url_found(self, url):
+        import webbrowser
+        webbrowser.open(url)
+
+    def _on_worker_finished(self, code, status):
+        self.check_status()
         
     def check_status(self, force=False):
         """Asynchronously check tailscale status using JSON."""

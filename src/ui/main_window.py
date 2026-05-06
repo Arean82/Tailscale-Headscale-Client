@@ -70,6 +70,9 @@ class MainWindow(QMainWindow):
         self.fade_anim.setStartValue(0)
         self.fade_anim.setEndValue(1)
         self.fade_anim.start()
+        
+        # 10. Asynchronous Service Check
+        QTimer.singleShot(100, self.check_daemon_async)
 
     def _setup_tray(self):
         from PySide6.QtWidgets import QSystemTrayIcon
@@ -101,6 +104,69 @@ class MainWindow(QMainWindow):
         self.tray_icon.activated.connect(self._tray_icon_activated)
         self.tray_icon.show()
 
+    def check_daemon_async(self):
+        from PySide6.QtCore import QProcess
+        self.daemon_check_proc = QProcess(self)
+        
+        def on_check_finished():
+            output = self.daemon_check_proc.readAllStandardError().data().decode().lower() + \
+                     self.daemon_check_proc.readAllStandardOutput().data().decode().lower()
+            is_running = not ("failed to connect" in output or "tailscaled may not be running" in output or self.daemon_check_proc.exitCode() != 0)
+            if not is_running:
+                self.show_service_wait_dialog()
+                
+        self.daemon_check_proc.finished.connect(on_check_finished)
+        self.daemon_check_proc.start("tailscale", ["status", "--json"])
+
+    def show_service_wait_dialog(self):
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
+        from PySide6.QtCore import Qt, QTimer
+        
+        self.ts_manager.start_service()
+        
+        wait_dialog = QDialog(self)
+        wait_dialog.setWindowTitle("Starting Service")
+        wait_dialog.setStyleSheet("QDialog { background-color: #1a1e2e; color: white; } QLabel { color: white; font-weight: bold; }")
+        wait_dialog.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        wait_dialog.setFixedSize(320, 120)
+        
+        layout = QVBoxLayout(wait_dialog)
+        label = QLabel("Waiting for Tailscale Service...")
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+        
+        progress = QProgressBar()
+        progress.setRange(0, 0)
+        progress.setTextVisible(False)
+        layout.addWidget(progress)
+        
+        self.wait_dialog = wait_dialog
+        import time
+        self.wait_start_time = time.time()
+        
+        self.wait_timer = QTimer(self)
+        self.wait_timer.timeout.connect(self._poll_daemon_status)
+        self.wait_timer.start(1000)
+        
+        wait_dialog.exec()
+
+    def _poll_daemon_status(self):
+        from PySide6.QtCore import QProcess
+        import time
+        self.poll_proc = QProcess(self)
+        
+        def on_poll_finished():
+            output = self.poll_proc.readAllStandardError().data().decode().lower() + \
+                     self.poll_proc.readAllStandardOutput().data().decode().lower()
+            is_running = not ("failed to connect" in output or "tailscaled may not be running" in output or self.poll_proc.exitCode() != 0)
+            if is_running or (time.time() - self.wait_start_time > 60):
+                self.wait_timer.stop()
+                self.wait_dialog.close()
+                self.refresh_tabs()
+                
+        self.poll_proc.finished.connect(on_poll_finished)
+        self.poll_proc.start("tailscale", ["status", "--json"])
+
     def _tray_icon_activated(self, reason):
         from PySide6.QtWidgets import QSystemTrayIcon
         if reason == QSystemTrayIcon.Trigger:
@@ -126,8 +192,8 @@ class MainWindow(QMainWindow):
             self.ts_manager.logout_sync()
         
         # Clean up lock file is handled in main.py, so we just exit
-        import sys
-        sys.exit(0)
+        from PySide6.QtWidgets import QApplication
+        QApplication.quit()
 
     def closeEvent(self, event):
         # Match strict legacy logic (gui/gui_main.py:447-450)

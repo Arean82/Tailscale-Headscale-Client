@@ -15,9 +15,11 @@ A professional-grade, high-performance GUI client for Tailscale and Headscale. T
     - Dynamic "heartbeat" pulse for connection states.
     - Universal fade transitions for all dialog windows.
 - **Async Image Caching:** High-performance background loading for README badges and images.
+- **Smart Setting Interlocking:** Automatically links **Auto-connect on startup** with **Run at startup** dynamically with user confirmation, providing a high-end automated UX.
 
 ### 🛡️ Reliability & Security
 - **Delta Traffic Tracking:** Advanced persistence logic to prevent data loss across reboots.
+- **Cross-Platform Run on Startup:** Modern, independent, real-time registration supporting Windows Registry keys (`HKCU\...\Run`), macOS Launch Agents, and Linux `.desktop` entries.
 - **Single Instance Enforcement:** Prevents process collisions with system-wide locking.
 - **Credential Masking:** Secure Auth Key storage with an interactive eye-toggle switch.
 - **Silent SSO Flow:** Background URL detection (stdout/stderr) for a seamless browser-based login.
@@ -47,7 +49,10 @@ A professional-grade, high-performance GUI client for Tailscale and Headscale. T
 │   │   ├── 🧩 components/          # Shared Dialog Logic
 │   │   ├── 🧩 dashboard.py         # Tab View logic
 │   │   └── 🧩 main_window.py       # Main Application logic
-│   └── 🛠️ utils/                  # Helpers (Crypto, Logging)
+│   └── 🛠️ utils/                  # Helpers
+│       ├── ⚙️ crypto.py            # Key encryption/decryption
+│       ├── ⚙️ logger.py            # Event/Activity Logging
+│       └── ⚙️ autostart.py         # Native Boot Configuration Manager
 ├── 📦 TailscaleClient_Installer.iss # Windows Installer Script
 ├── 📦 build_linux_deb.sh          # Linux Packaging Script
 ├── 📦 TailscaleClient_Mac.spec      # macOS App Bundle Spec

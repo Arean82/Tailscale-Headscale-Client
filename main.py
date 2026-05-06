@@ -86,46 +86,7 @@ if __name__ == "__main__":
                           "Please check your task manager or system tray.")
         sys.exit(0)
 
-    # 3. OS-Independent Daemon Check with UI
-    if not is_daemon_running(logger):
-        start_daemon_service(logger)
-            
-        wait_dialog = QDialog()
-        wait_dialog.setWindowTitle("Starting Service")
-        wait_dialog.setStyleSheet("QDialog { background-color: #1a1e2e; color: white; } QLabel { color: white; font-weight: bold; }")
-        wait_dialog.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
-        wait_dialog.setFixedSize(320, 120)
-        
-        layout = QVBoxLayout(wait_dialog)
-        label = QLabel("Waiting for Tailscale Service...")
-        label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
-        
-        progress = QProgressBar()
-        progress.setRange(0, 0)
-        progress.setTextVisible(False)
-        layout.addWidget(progress)
-        
-        wait_dialog.show()
-        
-        timeout = 60
-        start_time = time.time()
-        
-        loop = QEventLoop()
-        timer = QTimer()
-        
-        def check_service():
-            if is_daemon_running(logger) or time.time() - start_time > timeout:
-                if time.time() - start_time > timeout:
-                    logger.warning("Tailscale daemon did not start within 60s. Launching GUI anyway.")
-                timer.stop()
-                loop.quit()
-                
-        timer.timeout.connect(check_service)
-        timer.start(500)
-        loop.exec()
-        
-        wait_dialog.close()
+    # 3. Initialize Manager and MainWindow directly (instant launch)
 
     manager = Manager(app_dir)
     ts_manager = TailscaleManager(app_dir)

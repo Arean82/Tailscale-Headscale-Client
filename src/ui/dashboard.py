@@ -233,29 +233,6 @@ class DashboardView(QWidget):
                     self.pulse_anim.start()
             
             if is_sso:
-                import webbrowser
-                
-                # Connect to SSO URL detection
-                def on_url_found(sso_url):
-                    webbrowser.open(sso_url)
-                    # We don't need a dialog, the button already says "Connecting..."
-                
-                def on_finished(code, status):
-                    # Refresh status once the process finishes/browser login is done
-                    self.ts_manager.check_status()
-                
-                # Disconnect old connections to avoid duplicates (silently)
-                import warnings
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", category=RuntimeWarning)
-                    try: self.ts_manager.worker.sso_url_found.disconnect()
-                    except: pass
-                    try: self.ts_manager.worker.finished.disconnect()
-                    except: pass
-                
-                self.ts_manager.worker.sso_url_found.connect(on_url_found)
-                self.ts_manager.worker.finished.connect(on_finished)
-                
                 self.ts_manager.connect(url, None, True, self.profile.name if self.profile else None)
             else:
                 self.ts_manager.connect(url, key, False, self.profile.name if self.profile else None)

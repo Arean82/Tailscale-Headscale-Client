@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>340</width>
-    <height>200</height>
+    <height>230</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -35,6 +35,13 @@
         <string>Enable Global App Logs</string>
        </property>
       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="chkRunAtStartup">
+        <property name="text">
+         <string>Enable Run at startup</string>
+        </property>
+       </widget>
      </item>
      <item>
       <widget class="QLabel" name="labelLogPath">
