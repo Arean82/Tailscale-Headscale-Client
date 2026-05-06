@@ -114,11 +114,13 @@ class TailscaleManager(QObject):
         
         is_connected = False
         status_text = "Disconnected"
+        ips = []
         
         try:
             import json
             data = json.loads(output)
             state = data.get("BackendState", "")
+            ips = data.get("TailscaleIPs", [])
             
             if state == "Running":
                 is_connected = True
@@ -136,7 +138,7 @@ class TailscaleManager(QObject):
                 is_connected = True
                 status_text = "Connected"
             
-        self.cache.set("status", {"connected": is_connected, "text": status_text})
+        self.cache.set("status", {"connected": is_connected, "text": status_text, "ips": ips})
         self.connection_status_changed.emit(is_connected, status_text)
 
     def start_service(self):
@@ -148,6 +150,8 @@ class TailscaleManager(QObject):
             QProcess.startDetached("powershell", ["-Command", "Start-Service Tailscale"])
         elif sys.platform.startswith("linux"):
             QProcess.startDetached("systemctl", ["start", "tailscaled"])
+        elif sys.platform == "darwin":
+            QProcess.startDetached("launchctl", ["start", "com.tailscale.tailscaled"])
 
     def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None):
         # 1. Best-effort service start
@@ -172,12 +176,14 @@ class TailscaleManager(QObject):
         try:
             # Hide console window on Windows
             startupinfo = None
+            creationflags = 0
             if sys.platform == "win32":
                 import subprocess
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                creationflags = subprocess.CREATE_NO_WINDOW
             
-            subprocess.run(["tailscale", "logout"], capture_output=True, startupinfo=startupinfo)
+            subprocess.run(["tailscale", "logout"], capture_output=True, startupinfo=startupinfo, creationflags=creationflags)
         except:
             pass
 
@@ -186,6 +192,25 @@ class TailscaleManager(QObject):
         import psutil
         try:
             stats = psutil.net_io_counters(pernic=True)
+            
+            # 1. Try resolving by cached IP address
+            cached_status = self.cache.get("status")
+            ts_ips = cached_status.get("ips", []) if cached_status else []
+            if ts_ips:
+                addrs = psutil.net_if_addrs()
+                target_iface = None
+                for iface, addr_list in addrs.items():
+                    for addr in addr_list:
+                        if addr.address in ts_ips:
+                            target_iface = iface
+                            break
+                    if target_iface:
+                        break
+                
+                if target_iface and target_iface in stats:
+                    return stats[target_iface]
+
+            # 2. Fallback to name matching
             for iface, data in stats.items():
                 if "tailscale" in iface.lower():
                     return data
@@ -199,11 +224,13 @@ class TailscaleManager(QObject):
         import json
         try:
             startupinfo = None
+            creationflags = 0
             if sys.platform == "win32":
                 startupinfo = subprocess.STARTUPINFO()
                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                creationflags = subprocess.CREATE_NO_WINDOW
             
-            result = subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True, startupinfo=startupinfo)
+            result = subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True, startupinfo=startupinfo, creationflags=creationflags)
             data = json.loads(result.stdout)
             state = data.get("BackendState")
             
