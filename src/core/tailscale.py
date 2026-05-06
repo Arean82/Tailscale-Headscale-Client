@@ -20,15 +20,17 @@ class TailscaleProcess(QObject):
 
     def __del__(self):
         """Ensure process is cleaned up safely."""
+        self.cleanup()
+
+    def cleanup(self):
+        """Explicitly and gracefully terminate the active QProcess."""
         try:
-            # Check if the internal C++ object still exists
             if hasattr(self, 'process') and self.process is not None:
                 if self.process.state() != QProcess.NotRunning:
                     self.process.terminate()
                     if not self.process.waitForFinished(500):
                         self.process.kill()
         except (RuntimeError, AttributeError):
-            # Object already deleted by Qt's parent-child system
             pass
 
 
@@ -101,6 +103,20 @@ class TailscaleManager(QObject):
 
     def _on_worker_finished(self, code, status):
         self.check_status()
+
+    def cleanup(self):
+        """Cleanly and gracefully terminate all active background subprocesses on shutdown."""
+        if hasattr(self, 'worker') and self.worker is not None:
+            self.worker.cleanup()
+            
+        try:
+            if hasattr(self, 'status_proc') and self.status_proc is not None:
+                if self.status_proc.state() != QProcess.NotRunning:
+                    self.status_proc.terminate()
+                    if not self.status_proc.waitForFinished(500):
+                        self.status_proc.kill()
+        except (RuntimeError, AttributeError):
+            pass
         
     def check_status(self, force=False):
         """Asynchronously check tailscale status using JSON."""

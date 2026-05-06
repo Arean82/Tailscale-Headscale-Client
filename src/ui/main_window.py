@@ -192,6 +192,7 @@ class MainWindow(QMainWindow):
             self.ts_manager.logout_sync()
         
         # Clean up lock file is handled in main.py, so we just exit
+        self.ts_manager.cleanup()
         from PySide6.QtWidgets import QApplication
         QApplication.quit()
 
@@ -218,7 +219,8 @@ class MainWindow(QMainWindow):
         # Final flush of traffic data before exit to prevent data loss
         if hasattr(self.manager, 'db'):
             self.manager.db.flush_buffer()
-                
+            
+        self.ts_manager.cleanup()
         event.accept()
 
     def changeEvent(self, event):
