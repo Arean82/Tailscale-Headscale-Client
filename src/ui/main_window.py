@@ -116,6 +116,10 @@ class MainWindow(QMainWindow):
         from PySide6.QtCore import QProcess
         self.daemon_check_proc = QProcess(self)
         
+        def on_check_error(error):
+            if error == QProcess.FailedToStart:
+                self._show_worker_error("Tailscale is not installed on this system or is not found in your system's PATH.")
+        
         def on_check_finished():
             output = self.daemon_check_proc.readAllStandardError().data().decode().lower() + \
                      self.daemon_check_proc.readAllStandardOutput().data().decode().lower()
@@ -123,6 +127,7 @@ class MainWindow(QMainWindow):
             if not is_running:
                 self.show_service_wait_dialog()
                 
+        self.daemon_check_proc.errorOccurred.connect(on_check_error)
         self.daemon_check_proc.finished.connect(on_check_finished)
         self.daemon_check_proc.start(get_tailscale_path(), ["status", "--json"])
 
@@ -432,19 +437,24 @@ class MainWindow(QMainWindow):
         from PySide6.QtGui import QDesktopServices
         from PySide6.QtCore import QUrl
         
-        msg_box = QMessageBox(self)
-        msg_box.setIcon(QMessageBox.Critical)
-        msg_box.setWindowTitle("Tailscale Dependency Required")
-        msg_box.setText(f"{message}\n\nTailscale is required to run this VPN client.")
-        msg_box.setInformativeText("Would you like to open the official Tailscale download page now?")
-        
-        download_btn = msg_box.addButton("Download Tailscale", QMessageBox.AcceptRole)
-        cancel_btn = msg_box.addButton("Cancel", QMessageBox.RejectRole)
-        
-        msg_box.exec()
-        
-        if msg_box.clickedButton() == download_btn:
-            QDesktopServices.openUrl(QUrl("https://tailscale.com/download"))
+        # Only show the dependency download prompt if Tailscale is actually missing from the system!
+        if "not installed" in message.lower() or "not found" in message.lower():
+            msg_box = QMessageBox(self)
+            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setWindowTitle("Tailscale Dependency Required")
+            msg_box.setText(f"{message}\n\nTailscale is required to run this VPN client.")
+            msg_box.setInformativeText("Would you like to open the official Tailscale download page now?")
+            
+            download_btn = msg_box.addButton("Download Tailscale", QMessageBox.AcceptRole)
+            cancel_btn = msg_box.addButton("Cancel", QMessageBox.RejectRole)
+            
+            msg_box.exec()
+            
+            if msg_box.clickedButton() == download_btn:
+                QDesktopServices.openUrl(QUrl("https://tailscale.com/download"))
+        else:
+            # For temporary connection failures, retry logs, or timeouts, show a standard connection warning dialog
+            QMessageBox.warning(self, "Connection Warning", message)
 
     def _update_profile_actions_state(self, is_connected, status_text):
         """Enable/disable profile actions based on connection status."""

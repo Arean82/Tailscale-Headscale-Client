@@ -77,6 +77,23 @@ class AboutDialog(BaseUiDialog):
         if lbl_version: lbl_version.setText(f"Version {APP_VERSION}")
         if lbl_copyright: lbl_copyright.setText(APP_COPYRIGHT)
 
+def get_logical_filename(url):
+    import urllib.parse
+    import re
+    unquoted = urllib.parse.unquote(url)
+    ext = unquoted.split('.')[-1].split('?')[0]
+    if len(ext) > 4 or not ext or '/' in ext:
+        ext = 'png'
+    clean = re.sub(r'^https?://', '', unquoted)
+    clean = re.sub(r'^(img\.shields\.io/badge/|raw\.githubusercontent\.com/)', '', clean)
+    clean = re.sub(r'[^a-zA-Z0-9\-_.]', '-', clean)
+    clean = re.sub(r'-+', '-', clean)
+    clean = clean.strip('-')
+    if not clean.endswith(f".{ext}"):
+        clean = f"{clean}.{ext}"
+    return clean
+
+
 class ImageDownloadWorker(QObject):
     image_ready = Signal()
 
@@ -88,9 +105,7 @@ class ImageDownloadWorker(QObject):
     def run(self):
         headers = {'User-Agent': 'Mozilla/5.0'}
         for url in self.urls:
-            ext = url.split('.')[-1].split('?')[0]
-            if len(ext) > 4 or not ext: ext = 'png'
-            filename = hashlib.md5(url.encode()).hexdigest() + "." + ext
+            filename = get_logical_filename(url)
             local_path = os.path.join(self.cache_dir, filename)
             
             if not os.path.exists(local_path):
@@ -189,7 +204,7 @@ class ReadmeDialog(BaseUiDialog):
 
     def _prepare_readme_content(self, md_text):
         """Identifies which images are cached and which need downloading."""
-        cache_dir = os.path.join(os.getcwd(), "assets_cache")
+        cache_dir = os.path.join(os.getcwd(), "assets", "cache")
         os.makedirs(cache_dir, exist_ok=True)
         
         img_urls = re.findall(r'!\[.*?\]\((https?://.*?)\)', md_text)
@@ -197,9 +212,7 @@ class ReadmeDialog(BaseUiDialog):
         
         missing_urls = []
         for url in set(img_urls):
-            ext = url.split('.')[-1].split('?')[0]
-            if len(ext) > 4 or not ext: ext = 'png'
-            filename = hashlib.md5(url.encode()).hexdigest() + "." + ext
+            filename = get_logical_filename(url)
             local_path = os.path.join(cache_dir, filename)
             
             if os.path.exists(local_path):
@@ -216,7 +229,7 @@ class ReadmeDialog(BaseUiDialog):
             return
             
         self.download_thread = QThread()
-        self.worker = ImageDownloadWorker(urls, os.path.join(os.getcwd(), "assets_cache"))
+        self.worker = ImageDownloadWorker(urls, os.path.join(os.getcwd(), "assets", "cache"))
         self.worker.moveToThread(self.download_thread)
         
         self.download_thread.started.connect(self.worker.run)

@@ -135,13 +135,14 @@ class TailscaleProcess(QObject):
     def _handle_stderr(self):
         data = self.process.readAllStandardError().data().decode().strip()
         if data:
-            self.error_received.emit(data)
-            
-            # Tailscale often prints the login URL to stderr
-            if "https://" in data:
+            # Check for SSO login/authentication instructions in stderr
+            if "https://" in data or "to authenticate" in data.lower() or "visit:" in data.lower():
                 match = re.search(r'https://\S+', data)
                 if match:
                     self.sso_url_found.emit(match.group(0))
+                return # Do NOT emit as a critical error
+                
+            self.error_received.emit(data)
 
     def _handle_finished(self, exit_code, exit_status):
         self.finished.emit(exit_code, str(exit_status))
