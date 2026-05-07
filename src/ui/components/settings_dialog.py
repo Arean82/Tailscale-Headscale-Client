@@ -1,7 +1,7 @@
 # src/ui/components/settings_dialog.py
 
 import os
-from PySide6.QtWidgets import QDialog, QCheckBox, QPushButton, QLabel, QMessageBox, QSlider, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QDialog, QCheckBox, QPushButton, QLabel, QMessageBox, QSlider, QVBoxLayout, QHBoxLayout, QSpinBox
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, Qt
 
@@ -10,7 +10,7 @@ from .simple_dialogs import BaseUiDialog
 class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
         super().__init__("settings.ui", parent)
-        self.setFixedSize(340, 260)
+        self.setFixedSize(340, 310)
         self.manager = manager
         
         # Access widgets through self.ui
@@ -55,6 +55,12 @@ class SettingsDialog(BaseUiDialog):
         if self.labelMaxTabsValue:
             self.labelMaxTabsValue.setText(f"Value: {self.manager.settings.max_tabs}")
             
+        # Access SpinBox from UI
+        self.spinSsoTimeout = self.ui.findChild(QSpinBox, "spinSsoTimeout")
+        if self.spinSsoTimeout:
+            self.spinSsoTimeout.setValue(self.manager.settings.sso_timeout)
+            self.spinSsoTimeout.valueChanged.connect(self._on_sso_timeout_changed)
+            
         # Connections
         if self.chkAutoConnect:
             self.chkAutoConnect.toggled.connect(self._on_auto_connect_toggled)
@@ -70,6 +76,12 @@ class SettingsDialog(BaseUiDialog):
             self.btnOpenLogFolder.clicked.connect(self._open_log_folder)
         if self.btnClose:
             self.btnClose.clicked.connect(self.accept)
+
+    def _on_sso_timeout_changed(self, value):
+        self.manager.settings.sso_timeout = value
+        self.manager.save_settings()
+        if self.parent() and hasattr(self.parent(), "ts_manager"):
+            self.parent().ts_manager.sso_timeout = value
 
     def _on_slider_changed(self, value):
         if self.labelMaxTabsValue:
@@ -98,9 +110,10 @@ class SettingsDialog(BaseUiDialog):
         self.manager.settings.use_local_api = self.chkUseLocalAPI.isChecked() if self.chkUseLocalAPI else False
         self.manager.save_settings()
         
-        # Propagate live use_local_api state to the active tailscale manager in real-time
+        # Propagate live states to the active tailscale manager in real-time
         if self.parent() and hasattr(self.parent(), "ts_manager"):
             self.parent().ts_manager.use_local_api = self.manager.settings.use_local_api
+            self.parent().ts_manager.sso_timeout = self.manager.settings.sso_timeout
         
         # Trigger autostart configuration for the current OS
         from src.utils.autostart import set_autostart

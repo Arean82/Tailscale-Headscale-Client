@@ -144,9 +144,24 @@ class TailscaleManager(QObject):
         from .models import AppState
         self.current_state = AppState.DISCONNECTED
         self.use_local_api = False
+        self.sso_timeout = 120
         self.worker = TailscaleProcess()
         self.worker.sso_url_found.connect(self._on_sso_url_found)
         self.worker.finished.connect(self._on_worker_finished)
+        
+        # Reconnection & SSO Timeout timers
+        from PySide6.QtCore import QTimer
+        self.sso_timeout_timer = QTimer(self)
+        self.sso_timeout_timer.setSingleShot(True)
+        self.sso_timeout_timer.timeout.connect(self._on_sso_timeout)
+        
+        self.reconnect_timer = QTimer(self)
+        self.reconnect_timer.setSingleShot(True)
+        self.reconnect_timer.timeout.connect(self._on_reconnect_retry)
+        
+        self.last_connect_args = None
+        self.reconnect_attempts = 0
+        self.max_reconnect_attempts = 3
         
         # Initialize Cache
         cache_file = os.path.join(cache_dir, "ts_cache.json") if cache_dir else "ts_cache.json"
@@ -162,6 +177,8 @@ class TailscaleManager(QObject):
         new_state = AppState.DISCONNECTED
         if status_text == "Connected":
             new_state = AppState.CONNECTED
+            self.sso_timeout_timer.stop()
+            self.reconnect_attempts = 0
         elif status_text == "Connecting...":
             new_state = AppState.CONNECTING
         elif status_text == "Logged Out":
@@ -175,12 +192,57 @@ class TailscaleManager(QObject):
             self.current_state = new_state
             self.state_changed.emit(new_state)
 
+    def _on_sso_timeout(self):
+        """Handle SSO login flow timeout."""
+        from .models import AppState
+        if self.current_state == AppState.CONNECTING:
+            self.worker.cleanup()
+            self._update_state("Error")
+            self.worker.error_received.emit("SSO Login timed out. Please try connecting again.")
+
+    def _trigger_reconnect(self):
+        """Triggers automatic reconnect attempts with exponential backoff."""
+        from .models import AppState
+        if self.last_connect_args and self.reconnect_attempts < self.max_reconnect_attempts:
+            self.reconnect_attempts += 1
+            delay = self.reconnect_attempts * 3000  # 3s, 6s, 9s backoff
+            self._update_state("Connecting...")
+            self.worker.error_received.emit(f"Connection failed. Retrying automatically (Attempt {self.reconnect_attempts}/{self.max_reconnect_attempts}) in {delay/1000:.0f}s...")
+            self.reconnect_timer.start(delay)
+        else:
+            self._update_state("Error")
+
+    def _on_reconnect_retry(self):
+        """Executes the actual reconnection retry."""
+        if self.last_connect_args:
+            login_server = self.last_connect_args.get("login_server")
+            auth_key = self.last_connect_args.get("auth_key")
+            use_sso = self.last_connect_args.get("use_sso")
+            profile_name = self.last_connect_args.get("profile_name")
+            exit_node = self.last_connect_args.get("exit_node")
+            routes = self.last_connect_args.get("routes")
+            
+            args = ["up", f"--login-server={login_server}", "--accept-routes"]
+            if not use_sso and auth_key:
+                args.insert(1, f"--auth-key={auth_key}")
+                
+            if exit_node:
+                args.append(f"--exit-node={exit_node}")
+                
+            if routes:
+                args.append(f"--advertise-routes={routes}")
+                
+            self.worker.run_command(args, profile_name)
+
     def _on_sso_url_found(self, url):
         import webbrowser
         webbrowser.open(url)
 
     def _on_worker_finished(self, code, status):
         self.check_status()
+        from .models import AppState
+        if code != 0 and self.current_state == AppState.CONNECTING:
+            self._trigger_reconnect()
 
     def cleanup(self):
         """Cleanly and gracefully terminate all active background subprocesses on shutdown."""
@@ -292,6 +354,16 @@ class TailscaleManager(QObject):
             QProcess.startDetached("launchctl", ["start", "com.tailscale.tailscaled"])
 
     def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None):
+        self.last_connect_args = {
+            "login_server": login_server,
+            "auth_key": auth_key,
+            "use_sso": use_sso,
+            "profile_name": profile_name,
+            "exit_node": exit_node,
+            "routes": routes
+        }
+        self.reconnect_attempts = 0
+        
         # 1. Best-effort service start
         self.start_service()
         
@@ -307,6 +379,12 @@ class TailscaleManager(QObject):
             args.append(f"--advertise-routes={routes}")
         
         self.cache.clear() # Clear cache on new connection attempt
+        self._update_state("Connecting...")
+        
+        # Start dynamic SSO timeout if SSO mode is enabled
+        if use_sso:
+            self.sso_timeout_timer.start(self.sso_timeout * 1000)
+            
         self.worker.run_command(args, profile_name)
 
     def switch_profile(self, native_profile_name, profile_name=None):

@@ -31,4 +31,5 @@ class AppSettings:
     max_tabs: int = 5
     last_profile: Optional[str] = None
     use_local_api: bool = False
+    sso_timeout: int = 120
 

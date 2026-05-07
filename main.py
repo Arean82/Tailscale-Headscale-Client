@@ -93,6 +93,7 @@ if __name__ == "__main__":
     manager = Manager(app_dir)
     ts_manager = TailscaleManager(app_dir)
     ts_manager.use_local_api = manager.settings.use_local_api
+    ts_manager.sso_timeout = manager.settings.sso_timeout
     
     # Initialize system stream redirection if enabled
     manage_sys_streams(manager.settings.enable_logs, logger)
