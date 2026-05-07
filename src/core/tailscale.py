@@ -193,10 +193,12 @@ class TailscaleManager(QObject):
         is_connected = False
         status_text = "Disconnected"
         ips = []
+        raw_data = {}
         
         try:
             import json
             data = json.loads(output)
+            raw_data = data
             state = data.get("BackendState", "")
             ips = data.get("TailscaleIPs", [])
             
@@ -216,7 +218,7 @@ class TailscaleManager(QObject):
                 is_connected = True
                 status_text = "Connected"
             
-        self.cache.set("status", {"connected": is_connected, "text": status_text, "ips": ips})
+        self.cache.set("status", {"connected": is_connected, "text": status_text, "ips": ips, "raw_data": raw_data})
         self.connection_status_changed.emit(is_connected, status_text)
 
     def start_service(self):

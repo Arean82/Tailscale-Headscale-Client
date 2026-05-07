@@ -356,6 +356,11 @@ class MainWindow(QMainWindow):
         self.actionAdvanced = QAction("&Advanced Options...", self)
         self.actionAdvanced.triggered.connect(self.show_advanced_dialog)
         self.advanced_menu.addAction(self.actionAdvanced)
+        
+        self.actionPeerList = QAction("&Peer List...", self)
+        self.actionPeerList.triggered.connect(self.show_peer_list)
+        self.advanced_menu.addAction(self.actionPeerList)
+        
         self.update_advanced_menu_state()
         
         # --- Help Menu ---
@@ -535,6 +540,12 @@ class MainWindow(QMainWindow):
     def show_settings(self):
         from .components.settings_dialog import SettingsDialog
         dlg = SettingsDialog(self.manager, self)
+        self._apply_theme_to_dialog(dlg)
+        dlg.exec()
+
+    def show_peer_list(self):
+        from .components.peer_dialog import PeerListDialog
+        dlg = PeerListDialog(self.ts_manager, self)
         self._apply_theme_to_dialog(dlg)
         dlg.exec()
 

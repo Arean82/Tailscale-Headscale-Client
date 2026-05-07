@@ -231,16 +231,33 @@ class ReadmeDialog(BaseUiDialog):
 class TrafficDialog(BaseUiDialog):
     def __init__(self, parent=None, session_text="", daily_text="", history=None):
         super().__init__("traffic.ui", parent)
-        self.setFixedSize(450, 500)
+        self.setFixedSize(460, 560)
+        
+        # Access managers from parent (DashboardView)
+        self.manager = parent.manager if parent else None
+        self.ts_manager = parent.ts_manager if parent else None
+        
+        # Resolve UI elements
+        self.labelStatus = self.ui.findChild(QLabel, "labelStatus")
+        self.labelActiveProfile = self.ui.findChild(QLabel, "labelActiveProfile")
+        self.labelActiveIP = self.ui.findChild(QLabel, "labelActiveIP")
+        self.labelLoginServer = self.ui.findChild(QLabel, "labelLoginServer")
         
         label_stats = self.ui.findChild(QLabel, "labelStats")
         label_daily = self.ui.findChild(QLabel, "labelDailyStats")
         table_history = self.ui.findChild(QTableWidget, "tableHistory")
         
         if label_stats:
-            label_stats.setText(session_text)
+            clean_session = session_text.replace("Traffic: ", "") if session_text else "Sent 0.00 B / Received 0.00 B"
+            label_stats.setText(clean_session)
+            
         if label_daily:
             label_daily.setText(daily_text)
+            
+        # Connect status updates if we have the ts_manager
+        if self.ts_manager:
+            self.ts_manager.connection_status_changed.connect(self._on_status_changed)
+            self._on_status_changed(*self.ts_manager.check_status())
             
         # Populate History Section
         if table_history and history:
@@ -265,6 +282,56 @@ class TrafficDialog(BaseUiDialog):
             table_history.setRowCount(1)
             table_history.setColumnCount(3)
             table_history.setItem(0, 0, QTableWidgetItem("No history available"))
+
+    def _on_status_changed(self, is_connected, status_text):
+        if not self.labelStatus:
+            return
+            
+        if is_connected:
+            self.labelStatus.setText("Connected")
+            self.labelStatus.setStyleSheet("color: #22c55e; font-weight: bold;")
+        else:
+            if status_text == "Pending Admin Approval":
+                self.labelStatus.setText("Pending Admin Approval")
+                self.labelStatus.setStyleSheet("color: #f59e0b; font-weight: bold;")
+            elif "Connecting" in status_text or status_text == "Checking...":
+                self.labelStatus.setText("Connecting...")
+                self.labelStatus.setStyleSheet("color: #eab308; font-weight: bold;")
+            else:
+                self.labelStatus.setText("Disconnected")
+                self.labelStatus.setStyleSheet("color: #ef4444; font-weight: bold;")
+                
+        # Resolve active profile name
+        active_name = "Default"
+        parent = self.parent()
+        if parent and hasattr(parent, 'profile') and parent.profile:
+            active_name = parent.profile.name
+            
+        if self.labelActiveProfile:
+            self.labelActiveProfile.setText(active_name)
+            
+        # Resolve active profile URL
+        if self.labelLoginServer and self.manager:
+            profile = self.manager.profiles.get(active_name) if active_name != "Default" else None
+            login_server = profile.login_server if profile else "https://controlplane.tailscale.com"
+            self.labelLoginServer.setText(login_server)
+            
+        # Fetch Active IP
+        if self.labelActiveIP and self.ts_manager:
+            cached_status = self.ts_manager.cache.get("status")
+            ips = cached_status.get("ips", []) if cached_status else []
+            if ips:
+                self.labelActiveIP.setText(", ".join(ips))
+            else:
+                self.labelActiveIP.setText("-")
+
+    def closeEvent(self, event):
+        try:
+            if self.ts_manager:
+                self.ts_manager.connection_status_changed.disconnect(self._on_status_changed)
+        except Exception:
+            pass
+        super().closeEvent(event)
 
 class LicenseDialog(QDialog):
     def __init__(self, theme="dark", parent=None):

@@ -6,28 +6,40 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>450</width>
-    <height>500</height>
+    <width>460</width>
+    <height>560</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Traffic Stats</string>
+   <string>Connection Overview &amp; Traffic Stats</string>
   </property>
   <layout class="QVBoxLayout" name="mainLayout">
    <property name="spacing">
-    <number>15</number>
+    <number>12</number>
+   </property>
+   <property name="leftMargin">
+    <number>16</number>
+   </property>
+   <property name="topMargin">
+    <number>16</number>
+   </property>
+   <property name="rightMargin">
+    <number>16</number>
+   </property>
+   <property name="bottomMargin">
+    <number>16</number>
    </property>
    <item>
     <widget class="QLabel" name="labelTitle">
      <property name="font">
       <font>
        <family>Segoe UI</family>
-       <pointsize>12</pointsize>
+       <pointsize>13</pointsize>
        <bold>true</bold>
       </font>
      </property>
      <property name="text">
-      <string>Traffic Statistics Summary</string>
+      <string>CONNECTION &amp; TRAFFIC OVERVIEW</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -37,28 +49,134 @@
    <item>
     <widget class="QGroupBox" name="groupSummary">
      <property name="title">
-      <string>Current Totals</string>
+      <string>Live Network Details</string>
      </property>
-     <layout class="QVBoxLayout" name="summaryLayout">
-      <item>
+     <layout class="QFormLayout" name="formLayout">
+      <property name="horizontalSpacing">
+       <number>12</number>
+      </property>
+      <property name="verticalSpacing">
+       <number>8</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="lblStatus">
+        <property name="text">
+         <string>Status:</string>
+        </property>
+        <property name="font">
+         <font>
+          <bold>true</bold>
+         </font>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="labelStatus">
+        <property name="text">
+         <string>Checking...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="lblProfile">
+        <property name="text">
+         <string>Active Profile:</string>
+        </property>
+        <property name="font">
+         <font>
+          <bold>true</bold>
+         </font>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QLabel" name="labelActiveProfile">
+        <property name="text">
+         <string>-</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="lblIP">
+        <property name="text">
+         <string>Tailscale IP:</string>
+        </property>
+        <property name="font">
+         <font>
+          <bold>true</bold>
+         </font>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLabel" name="labelActiveIP">
+        <property name="text">
+         <string>-</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="lblServer">
+        <property name="text">
+         <string>Login Server:</string>
+        </property>
+        <property name="font">
+         <font>
+          <bold>true</bold>
+         </font>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLabel" name="labelLoginServer">
+        <property name="text">
+         <string>-</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="lblSession">
+        <property name="text">
+         <string>Session Stats:</string>
+        </property>
+        <property name="font">
+         <font>
+          <bold>true</bold>
+         </font>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
        <widget class="QLabel" name="labelStats">
         <property name="font">
          <font>
           <family>Courier New</family>
-          <pointsize>10</pointsize>
+          <pointsize>9</pointsize>
          </font>
         </property>
         <property name="text">
-         <string>Session: Sent 0 B / Received 0 B</string>
+         <string>Sent 0.00 B / Received 0.00 B</string>
         </property>
        </widget>
       </item>
-      <item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="lblDaily">
+        <property name="text">
+         <string>Daily Total:</string>
+        </property>
+        <property name="font">
+         <font>
+          <bold>true</bold>
+         </font>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
        <widget class="QLabel" name="labelDailyStats">
         <property name="font">
          <font>
           <family>Courier New</family>
-          <pointsize>10</pointsize>
+          <pointsize>9</pointsize>
           <bold>true</bold>
          </font>
         </property>
@@ -66,7 +184,7 @@
          <string>color: #3b8ed0;</string>
         </property>
         <property name="text">
-         <string>Today: Sent 0 B / Received 0 B</string>
+         <string>Today: Sent 0.00 B / Received 0.00 B</string>
         </property>
        </widget>
       </item>
@@ -81,7 +199,7 @@
       </font>
      </property>
      <property name="text">
-      <string>Recent History</string>
+      <string>Recent History (Last 10 Days)</string>
      </property>
     </widget>
    </item>
@@ -109,30 +227,15 @@
       <property name="text">
        <string>Timestamp</string>
       </property>
-      <property name="font">
-       <font>
-        <pointsize>8</pointsize>
-       </font>
-      </property>
      </column>
      <column>
       <property name="text">
        <string>Sent</string>
       </property>
-      <property name="font">
-       <font>
-        <pointsize>8</pointsize>
-       </font>
-      </property>
      </column>
      <column>
       <property name="text">
        <string>Received</string>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>8</pointsize>
-       </font>
       </property>
      </column>
     </widget>
@@ -154,6 +257,12 @@
      </item>
      <item>
       <widget class="QPushButton" name="btnClose">
+       <property name="minimumSize">
+        <size>
+         <width>110</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="text">
         <string>Close</string>
        </property>
