@@ -11,10 +11,12 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 ### 🎨 Visual & UX Excellence
 - **Modern Premium UI:** Clean aesthetic featuring vibrant emerald, ruby, indigo, and amber gradients for intuitive interaction.
 - **Unified QSS Theming:** Separates layout styling completely from Python code using standalone external `.qss` theme stylesheets (`assets/themes/`).
+- **Premium Save & Close Button:** High-end green gradient button with smooth hover and pressed states, offering an elegant tactile feel in the Settings window.
 - **Premium Animations:** 
     - Smooth 500ms startup fade-in.
     - Dynamic "heartbeat" pulse for connection states.
     - Universal fade transitions for all dialog windows.
+- **Direct Numeric SpinBox:** Integrated a clean, modern `QSpinBox` for setting the Max Profile Limit, supporting easy direct numeric input up to `1000` with automatic layout alignment.
 - **Async Image Caching:** High-performance background loading for README badges and images.
 - **Smart Setting Interlocking:** Automatically links **Auto-connect on startup** with **Run at startup** dynamically with user confirmation, providing a high-end automated UX.
 - **Dynamic Experimental Badge:** Renders a gorgeous `🧪 Experimental API` badge on the main dashboard instantly when Local API is enabled in the settings.
