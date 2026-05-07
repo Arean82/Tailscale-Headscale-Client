@@ -44,16 +44,12 @@ class SettingsDialog(BaseUiDialog):
             log_dir = get_global_log_dir(self.manager.base_dir)
             self.labelLogPath.setText(f"Path: {log_dir}")
             
-        # Access slider widgets from UI
-        self.sliderMaxTabs = self.ui.findChild(QSlider, "sliderMaxTabs")
-        self.labelMaxTabsValue = self.ui.findChild(QLabel, "labelMaxTabsValue")
+        # Access SpinBox for max profile limit from UI
+        self.spinMaxTabs = self.ui.findChild(QSpinBox, "spinMaxTabs")
         
-        if self.sliderMaxTabs:
-            self.sliderMaxTabs.setValue(self.manager.settings.max_tabs)
-            self.sliderMaxTabs.valueChanged.connect(self._on_slider_changed)
-            
-        if self.labelMaxTabsValue:
-            self.labelMaxTabsValue.setText(f"Value: {self.manager.settings.max_tabs}")
+        if self.spinMaxTabs:
+            self.spinMaxTabs.setValue(self.manager.settings.max_tabs)
+            self.spinMaxTabs.valueChanged.connect(self._on_max_tabs_changed)
             
         # Access SpinBox from UI
         self.spinSsoTimeout = self.ui.findChild(QSpinBox, "spinSsoTimeout")
@@ -76,6 +72,24 @@ class SettingsDialog(BaseUiDialog):
             self.btnOpenLogFolder.clicked.connect(self._open_log_folder)
         if self.btnClose:
             self.btnClose.clicked.connect(self.accept)
+            self.btnClose.setStyleSheet("""
+                QPushButton {
+                    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #2ec866, stop:1 #1ca34d);
+                    color: white;
+                    border: 1px solid #198e43;
+                    border-radius: 6px;
+                    padding: 6px 16px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #34d96f, stop:1 #22b355);
+                    border: 1px solid #1ca34d;
+                }
+                QPushButton:pressed {
+                    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #1a9645, stop:1 #147c38);
+                    border: 1px solid #126b30;
+                }
+            """)
 
     def _on_sso_timeout_changed(self, value):
         self.manager.settings.sso_timeout = value
@@ -83,9 +97,7 @@ class SettingsDialog(BaseUiDialog):
         if self.parent() and hasattr(self.parent(), "ts_manager"):
             self.parent().ts_manager.sso_timeout = value
 
-    def _on_slider_changed(self, value):
-        if self.labelMaxTabsValue:
-            self.labelMaxTabsValue.setText(f"Value: {value}")
+    def _on_max_tabs_changed(self, value):
         self.manager.settings.max_tabs = value
         self.manager.save_settings()
 
