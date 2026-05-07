@@ -59,3 +59,17 @@ If you want to allow the user to resize a window again:
 1. Replace `self.setFixedSize(W, H)` with `self.resize(W, H)`.
 2. Ensure you haven't set `setMaximumSize` or `setMinimumSize` to the same values.
 
+---
+
+## 4. Managing App Metadata (Version & Copyright)
+To maintain a robust and unified application, **never hardcode version numbers, app names, or copyright strings inside `.ui` XML files**. This is prone to going out of sync and introduces build bugs.
+
+Instead, always edit the central configuration file:
+*   **File**: `src/utils/constants.py`
+*   **Constants**:
+    *   `APP_NAME` (e.g., `"Tailscale Client Pro"`)
+    *   `APP_VERSION` (e.g., `"5.0.0"`)
+    *   `APP_COPYRIGHT` (e.g., `"Developed by Arean82\nGitHub: Arean82/Tailscale-Headscale-Client"`)
+
+The Python controller layer (e.g., `AboutDialog` in `simple_dialogs.py`) will automatically fetch these values and dynamically inject them into the loaded UI widgets on launch!
+

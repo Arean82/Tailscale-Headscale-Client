@@ -44,12 +44,12 @@ built with Python and Tailscale.</string></property>
     </widget>
    </item>
 
-   <item>
-    <widget class="QLabel" name="labelCopyright">
-     <property name="text"><string>© 2026 TAILSCALE VPN Client</string></property>
-     <property name="alignment"><enum>Qt::AlignCenter</enum></property>
-    </widget>
-   </item>
+    <item>
+     <widget class="QLabel" name="labelCopyright">
+      <property name="text"><string>Copyright © 2026. All Rights Reserved.</string></property>
+      <property name="alignment"><enum>Qt::AlignCenter</enum></property>
+     </widget>
+    </item>
 
    <item>
     <spacer>

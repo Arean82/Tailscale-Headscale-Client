@@ -68,6 +68,9 @@ class DashboardView(QWidget):
         self.pulse_anim.setEndValue(0.4)
         self.pulse_anim.setLoopCount(-1) # Infinite
         self.pulse_anim.setEasingCurve(QEasingCurve.InOutQuad)
+        
+        # Initial traffic and experimental badge rendering
+        self._update_traffic_label()
 
     def show_traffic_stats(self):
         from .components.simple_dialogs import TrafficDialog
@@ -349,13 +352,14 @@ class DashboardView(QWidget):
     def _update_traffic_label(self):
         if not self.labelTraffic: return
         
+        suffix = " | 🧪 Experimental API" if getattr(self.ts_manager, "use_local_api", False) else ""
         stats = self.ts_manager.get_stats()
         if stats and self.prev_stats:
             # Match original app: Show traffic SINCE the session started
             sent = stats.bytes_sent - self.prev_stats.bytes_sent
             recv = stats.bytes_recv - self.prev_stats.bytes_recv
             
-            text = f"Traffic: Sent {self._format_bytes(sent)} / Received {self._format_bytes(recv)}"
+            text = f"Traffic: Sent {self._format_bytes(sent)} / Received {self._format_bytes(recv)}{suffix}"
             self.labelTraffic.setText(text)
             
             # Log to DB (if profile exists)
@@ -364,6 +368,11 @@ class DashboardView(QWidget):
         elif stats and not self.prev_stats:
             # Baseline not yet captured
             self.prev_stats = stats
+            text = f"Traffic: Sent 0 B / Received 0 B{suffix}"
+            self.labelTraffic.setText(text)
+        else:
+            text = f"Traffic: Sent 0 B / Received 0 B{suffix}"
+            self.labelTraffic.setText(text)
 
     def _format_bytes(self, size):
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:

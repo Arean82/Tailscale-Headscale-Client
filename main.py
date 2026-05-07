@@ -91,9 +91,12 @@ if __name__ == "__main__":
     # 3. Initialize Manager and MainWindow directly (instant launch)
 
     manager = Manager(app_dir)
-    ts_manager = TailscaleManager(app_dir)
-    ts_manager.use_local_api = manager.settings.use_local_api
-    ts_manager.sso_timeout = manager.settings.sso_timeout
+    ts_manager_raw = TailscaleManager(app_dir)
+    ts_manager_raw.use_local_api = manager.settings.use_local_api
+    ts_manager_raw.sso_timeout = manager.settings.sso_timeout
+    
+    from src.core.state_coordinator import StateCoordinator
+    ts_manager = StateCoordinator(manager, ts_manager_raw)
     
     # Initialize system stream redirection if enabled
     manage_sys_streams(manager.settings.enable_logs, logger)

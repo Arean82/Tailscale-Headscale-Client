@@ -79,13 +79,24 @@ class TailscaleProcess(QObject):
         self.cleanup()
 
     def cleanup(self):
-        """Explicitly and gracefully terminate the active QProcess."""
+        """Explicitly and gracefully terminate the active QProcess and any orphans."""
         try:
             if hasattr(self, 'process') and self.process is not None:
                 if self.process.state() != QProcess.NotRunning:
                     self.process.terminate()
                     if not self.process.waitForFinished(500):
                         self.process.kill()
+            
+            # Forceful watchdog for any remaining orphaned child tailscale processes
+            try:
+                import psutil
+                import os
+                parent = psutil.Process(os.getpid())
+                for child in parent.children(recursive=True):
+                    if "tailscale" in child.name().lower():
+                        child.kill()
+            except Exception:
+                pass
         except (RuntimeError, AttributeError):
             pass
 

@@ -35,6 +35,9 @@
      <property name="placeholderText">
       <string>https://vpn.example.com</string>
      </property>
+     <property name="accessibleName">
+      <string>Tailscale Server URL Input Field</string>
+     </property>
     </widget>
    </item>
    <item row="1" column="0">
@@ -65,6 +68,12 @@
      <property name="text">
       <string>Change Credentials</string>
      </property>
+     <property name="toolTip">
+      <string>Configure authentication server and API keys</string>
+     </property>
+     <property name="accessibleName">
+      <string>Change Credentials Button</string>
+     </property>
     </widget>
    </item>
    <item row="2" column="0" colspan="2">
@@ -86,6 +95,12 @@
        <property name="text">
         <string>Connect</string>
        </property>
+       <property name="toolTip">
+        <string>Initiate or disconnect the secure VPN session</string>
+       </property>
+       <property name="accessibleName">
+        <string>VPN Connection Button</string>
+       </property>
       </widget>
      </item>
      <item>
@@ -101,6 +116,12 @@
        </property>
        <property name="text">
         <string>Show Traffic Stats</string>
+       </property>
+       <property name="toolTip">
+        <string>View session transfer details and daily history logs</string>
+       </property>
+       <property name="accessibleName">
+        <string>Show Traffic Stats Button</string>
        </property>
       </widget>
      </item>
