@@ -1,4 +1,5 @@
 # main.py
+# This is the main entry point for the application.
 
 import platform
 import time
@@ -91,6 +92,7 @@ if __name__ == "__main__":
 
     manager = Manager(app_dir)
     ts_manager = TailscaleManager(app_dir)
+    ts_manager.use_local_api = manager.settings.use_local_api
     
     # Initialize system stream redirection if enabled
     manage_sys_streams(manager.settings.enable_logs, logger)

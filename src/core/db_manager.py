@@ -1,4 +1,6 @@
 # src/core/db_manager.py
+# This is the database manager for the application.
+
 import sqlite3
 import os
 import logging

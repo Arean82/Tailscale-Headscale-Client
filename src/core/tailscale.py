@@ -1,3 +1,6 @@
+# src/core/tailscale.py
+# This is the core Tailscale utility for the application.
+
 import sys
 import os
 import re
@@ -134,9 +137,13 @@ class TailscaleProcess(QObject):
 
 class TailscaleManager(QObject):
     connection_status_changed = Signal(bool, str) # (is_connected, status_text)
+    state_changed = Signal(object) # AppState transition signal
     
     def __init__(self, cache_dir: str = None, parent=None):
         super().__init__(parent)
+        from .models import AppState
+        self.current_state = AppState.DISCONNECTED
+        self.use_local_api = False
         self.worker = TailscaleProcess()
         self.worker.sso_url_found.connect(self._on_sso_url_found)
         self.worker.finished.connect(self._on_worker_finished)
@@ -149,6 +156,24 @@ class TailscaleManager(QObject):
         # Async check process
         self.status_proc = QProcess(self)
         self.status_proc.finished.connect(self._on_status_finished)
+
+    def _update_state(self, status_text):
+        from .models import AppState
+        new_state = AppState.DISCONNECTED
+        if status_text == "Connected":
+            new_state = AppState.CONNECTED
+        elif status_text == "Connecting...":
+            new_state = AppState.CONNECTING
+        elif status_text == "Logged Out":
+            new_state = AppState.LOGGED_OUT
+        elif status_text == "Pending Admin Approval":
+            new_state = AppState.PENDING_APPROVAL
+        elif "error" in status_text.lower():
+            new_state = AppState.ERROR
+            
+        if self.current_state != new_state:
+            self.current_state = new_state
+            self.state_changed.emit(new_state)
 
     def _on_sso_url_found(self, url):
         import webbrowser
@@ -172,12 +197,41 @@ class TailscaleManager(QObject):
             pass
         
     def check_status(self, force=False):
-        """Asynchronously check tailscale status using JSON."""
+        """Asynchronously check tailscale status using JSON or instantly via Local API."""
         cached_status = self.cache.get("status")
         
         if not force and cached_status:
             self.connection_status_changed.emit(cached_status["connected"], cached_status["text"])
             return cached_status["connected"], cached_status["text"]
+
+        if self.use_local_api:
+            try:
+                from src.utils.local_api import query_local_api
+                data = query_local_api()
+                is_connected = False
+                status_text = "Disconnected"
+                ips = data.get("TailscaleIPs", [])
+                state = data.get("BackendState", "")
+                
+                if state == "Running":
+                    is_connected = True
+                    status_text = "Connected"
+                elif state == "NeedsLogin":
+                    is_connected = False
+                    status_text = "Logged Out"
+                elif state == "NeedsMachineAuth":
+                    is_connected = False
+                    status_text = "Pending Admin Approval"
+                else:
+                    status_text = state or "Disconnected"
+                    
+                self.cache.set("status", {"connected": is_connected, "text": status_text, "ips": ips, "raw_data": data})
+                self._update_state(status_text)
+                self.connection_status_changed.emit(is_connected, status_text)
+                return is_connected, status_text
+            except Exception:
+                # Silently fallback to CLI process on any Local API error
+                pass
 
         if self.status_proc.state() == QProcess.NotRunning:
             self.status_proc.start(get_tailscale_path(), ["status", "--json"])
@@ -222,6 +276,7 @@ class TailscaleManager(QObject):
                 status_text = "Connected"
             
         self.cache.set("status", {"connected": is_connected, "text": status_text, "ips": ips, "raw_data": raw_data})
+        self._update_state(status_text)
         self.connection_status_changed.emit(is_connected, status_text)
 
     def start_service(self):
@@ -333,3 +388,48 @@ class TailscaleManager(QObject):
             return is_connected, state
         except:
             return False, "Error"
+
+    def get_version(self):
+        """Helper to synchronously check the Tailscale CLI version."""
+        import subprocess
+        try:
+            startupinfo = None
+            creationflags = 0
+            if sys.platform == "win32":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                creationflags = subprocess.CREATE_NO_WINDOW
+            result = subprocess.run([get_tailscale_path(), "version"], capture_output=True, text=True, startupinfo=startupinfo, creationflags=creationflags)
+            return result.stdout.strip()
+        except Exception as e:
+            return f"Error: {e}"
+
+    def run_ping(self, target):
+        """Helper to synchronously execute a tailscale ping command against a peer."""
+        import subprocess
+        try:
+            startupinfo = None
+            creationflags = 0
+            if sys.platform == "win32":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                creationflags = subprocess.CREATE_NO_WINDOW
+            result = subprocess.run([get_tailscale_path(), "ping", "--timeout", "2s", target], capture_output=True, text=True, startupinfo=startupinfo, creationflags=creationflags)
+            return result.stdout.strip()
+        except Exception as e:
+            return f"Error: {e}"
+
+    def run_netcheck(self):
+        """Helper to synchronously execute a tailscale netcheck command."""
+        import subprocess
+        try:
+            startupinfo = None
+            creationflags = 0
+            if sys.platform == "win32":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                creationflags = subprocess.CREATE_NO_WINDOW
+            result = subprocess.run([get_tailscale_path(), "netcheck"], capture_output=True, text=True, startupinfo=startupinfo, creationflags=creationflags)
+            return result.stdout.strip()
+        except Exception as e:
+            return f"Error: {e}"

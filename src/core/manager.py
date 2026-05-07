@@ -107,7 +107,10 @@ class Manager:
             try:
                 with open(self.settings_file, "r") as f:
                     data = json.load(f)
-                    self.settings = AppSettings(**data)
+                    from dataclasses import fields
+                    valid_fields = {field.name for field in fields(AppSettings)}
+                    filtered_data = {k: v for k, v in data.items() if k in valid_fields}
+                    self.settings = AppSettings(**filtered_data)
             except Exception:
                 pass
 

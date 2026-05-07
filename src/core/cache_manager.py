@@ -1,3 +1,6 @@
+# src/core/cache_manager.py
+# This is the cache manager for the application.
+
 import os
 import json
 import time

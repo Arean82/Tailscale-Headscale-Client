@@ -1,5 +1,14 @@
+from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional, List
+
+class AppState(Enum):
+    DISCONNECTED = "Disconnected"
+    CONNECTING = "Connecting..."
+    CONNECTED = "Connected"
+    LOGGED_OUT = "Logged Out"
+    PENDING_APPROVAL = "Pending Admin Approval"
+    ERROR = "Error"
 
 @dataclass
 class Profile:
@@ -21,4 +30,5 @@ class AppSettings:
     advanced_features: bool = False
     max_tabs: int = 5
     last_profile: Optional[str] = None
+    use_local_api: bool = False
 

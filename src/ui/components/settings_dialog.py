@@ -18,6 +18,7 @@ class SettingsDialog(BaseUiDialog):
         self.chkEnableLogs = self.ui.findChild(QCheckBox, "chkEnableLogs")
         self.chkRunAtStartup = self.ui.findChild(QCheckBox, "chkRunAtStartup")
         self.chkAdvanced = self.ui.findChild(QCheckBox, "chkAdvanced")
+        self.chkUseLocalAPI = self.ui.findChild(QCheckBox, "chkUseLocalAPI")
         self.labelLogPath = self.ui.findChild(QLabel, "labelLogPath")
         self.btnOpenLogFolder = self.ui.findChild(QPushButton, "btnOpenLogFolder")
         self.btnClose = self.ui.findChild(QPushButton, "btnClose")
@@ -34,6 +35,9 @@ class SettingsDialog(BaseUiDialog):
 
         if self.chkAdvanced:
             self.chkAdvanced.setChecked(self.manager.settings.advanced_features)
+            
+        if self.chkUseLocalAPI:
+            self.chkUseLocalAPI.setChecked(self.manager.settings.use_local_api)
             
         if self.labelLogPath:
             from src.utils.logger import get_global_log_dir
@@ -60,6 +64,8 @@ class SettingsDialog(BaseUiDialog):
             self.chkRunAtStartup.toggled.connect(self._save_settings)
         if self.chkAdvanced:
             self.chkAdvanced.toggled.connect(self._save_settings)
+        if self.chkUseLocalAPI:
+            self.chkUseLocalAPI.toggled.connect(self._save_settings)
         if self.btnOpenLogFolder:
             self.btnOpenLogFolder.clicked.connect(self._open_log_folder)
         if self.btnClose:
@@ -89,7 +95,12 @@ class SettingsDialog(BaseUiDialog):
         self.manager.settings.enable_logs = self.chkEnableLogs.isChecked() if self.chkEnableLogs else False
         self.manager.settings.auto_start = self.chkRunAtStartup.isChecked() if self.chkRunAtStartup else False
         self.manager.settings.advanced_features = self.chkAdvanced.isChecked() if self.chkAdvanced else False
+        self.manager.settings.use_local_api = self.chkUseLocalAPI.isChecked() if self.chkUseLocalAPI else False
         self.manager.save_settings()
+        
+        # Propagate live use_local_api state to the active tailscale manager in real-time
+        if self.parent() and hasattr(self.parent(), "ts_manager"):
+            self.parent().ts_manager.use_local_api = self.manager.settings.use_local_api
         
         # Trigger autostart configuration for the current OS
         from src.utils.autostart import set_autostart
