@@ -69,21 +69,9 @@ To ensure maximum performance and security, your target environment must satisfy
 
 ## 🏛️ Comprehensive Technical Specifications
 
-```mermaid
-stateDiagram-v2
-    [*] --> DISCONNECTED
-    DISCONNECTED --> CONNECTING : connect() / Guard: Check path & args
-    CONNECTING --> CONNECTED : status == Running / Reset Retries, Stop Timeout
-    CONNECTING --> PENDING_APPROVAL : status == NeedsMachineAuth
-    CONNECTING --> ERROR : SSO Timeout / Exit Code != 0 / Trigger Backoff
-    PENDING_APPROVAL --> CONNECTED : Approved by Admin
-    PENDING_APPROVAL --> DISCONNECTED : disconnect()
-    CONNECTED --> ERROR : Connection Lost
-    CONNECTED --> LOGGED_OUT : logout()
-    ERROR --> CONNECTING : Exponential Backoff Retry (Attempts < 3)
-    ERROR --> DISCONNECTED : Max Retries Reached
-    LOGGED_OUT --> DISCONNECTED : disconnect()
-```
+<div align="center">
+  <img src="assets/state_machine.png" alt="Centralized Connection State Machine Flowchart" width="600"/>
+</div>
 
 ### Technical Metrics
 *   **Idle CPU:** `< 0.1%` (natively achieved via zero-spawning Local API Named Pipe or Unix Sockets).
