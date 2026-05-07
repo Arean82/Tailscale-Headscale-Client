@@ -40,6 +40,7 @@ class MainWindow(QMainWindow):
 
         self.current_theme = "light" # Default is LIGHT
         self.change_theme("light")
+        self.last_status_text = None
 
         # 4. Initialize tabs
         self.refresh_tabs()
@@ -361,6 +362,10 @@ class MainWindow(QMainWindow):
         self.actionPeerList.triggered.connect(self.show_peer_list)
         self.advanced_menu.addAction(self.actionPeerList)
         
+        self.actionDiagnostics = QAction("&Network Diagnostics...", self)
+        self.actionDiagnostics.triggered.connect(self.show_diagnostics)
+        self.advanced_menu.addAction(self.actionDiagnostics)
+        
         self.update_advanced_menu_state()
         
         # --- Help Menu ---
@@ -443,6 +448,15 @@ class MainWindow(QMainWindow):
 
     def _update_profile_actions_state(self, is_connected, status_text):
         """Enable/disable profile actions based on connection status."""
+        # Trigger native desktop notification on state change
+        if hasattr(self, 'last_status_text'):
+            if self.last_status_text != status_text and self.last_status_text is not None:
+                if hasattr(self, 'tray_icon') and self.tray_icon:
+                    title = "Tailscale Connected" if is_connected else "Tailscale Status"
+                    icon = QSystemTrayIcon.Information if is_connected else QSystemTrayIcon.Warning if "Approval" in status_text else QSystemTrayIcon.Information
+                    self.tray_icon.showMessage(title, f"VPN tunnel status is now {status_text}.", icon, 3000)
+            self.last_status_text = status_text
+
         can_edit = not is_connected
         if hasattr(self, 'actionAddProfile'):
             self.actionAddProfile.setEnabled(can_edit)
@@ -546,6 +560,12 @@ class MainWindow(QMainWindow):
     def show_peer_list(self):
         from .components.peer_dialog import PeerListDialog
         dlg = PeerListDialog(self.ts_manager, self)
+        self._apply_theme_to_dialog(dlg)
+        dlg.exec()
+
+    def show_diagnostics(self):
+        from .components.diagnostics_dialog import DiagnosticsDialog
+        dlg = DiagnosticsDialog(self)
         self._apply_theme_to_dialog(dlg)
         dlg.exec()
 

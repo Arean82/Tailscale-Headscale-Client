@@ -35,6 +35,7 @@ class LogViewerDialog(QDialog):
         self.btnClear    = self.ui.findChild(QPushButton, "clearBtn")
         self.textBrowser = self.ui.findChild(QTextBrowser, "textBrowser")
         self.btnClose    = self.ui.findChild(QPushButton, "closeBtn")
+        self.btnExport   = self.ui.findChild(QPushButton, "exportBtn")
         
         self.btnInfo     = self.ui.findChild(QPushButton, "infoBtn")
         self.btnWarn     = self.ui.findChild(QPushButton, "warningBtn")
@@ -47,6 +48,7 @@ class LogViewerDialog(QDialog):
         if self.btnRefresh: self.btnRefresh.clicked.connect(self._read_content)
         if self.btnClear: self.btnClear.clicked.connect(self._clear_log)
         if self.btnClose: self.btnClose.clicked.connect(self.accept)
+        if self.btnExport: self.btnExport.clicked.connect(self._export_logs)
         
         if self.btnInfo: self.btnInfo.toggled.connect(self._read_content)
         if self.btnWarn: self.btnWarn.toggled.connect(self._read_content)
@@ -134,3 +136,25 @@ class LogViewerDialog(QDialog):
                 self._read_content()
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
+
+    def _export_logs(self):
+        import zipfile
+        from PySide6.QtWidgets import QFileDialog
+        
+        save_path, _ = QFileDialog.getSaveFileName(self, "Export Logs", os.path.expanduser("~/TailscaleClientPro_Logs.zip"), "ZIP Files (*.zip)")
+        if not save_path:
+            return
+            
+        try:
+            log_dir = os.path.dirname(self.log_file)
+            with zipfile.ZipFile(save_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for root, _, files in os.walk(log_dir):
+                    for file in files:
+                        if file.endswith('.log') or file.endswith('.txt'):
+                            full_file_path = os.path.join(root, file)
+                            arcname = os.path.relpath(full_file_path, log_dir)
+                            zipf.write(full_file_path, arcname)
+                            
+            QMessageBox.information(self, "Export Successful", f"All logs have been successfully bundled and exported to:\n{save_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Export Failed", f"An error occurred while exporting logs:\n{e}")

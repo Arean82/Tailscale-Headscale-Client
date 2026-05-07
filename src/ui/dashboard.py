@@ -119,9 +119,26 @@ class DashboardView(QWidget):
         if status_text == "Checking..." and self.labelStatus.text() == "🟢 Connected":
             return
 
+        if not is_connected and status_text == "Pending Admin Approval":
+            self.labelStatus.setText("🟡 Pending Admin Approval")
+            self.labelStatus.setStyleSheet("color: #f59e0b; font-weight: bold;")
+            self.prev_stats = None
+            if self.btnVpnAction:
+                self.btnVpnAction.setEnabled(False)
+                self.btnVpnAction.setText("Awaiting Approval...")
+                self.btnVpnAction.setStyleSheet("""
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #d97706, stop:1 #92400e);
+                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #b45309;
+                    }
+                """)
+            return
+
         if is_connected:
             self.labelStatus.setText("🟢 Connected")
             self.labelStatus.setStyleSheet("color: #22c55e; font-weight: bold;")
+            if self.btnVpnAction:
+                self.btnVpnAction.setEnabled(True)
             
             self.prev_stats = None
             
@@ -202,6 +219,7 @@ class DashboardView(QWidget):
             self.prev_stats = None
             
             if self.btnVpnAction:
+                self.btnVpnAction.setEnabled(True)
                 self.btnVpnAction.setText("Connect")
                 if getattr(self.window(), "resolved_theme", "light") == "vibrant":
                     self.btnVpnAction.setStyleSheet("""

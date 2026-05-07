@@ -208,6 +208,9 @@ class TailscaleManager(QObject):
             elif state == "NeedsLogin":
                 is_connected = False
                 status_text = "Logged Out"
+            elif state == "NeedsMachineAuth":
+                is_connected = False
+                status_text = "Pending Admin Approval"
             else:
                 status_text = state or "Disconnected"
         except Exception:
