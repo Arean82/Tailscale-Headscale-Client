@@ -94,6 +94,7 @@ if __name__ == "__main__":
     ts_manager_raw = TailscaleManager(app_dir)
     ts_manager_raw.use_local_api = manager.settings.use_local_api
     ts_manager_raw.sso_timeout = manager.settings.sso_timeout
+    ts_manager_raw.insecure_ssl = manager.settings.insecure_ssl
     
     from src.core.state_coordinator import StateCoordinator
     ts_manager = StateCoordinator(manager, ts_manager_raw)

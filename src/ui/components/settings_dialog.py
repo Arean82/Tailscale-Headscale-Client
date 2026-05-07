@@ -10,7 +10,7 @@ from .simple_dialogs import BaseUiDialog
 class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
         super().__init__("settings.ui", parent)
-        self.setFixedSize(340, 310)
+        self.setFixedSize(340, 340)
         self.manager = manager
         
         # Access widgets through self.ui
@@ -19,6 +19,7 @@ class SettingsDialog(BaseUiDialog):
         self.chkRunAtStartup = self.ui.findChild(QCheckBox, "chkRunAtStartup")
         self.chkAdvanced = self.ui.findChild(QCheckBox, "chkAdvanced")
         self.chkUseLocalAPI = self.ui.findChild(QCheckBox, "chkUseLocalAPI")
+        self.chkInsecureSSL = self.ui.findChild(QCheckBox, "chkInsecureSSL")
         self.labelLogPath = self.ui.findChild(QLabel, "labelLogPath")
         self.btnOpenLogFolder = self.ui.findChild(QPushButton, "btnOpenLogFolder")
         self.btnClose = self.ui.findChild(QPushButton, "btnClose")
@@ -38,6 +39,9 @@ class SettingsDialog(BaseUiDialog):
             
         if self.chkUseLocalAPI:
             self.chkUseLocalAPI.setChecked(self.manager.settings.use_local_api)
+            
+        if self.chkInsecureSSL:
+            self.chkInsecureSSL.setChecked(self.manager.settings.insecure_ssl)
             
         if self.labelLogPath:
             from src.utils.logger import get_global_log_dir
@@ -68,6 +72,8 @@ class SettingsDialog(BaseUiDialog):
             self.chkAdvanced.toggled.connect(self._save_settings)
         if self.chkUseLocalAPI:
             self.chkUseLocalAPI.toggled.connect(self._save_settings)
+        if self.chkInsecureSSL:
+            self.chkInsecureSSL.toggled.connect(self._save_settings)
         if self.btnOpenLogFolder:
             self.btnOpenLogFolder.clicked.connect(self._open_log_folder)
         if self.btnClose:
@@ -120,12 +126,14 @@ class SettingsDialog(BaseUiDialog):
         self.manager.settings.auto_start = self.chkRunAtStartup.isChecked() if self.chkRunAtStartup else False
         self.manager.settings.advanced_features = self.chkAdvanced.isChecked() if self.chkAdvanced else False
         self.manager.settings.use_local_api = self.chkUseLocalAPI.isChecked() if self.chkUseLocalAPI else False
+        self.manager.settings.insecure_ssl = self.chkInsecureSSL.isChecked() if self.chkInsecureSSL else False
         self.manager.save_settings()
         
         # Propagate live states to the active tailscale manager in real-time
         if self.parent() and hasattr(self.parent(), "ts_manager"):
             self.parent().ts_manager.use_local_api = self.manager.settings.use_local_api
             self.parent().ts_manager.sso_timeout = self.manager.settings.sso_timeout
+            self.parent().ts_manager.insecure_ssl = self.manager.settings.insecure_ssl
         
         # Trigger autostart configuration for the current OS
         from src.utils.autostart import set_autostart

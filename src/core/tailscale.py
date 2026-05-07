@@ -155,8 +155,10 @@ class TailscaleManager(QObject):
         super().__init__(parent)
         from .models import AppState
         self.current_state = AppState.DISCONNECTED
-        self.use_local_api = False
+        self.use_local_api = True
         self.sso_timeout = 120
+        self.insecure_ssl = False
+        self.active_session = None
         self.worker = TailscaleProcess()
         self.worker.sso_url_found.connect(self._on_sso_url_found)
         self.worker.finished.connect(self._on_worker_finished)
@@ -206,7 +208,10 @@ class TailscaleManager(QObject):
 
     def _on_sso_timeout(self):
         """Handle SSO login flow timeout."""
-        from .models import AppState
+        from .models import AppState, LoginState
+        if self.active_session:
+            self.active_session.update_state(LoginState.TIMEOUT, "SSO Login timed out.")
+            self.active_session.cleanup()
         if self.current_state == AppState.CONNECTING:
             self.worker.cleanup()
             self._update_state("Error")
@@ -235,6 +240,8 @@ class TailscaleManager(QObject):
             routes = self.last_connect_args.get("routes")
             
             args = ["up", f"--login-server={login_server}", "--accept-routes"]
+            if getattr(self, "insecure_ssl", False):
+                args.append("--insecure-skip-tls-verify=true")
             if not use_sso and auth_key:
                 args.insert(1, f"--auth-key={auth_key}")
                 
@@ -247,6 +254,8 @@ class TailscaleManager(QObject):
             self.worker.run_command(args, profile_name)
 
     def _on_sso_url_found(self, url):
+        if self.active_session:
+            self.active_session.set_sso_url(url)
         import webbrowser
         webbrowser.open(url)
 
@@ -365,14 +374,16 @@ class TailscaleManager(QObject):
         elif sys.platform == "darwin":
             QProcess.startDetached("launchctl", ["start", "com.tailscale.tailscaled"])
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None):
+    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False):
         self.last_connect_args = {
             "login_server": login_server,
             "auth_key": auth_key,
             "use_sso": use_sso,
             "profile_name": profile_name,
             "exit_node": exit_node,
-            "routes": routes
+            "routes": routes,
+            "ssh": ssh,
+            "accept_dns": accept_dns
         }
         self.reconnect_attempts = 0
         
@@ -381,6 +392,12 @@ class TailscaleManager(QObject):
         
         # 2. Run 'up' command
         args = ["up", f"--login-server={login_server}", "--accept-routes"]
+        if getattr(self, "insecure_ssl", False):
+            args.append("--insecure-skip-tls-verify=true")
+        if ssh:
+            args.append("--ssh")
+        args.append(f"--accept-dns={'true' if accept_dns else 'false'}")
+        
         if not use_sso and auth_key:
             args.insert(1, f"--auth-key={auth_key}")
             
@@ -398,6 +415,9 @@ class TailscaleManager(QObject):
             self.sso_timeout_timer.start(self.sso_timeout * 1000)
             
         self.worker.run_command(args, profile_name)
+        from .models import LoginSession
+        self.active_session = LoginSession(self.sso_timeout)
+        self.active_session.start(self.worker.process)
 
     def switch_profile(self, native_profile_name, profile_name=None):
         """Instantly switch to a native Tailscale profile."""
@@ -405,6 +425,9 @@ class TailscaleManager(QObject):
         self.worker.run_command(["switch", native_profile_name], profile_name)
 
     def logout(self, profile_name=None):
+        if hasattr(self, 'active_session') and self.active_session:
+            self.active_session.cancel()
+            self.active_session = None
         self.cache.clear()
         self.worker.run_command(["logout"], profile_name)
 

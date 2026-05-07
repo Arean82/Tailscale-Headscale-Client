@@ -99,16 +99,9 @@ class MainWindow(QMainWindow):
             from PySide6.QtWidgets import QStyle
             self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
             
-        tray_menu = QMenu(self)
-        show_action = tray_menu.addAction("Show")
-        show_action.triggered.connect(self.showNormal)
-        show_action.triggered.connect(self.activateWindow)
-        
-        tray_menu.addSeparator()
-        quit_action = tray_menu.addAction("Exit")
-        quit_action.triggered.connect(self._force_quit)
-        
-        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_menu = QMenu(self)
+        self.tray_menu.aboutToShow.connect(self.update_tray_menu)
+        self.tray_icon.setContextMenu(self.tray_menu)
         self.tray_icon.activated.connect(self._tray_icon_activated)
         self.tray_icon.show()
 
@@ -370,6 +363,12 @@ class MainWindow(QMainWindow):
         self.actionDiagnostics = QAction("&Network Diagnostics...", self)
         self.actionDiagnostics.triggered.connect(self.show_diagnostics)
         self.advanced_menu.addAction(self.actionDiagnostics)
+        
+        self.actionTraySwitcher = QAction("Enable Quick &Exit-Node Switcher", self)
+        self.actionTraySwitcher.setCheckable(True)
+        self.actionTraySwitcher.setChecked(self.manager.settings.enable_tray_switcher)
+        self.actionTraySwitcher.triggered.connect(self.toggle_tray_switcher)
+        self.advanced_menu.addAction(self.actionTraySwitcher)
         
         self.update_advanced_menu_state()
         
@@ -704,3 +703,76 @@ class MainWindow(QMainWindow):
         from .components.node_dialog import NodeDialog
         dlg = NodeDialog(profile, self.manager, self)
         dlg.exec()
+
+    def toggle_tray_switcher(self, checked):
+        self.manager.settings.enable_tray_switcher = checked
+        self.manager.save_settings()
+
+    def update_tray_menu(self):
+        if not hasattr(self, 'tray_menu') or self.tray_menu is None:
+            return
+            
+        self.tray_menu.clear()
+        
+        show_action = self.tray_menu.addAction("Show")
+        show_action.triggered.connect(self.showNormal)
+        show_action.triggered.connect(self.activateWindow)
+        
+        self.tray_menu.addSeparator()
+        
+        if self.manager.settings.enable_tray_switcher and self.manager.settings.advanced_features:
+            exit_menu = self.tray_menu.addMenu("Exit Node Routing")
+            
+            # Find discovered exit nodes
+            status_cache = self.ts_manager.cache.get("status")
+            raw_data = status_cache.get("raw_data") if status_cache else None
+            exit_nodes = []
+            active_exit_node_ip = None
+            
+            if raw_data:
+                peers = raw_data.get("Peer", {}) or {}
+                for peer_id, peer in peers.items():
+                    if peer.get("ExitNodeOption"):
+                        name = peer.get("HostName") or peer.get("DNSName", "").split(".")[0]
+                        ips = peer.get("TailscaleIPs", [""])
+                        ip = ips[0] if ips else ""
+                        is_active = peer.get("ExitNode", False)
+                        if is_active:
+                            active_exit_node_ip = ip
+                        if ip:
+                            exit_nodes.append((name, ip, is_active))
+            
+            # 1. None Option
+            none_action = exit_menu.addAction("None (Direct Internet)")
+            none_action.setCheckable(True)
+            none_action.setChecked(active_exit_node_ip is None)
+            none_action.triggered.connect(lambda: self.set_tray_exit_node(""))
+            
+            exit_menu.addSeparator()
+            
+            if exit_nodes:
+                for name, ip, is_active in sorted(exit_nodes, key=lambda x: x[0]):
+                    action = exit_menu.addAction(f"{name} ({ip})")
+                    action.setCheckable(True)
+                    action.setChecked(is_active)
+                    action.triggered.connect(lambda checked, target_ip=ip: self.set_tray_exit_node(target_ip))
+            else:
+                exit_menu.addAction("No Exit Nodes Discovered").setEnabled(False)
+                
+            self.tray_menu.addSeparator()
+            
+        quit_action = self.tray_menu.addAction("Exit")
+        quit_action.triggered.connect(self._force_quit)
+
+    def set_tray_exit_node(self, ip):
+        import subprocess
+        import sys
+        try:
+            from src.core.tailscale import get_tailscale_path
+            path = get_tailscale_path()
+            cmd = [path, "up", f"--exit-node={ip}"] if ip else [path, "up", "--exit-node="]
+            creation_flags = 0x08000000 if sys.platform == "win32" else 0  # CREATE_NO_WINDOW
+            subprocess.Popen(cmd, creationflags=creation_flags)
+            self.ts_manager.check_status(force=True)
+        except Exception as e:
+            print(f"[DEBUG Tray Switcher] Failed to set exit node: {e}")

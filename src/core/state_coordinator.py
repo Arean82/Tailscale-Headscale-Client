@@ -149,7 +149,9 @@ class ConnectionStateMachine(QObject):
                 use_sso=self.last_connect_args.get("use_sso"),
                 profile_name=self.last_connect_args.get("profile_name"),
                 exit_node=self.last_connect_args.get("exit_node"),
-                routes=self.last_connect_args.get("routes")
+                routes=self.last_connect_args.get("routes"),
+                ssh=self.last_connect_args.get("ssh", False),
+                accept_dns=self.last_connect_args.get("accept_dns", False)
             )
 
 
@@ -210,9 +212,17 @@ class StateCoordinator(QObject):
     def sso_timeout(self):
         return self.ts_manager.sso_timeout
 
-    @use_local_api.setter
+    @sso_timeout.setter
     def sso_timeout(self, val):
         self.ts_manager.sso_timeout = val
+
+    @property
+    def insecure_ssl(self):
+        return self.ts_manager.insecure_ssl
+
+    @insecure_ssl.setter
+    def insecure_ssl(self, val):
+        self.ts_manager.insecure_ssl = val
 
     @property
     def cache(self):
@@ -266,7 +276,7 @@ class StateCoordinator(QObject):
     def check_status_sync(self):
         return self.ts_manager.check_status_sync()
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None):
+    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False):
         self._cached_status = None  # Invalidate cache on action
         
         # Register connection arguments with the State Machine
@@ -276,7 +286,9 @@ class StateCoordinator(QObject):
             "use_sso": use_sso,
             "profile_name": profile_name,
             "exit_node": exit_node,
-            "routes": routes
+            "routes": routes,
+            "ssh": ssh,
+            "accept_dns": accept_dns
         }
         
         # Transition to CONNECTING state via State Machine transition controller
@@ -288,7 +300,9 @@ class StateCoordinator(QObject):
             use_sso=use_sso,
             profile_name=profile_name,
             exit_node=exit_node,
-            routes=routes
+            routes=routes,
+            ssh=ssh,
+            accept_dns=accept_dns
         )
 
     def switch_profile(self, native_profile_name, profile_name=None):

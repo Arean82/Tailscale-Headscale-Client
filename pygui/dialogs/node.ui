@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>320</height>
+    <height>380</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -84,6 +84,37 @@
         </size>
        </property>
       </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="labelFlags">
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Optional Flags :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <layout class="QHBoxLayout" name="flagsLayout">
+       <item>
+        <widget class="QCheckBox" name="chkSSH">
+         <property name="text">
+          <string>Enable SSH (--ssh)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="chkAcceptDNS">
+         <property name="text">
+          <string>Accept DNS (--accept-dns)</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>

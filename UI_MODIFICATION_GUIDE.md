@@ -35,11 +35,15 @@ Dialog sizes are managed in `src/ui/components/`.
 
 ### Settings Dialog
 *   **File**: `src/ui/components/settings_dialog.py`
-*   **Action**: `self.setFixedSize(340, 200)`
+*   **Action**: `self.setFixedSize(340, 340)`
 
 ### Log Viewer Dialog
 *   **File**: `src/ui/components/log_viewer_dlg.py`
 *   **Action**: `self.setFixedSize(900, 650)`
+
+### Peers List Dialog (Active Peers)
+*   **File**: `src/ui/components/peer_dialog.py`
+*   **Action**: `self.setFixedSize(850, 480)`
 
 ---
 

@@ -93,6 +93,15 @@
      <property name="showGrid">
       <bool>false</bool>
      </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="horizontalScrollBarPolicy">
+      <enum>Qt::ScrollBarAsNeeded</enum>
+     </property>
+     <property name="verticalScrollBarPolicy">
+      <enum>Qt::ScrollBarAsNeeded</enum>
+     </property>
      <attribute name="horizontalHeaderVisible">
       <bool>true</bool>
      </attribute>
@@ -117,6 +126,11 @@
      <column>
       <property name="text">
        <string>Status</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Latency (Real-Time)</string>
       </property>
      </column>
     </widget>
@@ -167,4 +181,4 @@
  </widget>
  <resources/>
  <connections/>
-</ui>
+ </ui>

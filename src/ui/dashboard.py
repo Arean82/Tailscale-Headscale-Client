@@ -32,6 +32,7 @@ class DashboardView(QWidget):
         self.btnChangeCredentials = self.ui_content.findChild(QPushButton, "btnChangeCredentials")
         self.btnShowStats = self.ui_content.findChild(QPushButton, "btnShowStats")
         self.labelTraffic = self.ui_content.findChild(QLabel, "labelTraffic")
+        self.labelExpiry = self.ui_content.findChild(QLabel, "labelExpiry")
         
         # 4. Populate with data
         if profile and self.lineEditUrl:
@@ -295,6 +296,48 @@ class DashboardView(QWidget):
                         }
                     """)
 
+        # Render Node Key Expiration Badges
+        if is_connected and self.labelExpiry:
+            try:
+                status_cache = self.ts_manager.cache.get("status")
+                raw_data = status_cache.get("raw_data") if status_cache else None
+                if raw_data:
+                    expiry_str = raw_data.get("Self", {}).get("KeyExpiry") or raw_data.get("Self", {}).get("Expiry", "")
+                    if expiry_str:
+                        from datetime import datetime, timezone
+                        # Safely parse first 19 characters "YYYY-MM-DDTHH:MM:SS" to avoid nanosecond parsing errors on Python < 3.11
+                        base_time = expiry_str[:19]
+                        expiry_dt = datetime.fromisoformat(base_time).replace(tzinfo=timezone.utc)
+                        now_dt = datetime.now(timezone.utc)
+                        delta = expiry_dt - now_dt
+                        days = delta.days
+                        
+                        print(f"[DEBUG Node Expiry] Raw timestamp: {expiry_str} | Parsed naive: {base_time} | Days remaining: {days}")
+                        
+                        if days < 0:
+                            self.labelExpiry.setText("🔴 Node Key Expired!")
+                            self.labelExpiry.setStyleSheet("color: #ef4444; font-weight: bold;")
+                        elif days < 7:
+                            self.labelExpiry.setText(f"🔴 Node Key Expires in {days} days!")
+                            self.labelExpiry.setStyleSheet("color: #ef4444; font-weight: bold;")
+                        elif days < 30:
+                            self.labelExpiry.setText(f"Core Auth Session: 🟡 Expires in {days} days")
+                            self.labelExpiry.setStyleSheet("color: #f59e0b; font-weight: bold;")
+                        else:
+                            self.labelExpiry.setText(f"Core Auth Session: 🟢 Key Active (Expires in {days} days)")
+                            self.labelExpiry.setStyleSheet("color: #10b981; font-weight: bold;")
+                    else:
+                        print("[DEBUG Node Expiry] No Expiry timestamp found in Self node.")
+                        self.labelExpiry.setText("")
+                else:
+                    print("[DEBUG Node Expiry] No raw status data cached yet.")
+                    self.labelExpiry.setText("")
+            except Exception as e:
+                print(f"[DEBUG Node Expiry] Parsing failed: {e}")
+                self.labelExpiry.setText("")
+        elif self.labelExpiry:
+            self.labelExpiry.setText("")
+
     def toggle_connection(self):
         is_connected, _ = self.ts_manager.check_status()
         if is_connected:
@@ -336,15 +379,17 @@ class DashboardView(QWidget):
             exit_node = self.profile.exit_node if (self.profile and self.manager.settings.advanced_features) else ""
             routes = self.profile.routes if (self.profile and self.manager.settings.advanced_features) else ""
             native_profile = self.profile.native_profile if (self.profile and self.manager.settings.advanced_features) else ""
+            ssh = self.profile.enable_ssh if (self.profile and self.manager.settings.advanced_features) else False
+            accept_dns = self.profile.accept_dns if (self.profile and self.manager.settings.advanced_features) else False
 
             if native_profile:
                 self.ts_manager.switch_profile(native_profile, self.profile.name if self.profile else None)
                 from PySide6.QtCore import QTimer
                 QTimer.singleShot(1500, self.ts_manager.check_status)
             elif is_sso:
-                self.ts_manager.connect(url, None, True, self.profile.name if self.profile else None, exit_node, routes)
+                self.ts_manager.connect(url, None, True, self.profile.name if self.profile else None, exit_node, routes, ssh, accept_dns)
             else:
-                self.ts_manager.connect(url, key, False, self.profile.name if self.profile else None, exit_node, routes)
+                self.ts_manager.connect(url, key, False, self.profile.name if self.profile else None, exit_node, routes, ssh, accept_dns)
                 # Brief delay to allow command to start before checking status
                 from PySide6.QtCore import QTimer
                 QTimer.singleShot(2000, self.ts_manager.check_status)

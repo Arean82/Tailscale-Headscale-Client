@@ -9,7 +9,7 @@ from .simple_dialogs import BaseUiDialog
 class NodeDialog(BaseUiDialog):
     def __init__(self, profile, manager, parent=None):
         super().__init__("node.ui", parent)
-        self.setFixedSize(400, 320)
+        self.setFixedSize(400, 380)
         self.profile = profile
         self.manager = manager
         self.setWindowTitle(f"Advanced Options: {profile.name}")
@@ -21,6 +21,9 @@ class NodeDialog(BaseUiDialog):
         self.comboBoxExitNode = self.ui.findChild(QComboBox, "comboBoxExitNode")
         self.lineEditRoutes = self.ui.findChild(QLineEdit, "lineEditRoutes")
         self.listNativeSwitch = self.ui.findChild(QListWidget, "listNativeSwitch")
+        from PySide6.QtWidgets import QCheckBox
+        self.chkSSH = self.ui.findChild(QCheckBox, "chkSSH")
+        self.chkAcceptDNS = self.ui.findChild(QCheckBox, "chkAcceptDNS")
         self.btnSave = self.ui.findChild(QPushButton, "btnSave")
         self.btnCancel = self.ui.findChild(QPushButton, "btnCancel")
 
@@ -82,6 +85,12 @@ class NodeDialog(BaseUiDialog):
 
         if self.lineEditRoutes:
             self.lineEditRoutes.setText(self.profile.routes)
+
+        if self.chkSSH:
+            self.chkSSH.setChecked(self.profile.enable_ssh)
+
+        if self.chkAcceptDNS:
+            self.chkAcceptDNS.setChecked(self.profile.accept_dns)
 
         # Asynchronously fetch status and populate exit nodes
         self._fetch_active_status()
@@ -171,6 +180,8 @@ class NodeDialog(BaseUiDialog):
 
         self.profile.exit_node = exit_node
         self.profile.routes = routes
+        self.profile.enable_ssh = self.chkSSH.isChecked() if self.chkSSH else False
+        self.profile.accept_dns = self.chkAcceptDNS.isChecked() if self.chkAcceptDNS else False
 
         # Save checked profiles
         if self.listNativeSwitch:

@@ -10,6 +10,9 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 
 ### 🎨 Visual & UX Excellence
 - **Modern Premium UI:** Clean aesthetic featuring vibrant emerald, ruby, indigo, and amber gradients for intuitive interaction.
+- **Namespace & Tag Capsule Badges:** Custom royal blue (🔵) and purple (🟣) pill capsule badges render owner usernames and ACL security tags cleanly next to hostnames inside the Peers List.
+- **Real-Time Latency Sparklines:** Beautiful, antialiased latency graphs drawn with `QPainter` that plot connection trends and pulse every 2 seconds with color-coded boundaries (Green `<32ms`, Amber `<70ms`, Red `>70ms`).
+- **Responsive Table Wrapping & Scrollbars:** Implemented robust word wrapping and dual-scrollbar policies inside the Peers List to support all resolutions without clipping text.
 - **Unified QSS Theming:** Separates layout styling completely from Python code using standalone external `.qss` theme stylesheets (`assets/themes/`).
 - **Premium Save & Close Button:** High-end green gradient button with smooth hover and pressed states, offering an elegant tactile feel in the Settings window.
 - **Premium Animations:** 
@@ -24,6 +27,7 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 ### ⚡ Power Features & Smart Routing (Advanced Features)
 - **Granular Exit Node & Subnet Selection:** Advanced options (`node.ui`) per-profile tab allowing customizable `--exit-node` and `--advertise-routes` parameters.
 - **Intelligent Route Auto-Suggestion:** Selecting an exit node instantly queries its advertised IP routes and automatically populates the Subnet Routes field in real-time, eliminating manual copying.
+- **Tray Quick Exit-Node Switcher:** Dynamic taskbar context switcher that allows power users to change, toggle, or release active exit-node routing directly from the system tray context menu on right-click.
 - **Traffic Monitor Throttling:** Pauses OS statistics polling and database writes when the client window is minimized or hidden in the system tray, optimizing CPU, disk I/O, and battery usage.
 - **Native Multi-Account Switching:** Support for rapid native profile swapping (`tailscale switch`) under 0.5s with zero authentication barriers.
 - **Automatic Tab Grouping:** Advanced native-switch profiles are automatically arranged side-by-side at the front of the tab bar for perfect visual organization.
@@ -32,6 +36,7 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 
 ### 🧠 Centralized State Machine & Reliability
 - **Formal State Machine Transition Controller:** Drives connection flows cleanly through guarded states (`DISCONNECTED`, `CONNECTING`, `CONNECTED`, `LOGGED_OUT`, `PENDING_APPROVAL`, `ERROR`), completely eliminating race conditions, duplicate timers, and stale state transitions.
+- **SSL/MITM Self-Signed Cert Exceptions:** Added a flexible `Allow Self-Signed / Insecure SSL` toggle in the Settings, which dynamically appends `--insecure-skip-tls-verify=true` to standard and reconnect CLI command streams, enabling secure, crash-free operation in self-hosted Headscale home labs.
 - **Exponential Backoff Reconnect Policy:** Programmatically retry failed connections at exponentially growing intervals (`3s`, `6s`, `12s`) rather than aggressive reconnect flood loops.
 - **SSO Login Timeout Ownership:** Automatically tracks SSO logins and cleanly terminates stale browser authentication tasks.
 - **Delta Traffic Tracking:** Advanced persistence logic to prevent data loss across reboots.

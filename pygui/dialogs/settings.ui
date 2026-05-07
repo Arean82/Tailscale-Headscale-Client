@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>340</width>
-    <height>335</height>
+    <height>355</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -54,6 +54,13 @@
       <widget class="QCheckBox" name="chkUseLocalAPI">
        <property name="text">
         <string>Enable Experimental Local API</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="chkInsecureSSL">
+       <property name="text">
+        <string>Allow Self-Signed / Insecure SSL</string>
        </property>
       </widget>
      </item>
