@@ -203,3 +203,5 @@ traffic_stats.db
 master.key
 settings.json
 app.log
+
+scratch/*
