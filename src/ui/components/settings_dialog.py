@@ -10,7 +10,7 @@ from .simple_dialogs import BaseUiDialog
 class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
         super().__init__("settings.ui", parent)
-        self.setFixedSize(340, 340)
+        self.setFixedSize(340, 375)
         self.manager = manager
         
         # Access widgets through self.ui
@@ -58,6 +58,11 @@ class SettingsDialog(BaseUiDialog):
         if self.spinSsoTimeout:
             self.spinSsoTimeout.setValue(self.manager.settings.sso_timeout)
             self.spinSsoTimeout.valueChanged.connect(self._on_sso_timeout_changed)
+            
+        self.spinStartupDelay = self.ui.findChild(QSpinBox, "spinStartupDelay")
+        if self.spinStartupDelay:
+            self.spinStartupDelay.setValue(self.manager.settings.startup_delay)
+            self.spinStartupDelay.valueChanged.connect(self._save_settings)
             
         # Connections
         if self.chkAutoConnect:
@@ -125,6 +130,7 @@ class SettingsDialog(BaseUiDialog):
         self.manager.settings.advanced_features = self.chkAdvanced.isChecked() if self.chkAdvanced else False
         self.manager.settings.use_local_api = self.chkUseLocalAPI.isChecked() if self.chkUseLocalAPI else False
         self.manager.settings.insecure_ssl = self.chkInsecureSSL.isChecked() if self.chkInsecureSSL else False
+        self.manager.settings.startup_delay = self.spinStartupDelay.value() if self.spinStartupDelay else 10
         self.manager.save_settings()
         
         # Propagate live states to the active tailscale manager in real-time

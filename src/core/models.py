@@ -39,6 +39,7 @@ class AppSettings:
     sso_timeout: int = 120
     enable_tray_switcher: bool = False
     insecure_ssl: bool = False
+    startup_delay: int = 10
 
 
 class LoginState(Enum):

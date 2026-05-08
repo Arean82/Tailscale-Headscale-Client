@@ -129,24 +129,23 @@ class MainWindow(QMainWindow):
                     self.tray_icon.show()
             QTimer.singleShot(5000, safe_retry_show)
 
-    def check_daemon_async(self):
-        from PySide6.QtCore import QProcess
-        self.daemon_check_proc = QProcess(self)
+    def check_daemon_async(self, retry_count=0):
+        from src.utils.local_api import is_local_api_available
+        from PySide6.QtCore import QTimer
         
-        def on_check_error(error):
-            if error == QProcess.FailedToStart:
-                self._show_worker_error("Tailscale is not installed on this system or is not found in your system's PATH.")
-        
-        def on_check_finished():
-            output = self.daemon_check_proc.readAllStandardError().data().decode().lower() + \
-                     self.daemon_check_proc.readAllStandardOutput().data().decode().lower()
-            is_running = not ("failed to connect" in output or "tailscaled may not be running" in output or self.daemon_check_proc.exitCode() != 0)
-            if not is_running:
-                self.show_service_wait_dialog()
-                
-        self.daemon_check_proc.errorOccurred.connect(on_check_error)
-        self.daemon_check_proc.finished.connect(on_check_finished)
-        self.daemon_check_proc.start(get_tailscale_path(), ["status", "--json"])
+        is_running = is_local_api_available()
+        if is_running:
+            # Successfully running! No dialog needed.
+            return
+            
+        # If not running, let's retry in the background dynamically (every 2 seconds)
+        # based on the custom "Startup Daemon Wait" setting (minimum of 5 retries / 10s)
+        max_retries = max(5, self.manager.settings.startup_delay // 2)
+        if retry_count < max_retries:
+            QTimer.singleShot(2000, lambda: self.check_daemon_async(retry_count + 1))
+        else:
+            # Still not running after retries, show the wait/start dialog
+            self.show_service_wait_dialog()
 
     def show_service_wait_dialog(self):
         from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar

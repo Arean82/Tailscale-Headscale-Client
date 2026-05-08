@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>340</width>
-    <height>355</height>
+    <height>380</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -114,6 +114,32 @@
          </property>
          <property name="maximum">
           <number>1000</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="startupDelayLayout">
+       <item>
+        <widget class="QLabel" name="labelStartupDelay">
+         <property name="font">
+          <font>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Startup Daemon Wait (seconds):</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="spinStartupDelay">
+         <property name="minimum">
+          <number>10</number>
+         </property>
+         <property name="maximum">
+          <number>300</number>
          </property>
         </widget>
        </item>
