@@ -164,7 +164,8 @@ class PeerListDialog(BaseUiDialog):
             header.setSectionResizeMode(1, QHeaderView.ResizeToContents)   # IP matches content
             header.setSectionResizeMode(2, QHeaderView.ResizeToContents)   # OS matches content
             header.setSectionResizeMode(3, QHeaderView.ResizeToContents)   # Status matches content
-            header.setSectionResizeMode(4, QHeaderView.ResizeToContents)   # Sparkline matches hint
+            header.setSectionResizeMode(4, QHeaderView.ResizeToContents)   # Path matches content
+            header.setSectionResizeMode(5, QHeaderView.ResizeToContents)   # Sparkline matches hint
             
             self.tablePeers.setContextMenuPolicy(Qt.CustomContextMenu)
             self.tablePeers.customContextMenuRequested.connect(self._show_context_menu)
@@ -196,7 +197,7 @@ class PeerListDialog(BaseUiDialog):
         peer_dict = raw_data.get("Peer", {})
         if not peer_dict:
             self.tablePeers.setRowCount(1)
-            self.tablePeers.setColumnCount(5)
+            self.tablePeers.setColumnCount(6)
             item = QTableWidgetItem("No peers found or disconnected. Connect to view peers.")
             item.setFlags(Qt.ItemIsEnabled)
             self.tablePeers.setItem(0, 0, item)
@@ -204,7 +205,7 @@ class PeerListDialog(BaseUiDialog):
                 self.labelPeerCount.setText("Total Devices: 0")
             return
             
-        self.tablePeers.setColumnCount(5)
+        self.tablePeers.setColumnCount(6)
         self.tablePeers.setRowCount(len(peer_dict))
         
         for idx, (peer_key, peer_info) in enumerate(peer_dict.items()):
@@ -225,6 +226,18 @@ class PeerListDialog(BaseUiDialog):
             else:
                 status = "⚪ Offline"
                 
+            # Determine path (Direct vs Relayed)
+            is_direct = peer_info.get("CurAddr", "") != ""
+            relay_region = peer_info.get("Relay", "")
+            if not online:
+                path_text = "—"
+            elif is_direct:
+                path_text = "⚡ Direct"
+            elif relay_region:
+                path_text = f"☁️ Relay ({relay_region})"
+            else:
+                path_text = "☁️ Relay"
+
             # Keep text empty to completely block double-text drawing overlap!
             item_host = QTableWidgetItem("")
             # Store raw hostname inside Qt.UserRole so robust search filtering works perfectly!
@@ -233,14 +246,16 @@ class PeerListDialog(BaseUiDialog):
             item_ip = QTableWidgetItem(ip_str)
             item_os = QTableWidgetItem(os_name)
             item_status = QTableWidgetItem(status)
+            item_path = QTableWidgetItem(path_text)
             
-            for item in [item_host, item_ip, item_os, item_status]:
+            for item in [item_host, item_ip, item_os, item_status, item_path]:
                 item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
                 
             self.tablePeers.setItem(idx, 0, item_host)
             self.tablePeers.setItem(idx, 1, item_ip)
             self.tablePeers.setItem(idx, 2, item_os)
             self.tablePeers.setItem(idx, 3, item_status)
+            self.tablePeers.setItem(idx, 4, item_path)
             
             # Create and Bind PeerNameBadgeWidget to column 0
             user_name = peer_info.get("User", "")
@@ -248,9 +263,9 @@ class PeerListDialog(BaseUiDialog):
             badge_widget = PeerNameBadgeWidget(host_name, username=user_name, tags=tags_list, parent=self)
             self.tablePeers.setCellWidget(idx, 0, badge_widget)
             
-            # Create and Bind Real-Time Sparkline Widget to column 4
+            # Create and Bind Real-Time Sparkline Widget to column 5
             sparkline = LatencySparklineWidget(self, is_active=active, is_online=online)
-            self.tablePeers.setCellWidget(idx, 4, sparkline)
+            self.tablePeers.setCellWidget(idx, 5, sparkline)
             
         if self.labelPeerCount:
             self.labelPeerCount.setText(f"Total Devices: {len(peer_dict)}")

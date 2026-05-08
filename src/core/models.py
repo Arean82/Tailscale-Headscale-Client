@@ -23,6 +23,9 @@ class Profile:
     is_native_switch: bool = False
     enable_ssh: bool = False
     accept_dns: bool = False
+    allow_lan: bool = False
+    disable_snat: bool = False
+    hostname: str = ""
 
 @dataclass
 class AppSettings:

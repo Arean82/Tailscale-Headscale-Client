@@ -20,8 +20,8 @@ This document provides a clean, comprehensive technical quality audit of the **T
 ### Severity Metrics Counter (Completion Rate):
 *   **🚨 Critical (Essential Core Core)**: 1 / 1 Completed (100.0%)
 *   **🔴 High Priority (State Safety & Core Sockets)**: 4 / 4 Completed (100.0%)
-*   **🟡 Medium Priority (Advanced Options & Controls)**: 4 / 4 Completed (100.0%)
-*   **🟢 Low Priority (UI Enhancements & Micro Utilities)**: 32 / 32 Completed (100.0%)
+*   **🟡 Medium Priority (Advanced Options & Controls)**: 3 / 3 Completed (100.0%)
+*   **🟢 Low Priority (UI Enhancements & Micro Utilities)**: 33 / 33 Completed (100.0%)
 *   **🧪 Experimental**: 6 / 6 Active (100.0%)
 *   **🔵 Out of Scope (Excluded)**: 7 Items Excluded from active scope
 
@@ -32,9 +32,9 @@ This document provides a clean, comprehensive technical quality audit of the **T
 | **3** | **Local API Integration** | 🟢 | 🔴 | Spawning `tailscale status --json` periodically causes CPU spikes and UI lag. | **Completed**: Activated Named Pipe (Windows) and Unix Socket (macOS/Linux) streaming connectors as the default status retrieval system inside TailscaleManager to prevent CLI process spikes. |
 | **4** | **System Tray Integration** | 🟢 | 🟢 | System tray is present but lacks active status indicators (green/yellow/red icon states) and quick connect/disconnect shortcuts. | **Completed**: Configured dynamic context menu, normal window restoration, asynchronous service checks, and live state notification bubbles. |
 | **5** | **Dashboard Screen** | 🟢 | 🟢 | Only shows a basic URL bar, a Connect button, and a session traffic label. Lacks DERP region, latency, and active peers summary. | **Completed**: Merged full connection overview (IP, profile, login server, and status color states) directly into a high-fidelity unified Traffic Stats dashboard dialog. |
-| **6** | **Peer Management Screen** | 🟢 | 🟡 | **Missing**. There is no UI to view peers, copy their IPs, search/filter, or execute ping/SSH actions. | **Completed**: Developed as a dynamic, searchable, contextual pop-up (PeerListDialog) integrated directly under the Advanced menu, leveraging native status JSON caching with zero extra process overhead. |
-| **7** | **Exit Node Management** | 🟢 | 🟡 | Supports a saved string for `exit_node`, but has no UI to discover available exit nodes or check their active status. | **Completed**: Fully implemented under Advanced Options via NodeDialog, dynamic status parsing, and automatic routing parameters. |
-| **8** | **Route Management** | 🟢 | 🟢 | Only supports manual route input text. No validation for route conflicts, subnet reachability, or visual status of routes. | **Completed**: Designed profile-specific subnet route detection and auto-population inside NodeDialog based on selected exit node. |
+| **6** | **Peer Management Screen** | 🟢 | 🟡 | Peer list is searchable and interactive, but lacks visual indicators for Direct vs. Relayed (DERP) connection paths. | **Completed**: Developed searchable PeerListDialog with a custom "Connection Path" column rendering live Direct (UDP) vs Relayed (DERP) status. |
+| **7** | **Exit Node Management** | 🟢 | 🟡 | Discovering available exit nodes is completed, but there is no toggle inside NodeDialog to support Exit Node LAN Access (`--exit-node-allow-lan-access`). | **Completed**: Added a "Allow LAN" checkbox (`chkAllowLAN`) inside NodeDialog, integrated the field into Profile models, and appended `--exit-node-allow-lan-access=true` during connection. |
+| **8** | **Route Management** | 🟢 | 🟢 | Subnet routing is supported, but there is no toggle inside NodeDialog to disable Source NAT (`--snat-subnet-routes=false`) for administrative logging. | **Completed**: Added a "Disable SNAT" checkbox (`chkDisableSNAT`) inside NodeDialog, integrated the field into Profile models, and appended `--snat-subnet-routes=false` during connection. |
 | **9** | **Diagnostics Screen** | 🟢 | 🟢 | **Missing**. No netcheck, relay status, or split-DNS checking UI is available. | **Completed**: Created an asynchronous, non-blocking DiagnosticsDialog under the Advanced menu running tailscale netcheck via QProcess. |
 | **10** | **Logging System** | 🟢 | 🟢 | Custom rotating logs exist (`app.log` and `db_log.txt`), but there is no explicit button to export logs or toggle debug mode easily. | **Completed**: Enhanced LogViewerDialog programmatically to support direct ZIP bundling and exporting of all app log files to user-chosen directories. |
 | **11** | **Notifications** | 🟢 | 🟢 | **Missing**. No native desktop notification banners for connect, disconnect, or auth expiration events. | **Completed**: Implemented fully native, dynamic desktop notification banners via QSystemTrayIcon.showMessage connected to active connection changes on all platforms. |
@@ -55,7 +55,7 @@ This document provides a clean, comprehensive technical quality audit of the **T
 | **26** | **Production Stability** | 🟢 | 🟢 | Handles clean exit with synchronous logouts, but stale background process cleanups are prone to occasional deadlocks. | **Completed**: Integrated a robust, platform-independent `psutil`-based watchdog in `cleanup()` that forcefully reaps any orphaned background `tailscale` processes on application shutdown. |
 | **27** | **Telemetry (External Reporting)** | 🔵 | 🔵 | **Missing**. No crash dump files or diagnostic report bundles. | **Omitted (Out of Scope)**: External reporting/telemetry is intentionally omitted to maintain complete user privacy, eliminate unprompted background tracking, and keep the application completely offline-first. |
 | **28** | **Accessibility** | 🟢 | 🟢 | **Missing**. Standard keyboard tab focusing and high-contrast screen scaling are completely unoptimized. | **Completed**: Injected `accessibleName` properties and descriptive `toolTip` properties directly into `tab_widget.ui` for all interactive elements to enable seamless keyboard and screen-reader support. |
-| **29** | **Enterprise Features** | 🟢 | 🟢 | **Missing**. No managed configurations, corporate registry enforcement, or read-only profile flags. | **Completed**: Full support for secure file-based profile configurations, localized profile mapping, and cryptographically protected credentials on disk. |
+| **29** | **Enterprise Features** | 🟢 | 🟢 | Full support for secure file-based profile configurations is done, but lacks custom hostname overrides (`--hostname`) inside connection profiles. | **Completed**: Added a custom hostname override input field (`lineEditHostname`) inside NodeDialog, integrated the field into Profile models, and appended `--hostname={hostname}` during connection. |
 | **30** | **State Handling (The BIGGEST Thing)** | 🟢 | 🚨 | **Critical gap**. The application does not handle sleep/wake cycles, transient network loss, or daemon crashes gracefully. | **Completed**: Implemented live state listening and robust `NeedsMachineAuth` (Pending Admin Approval) yellow-alert status handling. |
 | **31** | **Version Compatibility** | 🔵 | 🔵 | **Omitted (Out of Scope)**. Strict programmatic version blocks are omitted as executing native, fully backward-compatible CLI commands directly guarantees seamless and future-proof operation. | *Out of Scope.* Let the native CLI commands execute directly to prevent false-positive blocks. |
 | **32** | **Explicit Failure Matrix** | 🧪 | 🧪 | Missing scenario-based error propagation. | **Experimental**: Implemented active watchdogs inside `StateCoordinator.check_status()` to catch system wake events and network adapter switches, clearing state caches automatically to force clean refreshes; undergoing multi-platform validation. |
@@ -69,7 +69,7 @@ This document provides a clean, comprehensive technical quality audit of the **T
 | **40** | **Tailscale SSH (`--ssh`)** | 🟢 | 🟡 | Toggling and advertising Tailscale SSH securely on active profiles is missing. | **Completed**: Added an SSH toggle checkbox directly to the `node.ui` layout, allowing users to safely enable SSH and advertise `--ssh` parameters per-profile. |
 | **41** | **MagicDNS Control (`--accept-dns`)** | 🟢 | 🔴 | Allowing users to explicitly accept or ignore control-plane pushed DNS configurations is missing. | **Completed**: Designed a DNS control checkbox directly inside the `node.ui` layout, allowing users to accept or decline pushed DNS configurations with `--accept-dns=true/false` per-profile. |
 | **42** | **Node Key Expiration Badges** | 🟢 | 🔴 | Tracking node authorization key expirations and warning users of approaching expiration is missing. | **Completed**: Added a dedicated `labelExpiry` inside the `tab_widget.ui` XML, parsing the JSON `"Expiry"` field to dynamically show warning and status badges. |
-| **43** | **Tailscale Serve & Funnel Dashboard** | 🔵 | 🟡 | Displaying if local ports or web servers are shared publicly over the internet is missing. | **Out of Scope**: Excluded because Tailscale Funnel relies on proprietary public relays and DNS infrastructure not supported by self-hosted Headscale control planes. |
+| **43** | **Tailscale Serve & Funnel Dashboard** | 🔵 | 🔵 | Exposing local ports or public URLs is missing. Both Funnel and Web Share (Serve) rely on capability maps (`CapMap`) proprietary to Tailscale SaaS and unsupported in Headscale. | **Omitted (Out of Scope)**: Both public Funnel and local private Web Share (Serve) are completely out of scope due to control-plane Headscale platform limitations. |
 | **44** | **Taildrop Drag & Drop Zone** | 🔵 | 🟢 | Desktop-native drag and drop zone to copy files peer-to-peer over your tailnet is missing. | **Out of Scope**: Excluded because Taildrop peer-to-peer file sharing relies on coordinated capabilities maps proprietary to official Tailscale SaaS and unsupported by Headscale. |
 | **45** | **Real-Time Latency Sparklines** | 🟢 | 🟢 | Real-time connection latency graphs are missing from the active tab and peer managers. | **Completed**: Created custom, antialiased, real-time-pulsing `LatencySparklineWidget` cells drawn via QPainter directly inside the updated 5-column `peer_list.ui` table layout. |
 | **46** | **Tray Quick Exit-Node Switcher** | 🟢 | 🟡 | Switching routing exit nodes directly from the taskbar context menu is missing. | **Completed**: Added checkable `actionTraySwitcher` under the Advanced Menu, enabling power users to dynamically toggle and switch active Exit Node routing right from the right-click Taskbar Context Menu. |
@@ -109,16 +109,16 @@ This section provides a dedicated, line-by-line detailed technical explanation a
 *   **Implementation Status:** Fully completed. Implemented inside `src/ui/dashboard.py`, rendering the client's local IP address, profile name, login coordinator URL, and current status colors elegantly.
 
 ### Area #6: Peer Management Screen (Status: 🟢 Completed | Severity: 🟡 Medium)
-*   **Technical Context:** Viewing and searching network peers.
-*   **Implementation Status:** Fully completed. Implemented as `PeerListDialog` inside `src/ui/components/peer_dialog.py` utilizing the cached status JSON. Allows users to search hostname/IP and copy IPs directly from a custom context menu.
+*   **Technical Context:** Interactive peers management, copy utilities, and path connectivity.
+*   **Implementation Status:** Fully completed. Searchable `PeerListDialog` popups are integrated under the Advanced menu, rendering live Direct (⚡ Direct) vs Relayed (☁️ Relay) paths dynamically from `status` JSON.
 
 ### Area #7: Exit Node Management (Status: 🟢 Completed | Severity: 🟡 Medium)
-*   **Technical Context:** VPN routing through external exit nodes.
-*   **Implementation Status:** Fully completed. Handled dynamically inside `NodeDialog` (`src/ui/components/node_dialog.py`), which parses active exit nodes from `tailscale status` JSON and populates them into a searchable dropdown.
+*   **Technical Context:** Exit node discovery, routing controls, and local LAN access.
+*   **Implementation Status:** Fully completed. Added `allow_lan` to `Profile` models, integrated a high-fidelity `chkAllowLAN` checkbox into `NodeDialog`, and appended `--exit-node-allow-lan-access=true` to connection and reconnection argument builders.
 
 ### Area #8: Route Management (Status: 🟢 Completed | Severity: 🟢 Low)
-*   **Technical Context:** Custom subnet routing per-profile.
-*   **Implementation Status:** Fully completed. Integrated inside `NodeDialog` via the profile routes text fields, applying customized subnet parameters dynamically during connection.
+*   **Technical Context:** Subnet routing, route auto-population, and SNAT control.
+*   **Implementation Status:** Fully completed. Added `disable_snat` to `Profile` models, integrated a high-fidelity `chkDisableSNAT` checkbox into `NodeDialog`, and appended `--snat-subnet-routes=false` to connection and reconnection argument builders when routing subnets.
 
 ### Area #9: Diagnostics Screen (Status: 🟢 Completed | Severity: 🟢 Low)
 *   **Technical Context:** Latency, relay mapping, and netcheck logs.
@@ -201,8 +201,8 @@ This section provides a dedicated, line-by-line detailed technical explanation a
 *   **Implementation Status:** Fully completed. Injected standard `accessibleName` and `toolTip` properties into custom `.ui` widgets programmatically.
 
 ### Area #29: Enterprise Features (Status: 🟢 Completed | Severity: 🟢 Low)
-*   **Technical Context:** Protected profile registries and config file storage.
-*   **Implementation Status:** Fully completed. Stores profile mappings in a cryptographically protected SQLite database and credentials in the OS keyring.
+*   **Technical Context:** Enterprise configurations, secure file-based profile setups, and custom hostnaming.
+*   **Implementation Status:** Fully completed. Added `hostname` to `Profile` models, integrated a custom hostname input field (`lineEditHostname`) into `NodeDialog`, increased the layout container height, and appended `--hostname={hostname}` during connection.
 
 ### Area #30: State Handling (Status: 🟢 Completed | Severity: 🚨 Critical)
 *   **Technical Context:** Wake-up, adapter shifts, and `NeedsMachineAuth` handling.
@@ -256,9 +256,9 @@ This section provides a dedicated, line-by-line detailed technical explanation a
 *   **Technical Context:** Expiration warnings on the dashboard.
 *   **Implementation Status:** Fully completed. Integrated `labelExpiry` into `pygui/windows/tab_widget.ui` and updated `DashboardView` to dynamically calculate key expiry from ISO-8601 timestamps and render beautiful real-time warn/ok badges.
 
-### Area #43: Tailscale Serve & Funnel Dashboard (Status: 🔵 Out of Scope | Severity: 🟡 Medium)
-*   **Technical Context:** Monitoring port sharing public URLs.
-*   **Implementation Status:** Excluded from scope because Tailscale Funnel depends entirely on proprietary public relays and DNS systems managed by Tailscale Inc. which are unavailable in standard self-hosted Headscale environments.
+### Area #43: Tailscale Serve & Funnel Dashboard (Status: 🔵 Out of Scope | Severity: 🔵 Out of Scope)
+*   **Technical Context:** Local port sharing and public web servers.
+*   **Implementation Status:** Excluded from scope. Both public internet sharing (Funnel) and local private Web Share (Serve) require capabilities maps (`CapMap`) proprietary to Tailscale SaaS and unsupported in self-hosted Headscale environments.
 
 ### Area #44: Taildrop Drag & Drop Zone (Status: 🔵 Out of Scope | Severity: 🟢 Low)
 *   **Technical Context:** Peer-to-peer file transfer zones.

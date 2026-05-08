@@ -130,6 +130,11 @@
      </column>
      <column>
       <property name="text">
+       <string>Connection Path</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
        <string>Latency (Real-Time)</string>
       </property>
      </column>

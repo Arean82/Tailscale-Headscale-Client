@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ui version="4.0">
  <class>NodeDialog</class>
  <widget class="QDialog" name="NodeDialog">
@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>567</width>
     <height>380</height>
    </rect>
   </property>
@@ -22,7 +22,7 @@
      <property name="verticalSpacing">
       <number>8</number>
      </property>
-     <item row="0" column="0">
+     <item row="1" column="0">
       <widget class="QLabel" name="labelExitNode">
        <property name="font">
         <font>
@@ -35,14 +35,39 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="comboBoxExitNode">
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-      </widget>
+     <item row="5" column="1">
+      <layout class="QGridLayout" name="flagsLayout">
+       <item row="3" column="0">
+        <widget class="QCheckBox" name="chkAcceptDNS">
+         <property name="text">
+          <string>Accept DNS (--accept-dns)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="chkAllowLAN">
+         <property name="text">
+          <string>Allow LAN (--exit-node-allow-lan-access)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QCheckBox" name="chkDisableSNAT">
+         <property name="text">
+          <string>Disable SNAT (--snat-subnet-routes=false)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="chkSSH">
+         <property name="text">
+          <string>Enable SSH (--ssh)</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
-     <item row="1" column="0">
+     <item row="3" column="0">
       <widget class="QLabel" name="labelRoutes">
        <property name="font">
         <font>
@@ -55,14 +80,14 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
+     <item row="3" column="1">
       <widget class="QLineEdit" name="lineEditRoutes">
        <property name="placeholderText">
         <string>e.g. 10.0.0.0/24,192.168.1.0/24</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="0">
+     <item row="4" column="0">
       <widget class="QLabel" name="labelNativeProfile">
        <property name="font">
         <font>
@@ -75,17 +100,7 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QListWidget" name="listNativeSwitch">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>120</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
+     <item row="5" column="0">
       <widget class="QLabel" name="labelFlags">
        <property name="font">
         <font>
@@ -98,25 +113,24 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
-      <layout class="QHBoxLayout" name="flagsLayout">
-       <item>
-        <widget class="QCheckBox" name="chkSSH">
-         <property name="text">
-          <string>Enable SSH (--ssh)</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="chkAcceptDNS">
-         <property name="text">
-          <string>Accept DNS (--accept-dns)</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
+     <item row="4" column="1">
+      <widget class="QListWidget" name="listNativeSwitch">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>120</height>
+        </size>
+       </property>
+      </widget>
      </item>
-    </layout>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="comboBoxExitNode">
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    <item row="2" column="0"><widget class="QLabel" name="labelHostname"><property name="font"><font><pointsize>9</pointsize><bold>true</bold></font></property><property name="text"><string>Custom Hostname :</string></property></widget></item><item row="2" column="1"><widget class="QLineEdit" name="lineEditHostname"><property name="placeholderText"><string>e.g. my-node-override</string></property></widget></item></layout>
    </item>
    <item>
     <layout class="QHBoxLayout" name="buttonLayout">
@@ -141,6 +155,6 @@
    </item>
   </layout>
  </widget>
- <resources/>
- <connections/>
+ <resources />
+ <connections />
 </ui>

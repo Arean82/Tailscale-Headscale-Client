@@ -238,6 +238,9 @@ class TailscaleManager(QObject):
             profile_name = self.last_connect_args.get("profile_name")
             exit_node = self.last_connect_args.get("exit_node")
             routes = self.last_connect_args.get("routes")
+            allow_lan = self.last_connect_args.get("allow_lan", False)
+            disable_snat = self.last_connect_args.get("disable_snat", False)
+            hostname = self.last_connect_args.get("hostname", "")
             
             args = ["up", f"--login-server={login_server}", "--accept-routes"]
             if getattr(self, "insecure_ssl", False):
@@ -245,11 +248,18 @@ class TailscaleManager(QObject):
             if not use_sso and auth_key:
                 args.insert(1, f"--auth-key={auth_key}")
                 
+            if hostname:
+                args.append(f"--hostname={hostname}")
+                
             if exit_node:
                 args.append(f"--exit-node={exit_node}")
+                if allow_lan:
+                    args.append("--exit-node-allow-lan-access=true")
                 
             if routes:
                 args.append(f"--advertise-routes={routes}")
+                if disable_snat:
+                    args.append("--snat-subnet-routes=false")
                 
             self.worker.run_command(args, profile_name)
 
@@ -374,7 +384,7 @@ class TailscaleManager(QObject):
         elif sys.platform == "darwin":
             QProcess.startDetached("launchctl", ["start", "com.tailscale.tailscaled"])
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False):
+    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname=""):
         self.last_connect_args = {
             "login_server": login_server,
             "auth_key": auth_key,
@@ -383,7 +393,10 @@ class TailscaleManager(QObject):
             "exit_node": exit_node,
             "routes": routes,
             "ssh": ssh,
-            "accept_dns": accept_dns
+            "accept_dns": accept_dns,
+            "allow_lan": allow_lan,
+            "disable_snat": disable_snat,
+            "hostname": hostname
         }
         self.reconnect_attempts = 0
         
@@ -401,11 +414,18 @@ class TailscaleManager(QObject):
         if not use_sso and auth_key:
             args.insert(1, f"--auth-key={auth_key}")
             
+        if hostname:
+            args.append(f"--hostname={hostname}")
+            
         if exit_node:
             args.append(f"--exit-node={exit_node}")
+            if allow_lan:
+                args.append("--exit-node-allow-lan-access=true")
             
         if routes:
             args.append(f"--advertise-routes={routes}")
+            if disable_snat:
+                args.append("--snat-subnet-routes=false")
         
         self.cache.clear() # Clear cache on new connection attempt
         self._update_state("Connecting...")

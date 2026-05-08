@@ -381,15 +381,18 @@ class DashboardView(QWidget):
             native_profile = self.profile.native_profile if (self.profile and self.manager.settings.advanced_features) else ""
             ssh = self.profile.enable_ssh if (self.profile and self.manager.settings.advanced_features) else False
             accept_dns = self.profile.accept_dns if (self.profile and self.manager.settings.advanced_features) else False
+            allow_lan = self.profile.allow_lan if (self.profile and self.manager.settings.advanced_features) else False
+            disable_snat = self.profile.disable_snat if (self.profile and self.manager.settings.advanced_features) else False
+            hostname = self.profile.hostname if (self.profile and self.manager.settings.advanced_features) else ""
 
             if native_profile:
                 self.ts_manager.switch_profile(native_profile, self.profile.name if self.profile else None)
                 from PySide6.QtCore import QTimer
                 QTimer.singleShot(1500, self.ts_manager.check_status)
             elif is_sso:
-                self.ts_manager.connect(url, None, True, self.profile.name if self.profile else None, exit_node, routes, ssh, accept_dns)
+                self.ts_manager.connect(url, None, True, self.profile.name if self.profile else None, exit_node, routes, ssh, accept_dns, allow_lan, disable_snat, hostname)
             else:
-                self.ts_manager.connect(url, key, False, self.profile.name if self.profile else None, exit_node, routes, ssh, accept_dns)
+                self.ts_manager.connect(url, key, False, self.profile.name if self.profile else None, exit_node, routes, ssh, accept_dns, allow_lan, disable_snat, hostname)
                 # Brief delay to allow command to start before checking status
                 from PySide6.QtCore import QTimer
                 QTimer.singleShot(2000, self.ts_manager.check_status)
