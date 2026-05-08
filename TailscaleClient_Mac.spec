@@ -54,6 +54,6 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='TailscaleClientPro.app',
-    icon='assets/app_icon.icns' if os.path.exists('assets/app_icon.icns') else None,
+    icon='assets/icon.icns' if os.path.exists('assets/icon.icns') else None,
     bundle_identifier='com.arean82.tailscaleclientpro',
 )

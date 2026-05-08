@@ -50,7 +50,7 @@ cat <<EOF > build/deb/usr/share/applications/$APP_NAME.desktop
 Name=Tailscale Client Pro
 Comment=Manage your VPN connections
 Exec=$APP_NAME
-Icon=/opt/$APP_NAME/assets/app_icon.png
+Icon=/opt/$APP_NAME/assets/icon.png
 Terminal=false
 Type=Application
 Categories=Network;VPN;
