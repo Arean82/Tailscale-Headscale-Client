@@ -31,7 +31,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='TailscaleClientPro',
+    name='Tailscale VPN Client Pro',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -45,4 +45,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='assets/icon.ico',
+    version='version_info.txt',
 )

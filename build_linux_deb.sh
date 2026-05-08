@@ -41,8 +41,55 @@ echo "Tailscale Client Pro removed cleanly."
 EOF
 chmod 755 build/deb/DEBIAN/postrm
 
-# 5. Copy files
-cp -r dist/TailscaleClientPro/* build/deb/opt/$APP_NAME/
+# 5. Copy files (Supports both OneDir and OneFile builds dynamically, prompting if both exist)
+HAS_ONEDIR=0
+HAS_ONEFILE=0
+
+if [ -d "dist/TailscaleClientPro_OneDir" ]; then
+    HAS_ONEDIR=1
+fi
+if [ -f "dist/Tailscale VPN Client Pro" ]; then
+    HAS_ONEFILE=1
+fi
+
+CHOICE=""
+if [ $HAS_ONEDIR -eq 1 ] && [ $HAS_ONEFILE -eq 1 ]; then
+    echo "Both OneDir and OneFile builds were detected in dist/."
+    echo "Which build would you like to package into the .deb?"
+    echo "  1) OneFile (Single standalone executable)"
+    echo "  2) OneDir  (Full unpacked directory)"
+    read -p "Enter choice [1 or 2]: " CHOICE
+    while [[ "$CHOICE" != "1" && "$CHOICE" != "2" ]]; do
+        read -p "Invalid choice. Please enter 1 or 2: " CHOICE
+    done
+elif [ $HAS_ONEDIR -eq 1 ]; then
+    CHOICE="2"
+elif [ $HAS_ONEFILE -eq 1 ]; then
+    CHOICE="1"
+else
+    echo "ERROR: No compiled builds found in dist/."
+    echo "Please build with PyInstaller first using one of these commands:"
+    echo "  pyinstaller TailscaleClient_OneFile.spec"
+    echo "  pyinstaller TailscaleClient_OneDir.spec"
+    exit 1
+fi
+
+if [ "$CHOICE" = "1" ]; then
+    echo "Packaging OneFile build..."
+    cp "dist/Tailscale VPN Client Pro" build/deb/opt/$APP_NAME/TailscaleClientPro
+    chmod +x build/deb/opt/$APP_NAME/TailscaleClientPro
+    # Copy assets so the desktop launcher can still find the icon file
+    if [ -d "assets" ]; then
+        cp -r assets build/deb/opt/$APP_NAME/
+    fi
+else
+    echo "Packaging OneDir build..."
+    cp -r dist/TailscaleClientPro_OneDir/* build/deb/opt/$APP_NAME/
+    # Rename the inner executable to TailscaleClientPro so launcher & symlink find it perfectly
+    if [ -f "build/deb/opt/$APP_NAME/Tailscale VPN Client Pro" ]; then
+        mv "build/deb/opt/$APP_NAME/Tailscale VPN Client Pro" "build/deb/opt/$APP_NAME/TailscaleClientPro"
+    fi
+fi
 
 # 6. Create Desktop Entry
 cat <<EOF > build/deb/usr/share/applications/$APP_NAME.desktop
