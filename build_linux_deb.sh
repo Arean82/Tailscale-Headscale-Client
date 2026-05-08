@@ -2,7 +2,7 @@
 # Script to create a .deb package for Tailscale Client Pro with lifecycle management
 
 APP_NAME="tailscale-client-pro"
-VERSION="1.0.0"
+VERSION="5.0.0"
 MAINTAINER="Arean82 <arean82@example.com>"
 
 # 1. Create directory structure

@@ -161,41 +161,39 @@ python main.py
 ## 📦 Packaging & Build Commands
 
 ### 🪟 Windows (Inno Setup)
-1. **Compile Python Binaries:** Ensure `pyinstaller` is installed, then build the executable folder structure:
+1. **Compile Python Binaries:** Ensure `pyinstaller` is installed, then build the unpacked executable directory structure:
    ```powershell
    pip install pyinstaller psutil PySide6 keyring
-   pyinstaller TailscaleClient_OneDir.spec
+   pyinstaller .\TailscaleClient_OneDir.spec
    ```
-2. **Build Installer:** Launch Inno Setup Compiler and compile `TailscaleClient_Installer.iss` to output the secure, compact `TailscaleClient_Setup.exe` installer with automated desktop and registry bindings.
+2. **Build Installer:** Open Inno Setup Compiler and compile `TailscaleClient_Installer.iss`. This outputs a secure, compact, version **5.0.0** setup installer `dist\installer\TailscaleClientPro_Setup.exe` with complete legal copyright headers, registry/autostart integration, and automated desktop shortcuts.
 
 ### 🐧 Linux (Ubuntu/Debian .deb)
-1. **Compile Python Binaries:** Ensure your local environment matches the target architecture (e.g. `x86_64`):
+1. **Compile Python Binaries:** Compile the unpacking binaries for your local target architecture (e.g. `amd64`):
    ```bash
    pip install pyinstaller psutil PySide6 keyring
    pyinstaller TailscaleClient_OneDir.spec
    ```
-2. **Create Debian Package:** Execute the packaging shell script to organize the binary tree into `/opt/tailscale-client` and compile the `.deb` package:
+2. **Create Debian Package:** Execute the packaging shell script to organize the binary tree into `/opt/tailscale-client-pro` and compile the `.deb` package:
    ```bash
    chmod +x build_linux_deb.sh
    ./build_linux_deb.sh
    ```
-3. **Install Package:**
+3. **Install Package:** Install the correctly versioned package using `dpkg`:
    ```bash
-   sudo dpkg -i dist/tailscale-client_1.0.0_amd64.deb
+   sudo dpkg -i dist/tailscale-client-pro_5.0.0_amd64.deb
    ```
 
 ### 🍎 macOS (.app Bundle & DMG)
-1. **Compile Application Bundle:** Build a standard macOS `.app` bundle:
+The compilation and disk image (DMG) creation process has been completely automated with a robust shell script:
+1. **Run Automated Build Script:** Run the included build script to clean directories, run PyInstaller, and compile a premium, drag-and-drop installer:
    ```bash
-   pip install pyinstaller psutil PySide6 keyring
-   pyinstaller TailscaleClient_Mac.spec
+   chmod +x build_mac_dmg.sh
+   ./build_mac_dmg.sh
    ```
-   *This outputs `TailscaleClientPro.app` inside the `dist/` directory, complete with local `.plist` settings and icon references.*
-2. **Create Installable DMG:** Package the app folder into a compressed disk image:
-   ```bash
-   hdiutil create -volname "Tailscale Client Pro" -srcfolder dist/TailscaleClientPro.app -ov -format UDZO TailscaleClientPro.dmg
-   ```
-3. **Mount and Distribute:** Users can double-click `TailscaleClientPro.dmg` and drag the application directly to their `/Applications` folder.
+2. **Retrieve DMG:** Grab your ready-to-distribute **5.0.0** disk image installer at:
+   `dist/TailscaleClientPro_Setup.dmg`
+3. **Install:** Double-click the DMG and drag your application icon into the `/Applications` folder shortcut inside the pop-up window.
 
 ---
 
