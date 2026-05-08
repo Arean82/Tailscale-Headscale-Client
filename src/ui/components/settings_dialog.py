@@ -1,7 +1,7 @@
 # src/ui/components/settings_dialog.py
 
 import os
-from PySide6.QtWidgets import QDialog, QCheckBox, QPushButton, QLabel, QMessageBox, QSlider, QVBoxLayout, QHBoxLayout, QSpinBox
+from PySide6.QtWidgets import QDialog, QCheckBox, QPushButton, QLabel, QMessageBox, QSlider, QVBoxLayout, QHBoxLayout, QSpinBox, QLineEdit
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, Qt
 
@@ -10,8 +10,15 @@ from .simple_dialogs import BaseUiDialog
 class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
         super().__init__("settings.ui", parent)
-        self.setFixedSize(340, 375)
+        self.setFixedSize(350, 415)
         self.manager = manager
+        
+        # Remove double margins and apply compact spacing
+        self.layout().setContentsMargins(16, 12, 16, 12)
+        self.layout().setSpacing(0)
+        if self.ui.layout():
+            self.ui.layout().setContentsMargins(0, 0, 0, 0)
+            self.ui.layout().setSpacing(6)
         
         # Access widgets through self.ui
         self.chkAutoConnect = self.ui.findChild(QCheckBox, "chkAutoConnect")
@@ -20,7 +27,7 @@ class SettingsDialog(BaseUiDialog):
         self.chkAdvanced = self.ui.findChild(QCheckBox, "chkAdvanced")
         self.chkUseLocalAPI = self.ui.findChild(QCheckBox, "chkUseLocalAPI")
         self.chkInsecureSSL = self.ui.findChild(QCheckBox, "chkInsecureSSL")
-        self.labelLogPath = self.ui.findChild(QLabel, "labelLogPath")
+        self.lineEditLogPath = self.ui.findChild(QLineEdit, "lineEdit")
         self.btnOpenLogFolder = self.ui.findChild(QPushButton, "btnOpenLogFolder")
         self.btnClose = self.ui.findChild(QPushButton, "btnClose")
         
@@ -43,8 +50,9 @@ class SettingsDialog(BaseUiDialog):
         if self.chkInsecureSSL:
             self.chkInsecureSSL.setChecked(self.manager.settings.insecure_ssl)
             
-        if self.labelLogPath:
-            self.labelLogPath.setText(f"Path: {self.manager.base_dir}")
+        if self.lineEditLogPath:
+            self.lineEditLogPath.setReadOnly(True)
+            self.lineEditLogPath.setText(self.manager.base_dir)
             
         # Access SpinBox for max profile limit from UI
         self.spinMaxTabs = self.ui.findChild(QSpinBox, "spinMaxTabs")

@@ -97,7 +97,13 @@ if __name__ == "__main__":
         except Exception:
             pass
             
-    app.setApplicationName("Tailscale Client Pro")
+    # Dynamically set app name to match the running .exe name (specified in your .spec file)
+    exe_name = os.path.splitext(os.path.basename(sys.executable))[0]
+    if exe_name.lower() in ["python", "pythonw", "main"]:  # Running from source code
+        app.setApplicationName("Tailscale Client Pro")
+    else:  # Running from the compiled .exe
+        app.setApplicationName(exe_name)
+    
     
     from PySide6.QtGui import QIcon
     def get_asset_path(relative_path):
