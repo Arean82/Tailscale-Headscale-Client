@@ -150,7 +150,10 @@ python main.py
 │       ├── ⚙️ local_api.py         # Named Pipes & Unix Sockets Client
 │       └── ⚙️ autostart.py         # Native Boot Configuration Manager
 ├── 📦 TailscaleClient_Installer.iss # Windows Installer Script
+├── 📦 TailscaleClient_OneDir.spec   # Windows Unpacked Spec file
+├── 📦 TailscaleClient_OneFile.spec  # Windows Single Exe Spec file
 ├── 📦 build_linux_deb.sh          # Linux Packaging Script
+├── 📦 build_mac_dmg.sh            # macOS DMG Build Script
 ├── 📦 TailscaleClient_Mac.spec      # macOS App Bundle Spec
 ├── 🚀 main.py                     # Application Entry Point
 └── 📖 README.md                   # Documentation
