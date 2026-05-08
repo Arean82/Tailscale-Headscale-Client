@@ -140,11 +140,26 @@ class ReadmeDialog(BaseUiDialog):
         if not self.viewer: return
         
         # Set base path for local images
-        self.viewer.setSearchPaths([os.getcwd()])
+        import sys
+        if sys.platform == "win32":
+            app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
+        else:
+            app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
+        self.viewer.setSearchPaths([app_dir])
         
         md_text = ""
-        if os.path.exists("README.md"):
-            with open("README.md", "r", encoding="utf-8") as f:
+        # Try to resolve README.md from the bundle/development directory
+        if hasattr(sys, '_MEIPASS'):
+            readme_path = os.path.join(sys._MEIPASS, "README.md")
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            readme_path = os.path.join(base_dir, "README.md")
+            
+        if not os.path.exists(readme_path):
+            readme_path = os.path.join(os.getcwd(), "README.md")
+            
+        if os.path.exists(readme_path):
+            with open(readme_path, "r", encoding="utf-8") as f:
                 md_text = f.read()
         
         if md_text:
@@ -204,7 +219,13 @@ class ReadmeDialog(BaseUiDialog):
 
     def _prepare_readme_content(self, md_text):
         """Identifies which images are cached and which need downloading."""
-        cache_dir = os.path.join(os.getcwd(), "assets", "cache")
+        import sys
+        if sys.platform == "win32":
+            app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
+        else:
+            app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
+            
+        cache_dir = os.path.join(app_dir, "assets", "cache")
         os.makedirs(cache_dir, exist_ok=True)
         
         img_urls = re.findall(r'!\[.*?\]\((https?://.*?)\)', md_text)
@@ -228,8 +249,14 @@ class ReadmeDialog(BaseUiDialog):
         if self.download_thread and self.download_thread.isRunning():
             return
             
+        import sys
+        if sys.platform == "win32":
+            app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
+        else:
+            app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
+            
         self.download_thread = QThread()
-        self.worker = ImageDownloadWorker(urls, os.path.join(os.getcwd(), "assets", "cache"))
+        self.worker = ImageDownloadWorker(urls, os.path.join(app_dir, "assets", "cache"))
         self.worker.moveToThread(self.download_thread)
         
         self.download_thread.started.connect(self.worker.run)
@@ -361,8 +388,18 @@ class LicenseDialog(QDialog):
         self.text_browser.setStyleSheet(f"background-color: {bg_color}; color: {text_color}; font-family: monospace;")
         
         content = "LICENSE file not found."
-        if os.path.exists("LICENSE"):
-            with open("LICENSE", "r", encoding="utf-8") as f:
+        import sys
+        if hasattr(sys, '_MEIPASS'):
+            license_path = os.path.join(sys._MEIPASS, "LICENSE")
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            license_path = os.path.join(base_dir, "LICENSE")
+            
+        if not os.path.exists(license_path):
+            license_path = os.path.join(os.getcwd(), "LICENSE")
+            
+        if os.path.exists(license_path):
+            with open(license_path, "r", encoding="utf-8") as f:
                 content = f.read()
         self.text_browser.setPlainText(content)
         layout.addWidget(self.text_browser)

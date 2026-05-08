@@ -87,15 +87,31 @@ class MainWindow(QMainWindow):
         from PySide6.QtGui import QIcon
         
         self.tray_icon = QSystemTrayIcon(self)
-        # Try to find icon.png in the project root or assets
-        icon_path = os.path.join(os.getcwd(), "icon.png")
+        
+        # 1. Try to load from persistent APPDATA first (extremely robust for Windows Startup/Auto-start)
+        icon_path = os.path.join(self.manager.base_dir, "icon.png")
+        
+        # 2. If not found, fallback to PyInstaller runtime temp or development folder
         if not os.path.exists(icon_path):
-            icon_path = os.path.join(os.getcwd(), "assets", "icon.png")
+            if hasattr(sys, '_MEIPASS'):
+                icon_path = os.path.join(sys._MEIPASS, "assets", "icon.png")
+            else:
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                icon_path = os.path.join(base_dir, "assets", "icon.png")
+                
+            if not os.path.exists(icon_path):
+                icon_path = os.path.join(base_dir, "icon.png")
+                
+        # 3. Final safety fallbacks (Current Working Directory)
+        if not os.path.exists(icon_path):
+            icon_path = os.path.join(os.getcwd(), "icon.png")
+            if not os.path.exists(icon_path):
+                icon_path = os.path.join(os.getcwd(), "assets", "icon.png")
         
         if os.path.exists(icon_path):
             self.tray_icon.setIcon(QIcon(icon_path))
         else:
-            # Fallback to a standard icon
+            # Fallback to standard style icon
             from PySide6.QtWidgets import QStyle
             self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
             
@@ -104,6 +120,14 @@ class MainWindow(QMainWindow):
         self.tray_icon.setContextMenu(self.tray_menu)
         self.tray_icon.activated.connect(self._tray_icon_activated)
         self.tray_icon.show()
+        
+        # 4. Safe retry mechanism for Windows Startup (Explorer race condition)
+        # Sometimes, Windows launches startup apps before the Explorer Taskbar/System Tray is ready.
+        if sys.platform == "win32":
+            def safe_retry_show():
+                if hasattr(self, 'tray_icon') and self.tray_icon and not self.tray_icon.isVisible():
+                    self.tray_icon.show()
+            QTimer.singleShot(5000, safe_retry_show)
 
     def check_daemon_async(self):
         from PySide6.QtCore import QProcess

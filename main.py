@@ -70,6 +70,22 @@ if __name__ == "__main__":
     
     logger.info("Application starting up (PySide6 Edition)...")
 
+    # Copy icon to persistent APPDATA directory for 100% reliable loading (especially on Windows Startup)
+    import shutil
+    try:
+        def get_asset_path_early(relative_path):
+            if hasattr(sys, '_MEIPASS'):
+                return os.path.join(sys._MEIPASS, relative_path)
+            return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
+        
+        bundled_icon = get_asset_path_early("assets/icon.png")
+        persistent_icon = os.path.join(app_dir, "icon.png")
+        if os.path.exists(bundled_icon):
+            if not os.path.exists(persistent_icon) or os.path.getsize(bundled_icon) != os.path.getsize(persistent_icon):
+                shutil.copy2(bundled_icon, persistent_icon)
+    except Exception as e:
+        logger.error(f"Failed to copy icon to persistent APPDATA: {e}")
+
     # 2. Initialize App & Check Lock
     app = QApplication(sys.argv)
     if sys.platform == "win32":

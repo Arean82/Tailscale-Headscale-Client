@@ -5,6 +5,8 @@ block_cipher = None
 added_files = [
     ('pygui', 'pygui'),
     ('assets', 'assets'),
+    ('README.md', '.'),
+    ('LICENSE', '.'),
 ]
 
 a = Analysis(

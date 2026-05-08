@@ -44,9 +44,7 @@ class SettingsDialog(BaseUiDialog):
             self.chkInsecureSSL.setChecked(self.manager.settings.insecure_ssl)
             
         if self.labelLogPath:
-            from src.utils.logger import get_global_log_dir
-            log_dir = get_global_log_dir(self.manager.base_dir)
-            self.labelLogPath.setText(f"Path: {log_dir}")
+            self.labelLogPath.setText(f"Path: {self.manager.base_dir}")
             
         # Access SpinBox for max profile limit from UI
         self.spinMaxTabs = self.ui.findChild(QSpinBox, "spinMaxTabs")
@@ -148,9 +146,8 @@ class SettingsDialog(BaseUiDialog):
             self.parent().update_advanced_menu_state()
 
     def _open_log_folder(self):
-        from src.utils.logger import get_global_log_dir
         import sys
-        path = get_global_log_dir(self.manager.base_dir)
+        path = self.manager.base_dir
         if os.path.exists(path):
             import subprocess
             try:
