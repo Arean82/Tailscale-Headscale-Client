@@ -9,7 +9,7 @@ Compression=lzma2
 SolidCompression=yes
 OutputDir=dist\installer
 OutputBaseFilename=TailscaleClientPro_Setup
-SetupIconFile=assets\app_icon.ico
+SetupIconFile=assets\icon.ico
 ; Ensure the folder is removed even if it contains logs/database
 ChangesAssociations=yes
 

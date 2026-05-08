@@ -1,4 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+
 
 block_cipher = None
 
@@ -29,7 +31,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='TailscaleClientPro',
+    name='Tailscale VPN Client Pro',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -40,7 +42,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='assets/app_icon.ico' if os.path.exists('assets/app_icon.ico') else None,
+    icon='assets/icon.ico' if os.path.exists('assets/icon.ico') else None,
+    version='version_info.txt',
 )
 coll = COLLECT(
     exe,
@@ -50,5 +53,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='TailscaleClientPro',
+    name='TailscaleClientPro_OneDir',
 )

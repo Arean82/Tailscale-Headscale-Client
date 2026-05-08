@@ -1,4 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+
 
 block_cipher = None
 
@@ -54,6 +56,12 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='TailscaleClientPro.app',
-    icon='assets/app_icon.icns' if os.path.exists('assets/app_icon.icns') else None,
+    icon='assets/icon.icns' if os.path.exists('assets/icon.icns') else None,
     bundle_identifier='com.arean82.tailscaleclientpro',
+    info_plist={
+        'CFBundleShortVersionString': '5.0.0',
+        'CFBundleVersion': '5.0.0.0',
+        'NSHumanReadableCopyright': 'Copyright (c) 2026 Arean82. All rights reserved.',
+        'CFBundleDisplayName': 'Tailscale VPN Client Pro',
+    },
 )

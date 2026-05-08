@@ -74,7 +74,22 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     if sys.platform == "win32":
         app.setStyle("WindowsVista") 
+        try:
+            import ctypes
+            myappid = 'arean82.tailscale.headscale.client.pro'
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+        except Exception:
+            pass
+            
     app.setApplicationName("Tailscale Client Pro")
+    
+    from PySide6.QtGui import QIcon
+    def get_asset_path(relative_path):
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
+        
+    app.setWindowIcon(QIcon(get_asset_path("assets/icon.png")))
 
     from PySide6.QtCore import QLockFile, Qt, QTimer, QEventLoop
     from PySide6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QLabel, QProgressBar
