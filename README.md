@@ -26,6 +26,9 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 
 ### ⚡ Power Features & Smart Routing (Advanced Features)
 - **Granular Exit Node & Subnet Selection:** Advanced options (`node.ui`) per-profile tab allowing customizable `--exit-node` and `--advertise-routes` parameters.
+- **Allow LAN Access Toggle (`--exit-node-allow-lan-access`):** Added a secure toggle to access local physical network devices while tunneling through an exit node.
+- **Disable SNAT Toggle (`--snat-subnet-routes=false`):** Added a routing subnet toggle to preserve actual client IP addresses in server audit logs.
+- **Custom Hostname Overrides (`--hostname`):** Added a customizable input field inside the Node Dialog to append custom node hostname overrides per connection profile.
 - **Intelligent Route Auto-Suggestion:** Selecting an exit node instantly queries its advertised IP routes and automatically populates the Subnet Routes field in real-time, eliminating manual copying.
 - **Tray Quick Exit-Node Switcher:** Dynamic taskbar context switcher that allows power users to change, toggle, or release active exit-node routing directly from the system tray context menu on right-click.
 - **Traffic Monitor Throttling:** Pauses OS statistics polling and database writes when the client window is minimized or hidden in the system tray, optimizing CPU, disk I/O, and battery usage.
