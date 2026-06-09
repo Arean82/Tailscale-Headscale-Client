@@ -25,7 +25,8 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 - **Dynamic Experimental Badge:** Renders a gorgeous `🧪 Experimental API` badge on the main dashboard instantly when Local API is enabled in the settings.
 
 ### ⚡ Power Features & Smart Routing (Advanced Features)
-- **Emergency DNS Fallback (Trust on First Use):** Automatically captures and caches the target server IP address upon a successful connection. If primary domain name resolution fails during a future launch, the client intelligently intercepts the failure, requests temporary UAC elevation, and dynamically updates the system `hosts` file to tunnel traffic directly to the cached emergency IP.
+- **Live Daemon Auto-Sync:** Advanced Options intelligently snapshot active daemon states (`tailscale debug prefs` and `tailscale status --json`) to automatically pre-fill hostname, subnet routes, and hidden network flags in real-time, featuring a manual override toggle.
+- **Emergency DNS Fallback (Trust on First Use):** Features Active `ControlURL` DNS Resolution to dynamically calculate and cache target server IPv4 addresses upon a successful connection. If primary domain name resolution fails during a future launch, the client intelligently intercepts the failure and tunnels traffic directly to the cached emergency IP.
 - **Granular Exit Node & Subnet Selection:** Advanced options (`node.ui`) per-profile tab allowing customizable `--exit-node` and `--advertise-routes` parameters.
 - **Allow LAN Access Toggle (`--exit-node-allow-lan-access`):** Added a secure toggle to access local physical network devices while tunneling through an exit node.
 - **Disable SNAT Toggle (`--snat-subnet-routes=false`):** Added a routing subnet toggle to preserve actual client IP addresses in server audit logs.
