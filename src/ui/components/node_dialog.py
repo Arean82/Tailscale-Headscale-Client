@@ -41,54 +41,24 @@ class NodeDialog(BaseUiDialog):
         if self.chkAutoPopulate:
             self.chkAutoPopulate.stateChanged.connect(self._on_auto_populate_changed)
 
-        # Style native Save & Cancel buttons
         if self.btnSave:
-            self.btnSave.setStyleSheet("""
-                QPushButton { 
-                    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #15803d);
-                    color: white; font-weight: bold; border-radius: 6px; padding: 6px 20px; border: 1px solid #166534;
-                }
-                QPushButton:hover { 
-                    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ade80, stop:1 #16a34a);
-                }
-            """)
             self.btnSave.clicked.connect(self._save_settings)
 
         if self.btnCancel:
-            self.btnCancel.setStyleSheet("""
-                QPushButton { 
-                    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4b5563, stop:1 #1f2937);
-                    color: white; font-weight: bold; border-radius: 6px; padding: 6px 20px; border: 1px solid #111827;
-                }
-                QPushButton:hover { 
-                    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6b7280, stop:1 #374151);
-                }
-            """)
             self.btnCancel.clicked.connect(self.reject)
 
-        # Style and populate listNativeSwitch
+        # Populate listNativeSwitch
         if self.listNativeSwitch:
-            self.listNativeSwitch.setStyleSheet("""
-                QListWidget {
-                    background-color: #1a1e2e;
-                    border: 1px solid #3d4b7c;
-                    border-radius: 6px;
-                    color: white;
-                    padding: 4px;
-                }
-                QListWidget::item {
-                    padding: 4px;
-                    color: white;
-                }
-                QListWidget::item:hover {
-                    background-color: #374151;
-                    border-radius: 4px;
-                }
-            """)
             for name, p in self.manager.profiles.items():
                 item = QListWidgetItem(name, self.listNativeSwitch)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                item.setCheckState(Qt.Checked if p.is_native_switch else Qt.Unchecked)
+                
+                # Check if this profile is already in the current profile's switch list
+                checked = False
+                if self.profile.native_profile:
+                    checked = (name in [n.strip() for n in self.profile.native_profile.split(",")])
+                    
+                item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
 
         # Populate initial values
         if self.comboBoxExitNode:

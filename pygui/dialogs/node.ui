@@ -312,6 +312,15 @@
        <property name="text">
         <string>Save Settings</string>
        </property>
+       <property name="styleSheet">
+        <string>QPushButton { 
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #15803d);
+    color: white; font-weight: bold; border-radius: 6px; padding: 6px 20px; border: 1px solid #166534;
+}
+QPushButton:hover { 
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ade80, stop:1 #16a34a);
+}</string>
+       </property>
       </widget>
      </item>
      <item>
@@ -334,6 +343,15 @@
       <widget class="QPushButton" name="btnCancel">
        <property name="text">
         <string>Cancel</string>
+       </property>
+       <property name="styleSheet">
+        <string>QPushButton { 
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4b5563, stop:1 #1f2937);
+    color: white; font-weight: bold; border-radius: 6px; padding: 6px 20px; border: 1px solid #111827;
+}
+QPushButton:hover { 
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6b7280, stop:1 #374151);
+}</string>
        </property>
       </widget>
      </item>
