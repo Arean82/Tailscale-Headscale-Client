@@ -129,8 +129,14 @@ python main.py
 │   ├── 🪟 dialogs/                # Popup windows
 │   │   ├── 📄 about.ui
 │   │   ├── 📄 credentials.ui
+│   │   ├── 📄 diagnostics.ui
+│   │   ├── 📄 log_viewer.ui
+│   │   ├── 📄 node.ui                 # Exit Node & Advanced Options Dialog
+│   │   ├── 📄 peer_list.ui
+│   │   ├── 📄 profile.ui
+│   │   ├── 📄 progress.ui
+│   │   ├── 📄 readme.ui
 │   │   ├── 📄 settings.ui
-│   │   ├── 📄 node.ui                 # Exit Node & Switch Profile Dialog
 │   │   └── 📄 traffic.ui
 │   └── 🖼️ windows/                 # Layouts
 │       ├── 📄 main_window.ui
