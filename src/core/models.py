@@ -28,6 +28,11 @@ class Profile:
     hostname: str = ""
     last_known_ip: str = ""
     enable_dns_fallback: bool = False
+    force_reset: bool = False
+    advertise_exit_node: bool = False
+    shields_up: bool = False
+    force_reauth: bool = False
+    advertise_tags: str = ""
 
 @dataclass
 class AppSettings:
@@ -35,6 +40,7 @@ class AppSettings:
     auto_connect: bool = False
     enable_logs: bool = False
     advanced_features: bool = False
+    global_dns_fallback: bool = False
     max_tabs: int = 5
     last_profile: Optional[str] = None
     use_local_api: bool = True

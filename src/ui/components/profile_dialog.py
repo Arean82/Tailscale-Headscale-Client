@@ -6,8 +6,9 @@ from PySide6.QtCore import QFile
 from .simple_dialogs import BaseUiDialog
 
 class ProfileDialog(BaseUiDialog):
-    def __init__(self, parent=None, profile=None):
+    def __init__(self, parent=None, profile=None, manager=None):
         super().__init__("credentials.ui", parent)
+        self.manager = manager
         self.setFixedSize(350, 350)
         
         # Access widgets through self.ui
@@ -58,7 +59,8 @@ class ProfileDialog(BaseUiDialog):
                 if self.stackedWidget: self.stackedWidget.setCurrentIndex(1)
             
             if self.chkEnableFallback:
-                self.chkEnableFallback.setChecked(getattr(profile, 'enable_dns_fallback', False))
+                global_fallback = getattr(self.manager.settings, 'global_dns_fallback', False) if self.manager else False
+                self.chkEnableFallback.setChecked(getattr(profile, 'enable_dns_fallback', False) or global_fallback)
             if self.lineEditFallbackIP:
                 self.lineEditFallbackIP.setText(getattr(profile, 'last_known_ip', ""))
                 self.lineEditFallbackIP.setVisible(self.chkEnableFallback.isChecked() if self.chkEnableFallback else False)

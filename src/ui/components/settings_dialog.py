@@ -27,6 +27,7 @@ class SettingsDialog(BaseUiDialog):
         self.chkAdvanced = self.ui.findChild(QCheckBox, "chkAdvanced")
         self.chkUseLocalAPI = self.ui.findChild(QCheckBox, "chkUseLocalAPI")
         self.chkInsecureSSL = self.ui.findChild(QCheckBox, "chkInsecureSSL")
+        self.chkGlobalDnsFallback = self.ui.findChild(QCheckBox, "chkGlobalDnsFallback")
         self.lineEditLogPath = self.ui.findChild(QLineEdit, "lineEdit")
         self.btnOpenLogFolder = self.ui.findChild(QPushButton, "btnOpenLogFolder")
         self.btnClose = self.ui.findChild(QPushButton, "btnClose")
@@ -49,6 +50,9 @@ class SettingsDialog(BaseUiDialog):
             
         if self.chkInsecureSSL:
             self.chkInsecureSSL.setChecked(self.manager.settings.insecure_ssl)
+            
+        if self.chkGlobalDnsFallback:
+            self.chkGlobalDnsFallback.setChecked(self.manager.settings.global_dns_fallback)
             
         if self.lineEditLogPath:
             self.lineEditLogPath.setReadOnly(True)
@@ -85,6 +89,8 @@ class SettingsDialog(BaseUiDialog):
             self.chkUseLocalAPI.toggled.connect(self._save_settings)
         if self.chkInsecureSSL:
             self.chkInsecureSSL.toggled.connect(self._save_settings)
+        if self.chkGlobalDnsFallback:
+            self.chkGlobalDnsFallback.toggled.connect(self._save_settings)
         if self.btnOpenLogFolder:
             self.btnOpenLogFolder.clicked.connect(self._open_log_folder)
         if self.btnClose:
@@ -138,6 +144,7 @@ class SettingsDialog(BaseUiDialog):
         self.manager.settings.advanced_features = self.chkAdvanced.isChecked() if self.chkAdvanced else False
         self.manager.settings.use_local_api = self.chkUseLocalAPI.isChecked() if self.chkUseLocalAPI else False
         self.manager.settings.insecure_ssl = self.chkInsecureSSL.isChecked() if self.chkInsecureSSL else False
+        self.manager.settings.global_dns_fallback = self.chkGlobalDnsFallback.isChecked() if self.chkGlobalDnsFallback else False
         self.manager.settings.startup_delay = self.spinStartupDelay.value() if self.spinStartupDelay else 10
         self.manager.save_settings()
         

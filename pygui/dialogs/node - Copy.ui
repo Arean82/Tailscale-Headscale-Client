@@ -1,0 +1,296 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ui version="4.0">
+ <class>NodeDialog</class>
+ <widget class="QDialog" name="NodeDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>567</width>
+    <height>380</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Advanced Options</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>10</number>
+   </property>
+   <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <property name="verticalSpacing">
+      <number>8</number>
+     </property>
+     <item row="0" column="0" colspan="2">
+      <widget class="QCheckBox" name="chkAutoPopulate">
+       <property name="text">
+        <string>Auto-Sync with Active Tailscale Daemon</string>
+       </property>
+       <property name="toolTip">
+        <string>If checked, pulls live settings from the background daemon. Uncheck to manually configure.</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+       <property name="font">
+        <font>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string>color: #4ade80;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="labelExitNode">
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Exit Node :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <layout class="QGridLayout" name="flagsLayout">
+       <item row="3" column="0">
+        <widget class="QCheckBox" name="chkAcceptDNS">
+         <property name="text">
+          <string>Accept DNS (--accept-dns)</string>
+         </property>
+         <property name="toolTip">
+          <string>Accept DNS settings pushed by the Tailnet.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="chkAllowLAN">
+         <property name="text">
+          <string>Allow LAN (--exit-node-allow-lan-access)</string>
+         </property>
+         <property name="toolTip">
+          <string>Allow access to local LAN when using an Exit Node.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QCheckBox" name="chkDisableSNAT">
+         <property name="text">
+          <string>Disable SNAT (--snat-subnet-routes=false)</string>
+         </property>
+         <property name="toolTip">
+          <string>Disable Source NAT for advertised routes. Required for site-to-site networking.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="chkSSH">
+         <property name="text">
+          <string>Enable SSH (--ssh)</string>
+         </property>
+         <property name="toolTip">
+          <string>Allow remote Tailscale SSH connections to this machine.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QCheckBox" name="chkDnsFallback">
+         <property name="text">
+          <string>Enable DNS Fallback</string>
+         </property>
+         <property name="toolTip">
+          <string>Use the cached Emergency IP if the login server domain cannot be resolved.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QCheckBox" name="chkForceReset">
+         <property name="text">
+          <string>Force Reset (--reset)</string>
+         </property>
+         <property name="toolTip">
+          <string>Wipe local daemon state (routes, exit nodes) before bringing up this profile.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QCheckBox" name="chkAdvertiseExitNode">
+         <property name="text">
+          <string>Run as Exit Node (--advertise-exit-node)</string>
+         </property>
+         <property name="toolTip">
+          <string>Allows this machine to act as an exit node for the rest of your Tailnet.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QCheckBox" name="chkShieldsUp">
+         <property name="text">
+          <string>Shields Up (--shields-up)</string>
+         </property>
+         <property name="toolTip">
+          <string>Blocks incoming connections from other devices on your Tailnet for maximum security.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QCheckBox" name="chkForceReauth">
+         <property name="text">
+          <string>Force Reauth (--force-reauth)</string>
+         </property>
+         <property name="toolTip">
+          <string>Forces the daemon to completely re-authenticate with the control server.</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="labelRoutes">
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Subnet Routes :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLineEdit" name="lineEditRoutes">
+       <property name="placeholderText">
+        <string>e.g. 10.0.0.0/24,192.168.1.0/24</string>
+       </property>
+       <property name="toolTip">
+        <string>Expose local subnets to the Tailnet (comma-separated).</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="labelTags">
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Advertise Tags :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLineEdit" name="lineEditTags">
+       <property name="placeholderText">
+        <string>e.g. tag:server,tag:dev</string>
+       </property>
+       <property name="toolTip">
+        <string>Assign specific ACL tags to this machine (comma-separated).</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="labelNativeProfile">
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Instant Switch Group :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="labelFlags">
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Optional Flags :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QListWidget" name="listNativeSwitch">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>120</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Check profiles to assign them to this Instant Switch group.</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="comboBoxExitNode">
+       <property name="editable">
+        <bool>true</bool>
+       </property>
+       <property name="toolTip">
+        <string>Select an Exit Node to route all your internet traffic through.</string>
+       </property>
+      </widget>
+     </item>
+    <item row="2" column="0"><widget class="QLabel" name="labelHostname"><property name="font"><font><pointsize>9</pointsize><bold>true</bold></font></property><property name="text"><string>Custom Hostname :</string></property></widget></item><item row="2" column="1"><widget class="QLineEdit" name="lineEditHostname"><property name="placeholderText"><string>e.g. my-node-override</string></property><property name="toolTip"><string>Override the machine name shown in the admin console.</string></property></widget></item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="labelEmergencyIp">
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Emergency IP :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QLineEdit" name="lineEditEmergencyIp">
+       <property name="placeholderText">
+        <string>(Auto-Captured when connected)</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonLayout">
+     <property name="spacing">
+      <number>10</number>
+     </property>
+     <item>
+      <widget class="QPushButton" name="btnSave">
+       <property name="text">
+        <string>Save Settings</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnCancel">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

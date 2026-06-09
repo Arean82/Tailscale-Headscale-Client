@@ -1,6 +1,6 @@
 # Tailscale-Headscale Client Pro (PySide6 Edition)
 
-[![Tailscale](https://img.shields.io/badge/Tailscale-v1.6-blue)](https://tailscale.com) [![PySide6](https://img.shields.io/badge/PySide6-v6.6-green)](https://pyside.org) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Arean82/Tailscale-Headscale-Client) [![License](https://img.shields.io/badge/License-MIT-orange)](LICENSE) [![Python](https://img.shields.io/badge/Python-3.12-green)](https://www.python.org)
+[![Tailscale](https://img.shields.io/badge/Tailscale-v1.6-blue)](https://tailscale.com) [![PySide6](https://img.shields.io/badge/PySide6-v6.6-green)](https://pyside.org) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Arean82/Tailscale-Headscale-Client) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/Python-3.12-green)](https://www.python.org)
 
 A professional-grade, high-performance cross-platform GUI client for Tailscale and Headscale. This client combines robust VPN logic with a premium, animated modern interface following enterprise-level separation of concerns.
 
@@ -25,6 +25,7 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 - **Dynamic Experimental Badge:** Renders a gorgeous `🧪 Experimental API` badge on the main dashboard instantly when Local API is enabled in the settings.
 
 ### ⚡ Power Features & Smart Routing (Advanced Features)
+- **Emergency DNS Fallback (Trust on First Use):** Automatically captures and caches the target server IP address upon a successful connection. If primary domain name resolution fails during a future launch, the client intelligently intercepts the failure, requests temporary UAC elevation, and dynamically updates the system `hosts` file to tunnel traffic directly to the cached emergency IP.
 - **Granular Exit Node & Subnet Selection:** Advanced options (`node.ui`) per-profile tab allowing customizable `--exit-node` and `--advertise-routes` parameters.
 - **Allow LAN Access Toggle (`--exit-node-allow-lan-access`):** Added a secure toggle to access local physical network devices while tunneling through an exit node.
 - **Disable SNAT Toggle (`--snat-subnet-routes=false`):** Added a routing subnet toggle to preserve actual client IP addresses in server audit logs.
@@ -201,4 +202,4 @@ The compilation and disk image (DMG) creation process has been completely automa
 ---
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.

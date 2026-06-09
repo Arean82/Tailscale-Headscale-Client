@@ -48,7 +48,7 @@ class ProfilesView(QWidget):
             self.profiles_list.addItem(name)
 
     def add_profile(self):
-        dialog = ProfileDialog(self)
+        dialog = ProfileDialog(self, manager=self.manager)
         if dialog.exec():
             data = dialog.get_data()
             if not data["name"]: return
@@ -75,7 +75,7 @@ class ProfilesView(QWidget):
         if not item: return
         
         profile = self.manager.profiles[item.text()]
-        dialog = ProfileDialog(self, profile)
+        dialog = ProfileDialog(self, profile, manager=self.manager)
         if dialog.exec():
             data = dialog.get_data()
             profile.login_server = data["login_server"]

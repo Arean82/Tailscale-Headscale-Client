@@ -241,8 +241,23 @@ class TailscaleManager(QObject):
             allow_lan = self.last_connect_args.get("allow_lan", False)
             disable_snat = self.last_connect_args.get("disable_snat", False)
             hostname = self.last_connect_args.get("hostname", "")
+            force_reset = self.last_connect_args.get("force_reset", False)
+            advertise_exit_node = self.last_connect_args.get("advertise_exit_node", False)
+            shields_up = self.last_connect_args.get("shields_up", False)
+            force_reauth = self.last_connect_args.get("force_reauth", False)
+            advertise_tags = self.last_connect_args.get("advertise_tags", "")
             
             args = ["up", f"--login-server={login_server}", "--accept-routes"]
+            if force_reset:
+                args.append("--reset")
+            if force_reauth:
+                args.append("--force-reauth")
+            if advertise_exit_node:
+                args.append("--advertise-exit-node")
+            if shields_up:
+                args.append("--shields-up")
+            if advertise_tags:
+                args.append(f"--advertise-tags={advertise_tags}")
             if getattr(self, "insecure_ssl", False):
                 args.append("--insecure-skip-tls-verify=true")
             if not use_sso and auth_key:
@@ -384,7 +399,7 @@ class TailscaleManager(QObject):
         elif sys.platform == "darwin":
             QProcess.startDetached("launchctl", ["start", "com.tailscale.tailscaled"])
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname=""):
+    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname="", force_reset=False, advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags=""):
         self.last_connect_args = {
             "login_server": login_server,
             "auth_key": auth_key,
@@ -396,7 +411,12 @@ class TailscaleManager(QObject):
             "accept_dns": accept_dns,
             "allow_lan": allow_lan,
             "disable_snat": disable_snat,
-            "hostname": hostname
+            "hostname": hostname,
+            "force_reset": force_reset,
+            "advertise_exit_node": advertise_exit_node,
+            "shields_up": shields_up,
+            "force_reauth": force_reauth,
+            "advertise_tags": advertise_tags
         }
         self.reconnect_attempts = 0
         
@@ -405,6 +425,16 @@ class TailscaleManager(QObject):
         
         # 2. Run 'up' command
         args = ["up", f"--login-server={login_server}", "--accept-routes"]
+        if force_reset:
+            args.append("--reset")
+        if force_reauth:
+            args.append("--force-reauth")
+        if advertise_exit_node:
+            args.append("--advertise-exit-node")
+        if shields_up:
+            args.append("--shields-up")
+        if advertise_tags:
+            args.append(f"--advertise-tags={advertise_tags}")
         if getattr(self, "insecure_ssl", False):
             args.append("--insecure-skip-tls-verify=true")
         if ssh:

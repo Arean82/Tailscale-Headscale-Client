@@ -57,6 +57,11 @@ class Manager:
                         is_native_switch = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_is_native_switch")) == "True"
                         last_known_ip = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_last_known_ip"))
                         enable_dns_fallback = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_enable_dns_fallback")) == "True"
+                        force_reset = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_force_reset")) == "True"
+                        advertise_exit_node = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_advertise_exit_node")) == "True"
+                        shields_up = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_shields_up")) == "True"
+                        force_reauth = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_force_reauth")) == "True"
+                        advertise_tags = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_advertise_tags"))
                         
                         key = self.crypto.decrypt(enc_key)
                         self.profiles[name] = Profile(
@@ -69,7 +74,12 @@ class Manager:
                             native_profile=native_profile,
                             is_native_switch=is_native_switch,
                             last_known_ip=last_known_ip,
-                            enable_dns_fallback=enable_dns_fallback
+                            enable_dns_fallback=enable_dns_fallback,
+                            force_reset=force_reset,
+                            advertise_exit_node=advertise_exit_node,
+                            shields_up=shields_up,
+                            force_reauth=force_reauth,
+                            advertise_tags=advertise_tags
                         )
             except Exception:
                 pass
@@ -111,6 +121,21 @@ class Manager:
 
             with open(os.path.join(profile_dir, "Tailscale_VPN_enable_dns_fallback"), "w") as f:
                 f.write(str(profile.enable_dns_fallback))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_force_reset"), "w") as f:
+                f.write(str(profile.force_reset))
+                
+            with open(os.path.join(profile_dir, "Tailscale_VPN_advertise_exit_node"), "w") as f:
+                f.write(str(profile.advertise_exit_node))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_shields_up"), "w") as f:
+                f.write(str(profile.shields_up))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_force_reauth"), "w") as f:
+                f.write(str(profile.force_reauth))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_advertise_tags"), "w") as f:
+                f.write(profile.advertise_tags)
 
     def load_settings(self):
         if os.path.exists(self.settings_file):

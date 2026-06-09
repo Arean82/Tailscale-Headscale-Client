@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>340</width>
-    <height>326</height>
+    <height>350</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -61,6 +61,13 @@
       <widget class="QCheckBox" name="chkInsecureSSL">
        <property name="text">
         <string>Allow Self-Signed / Insecure SSL</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="chkGlobalDnsFallback">
+       <property name="text">
+        <string>Enable Global Emergency DNS Fallback</string>
        </property>
       </widget>
      </item>
@@ -233,6 +240,7 @@
          </property>
         </widget>
        </item>
+
        <item>
         <spacer name="horizontalSpacer">
          <property name="orientation">

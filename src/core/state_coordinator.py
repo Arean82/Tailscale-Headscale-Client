@@ -154,7 +154,12 @@ class ConnectionStateMachine(QObject):
                 accept_dns=self.last_connect_args.get("accept_dns", False),
                 allow_lan=self.last_connect_args.get("allow_lan", False),
                 disable_snat=self.last_connect_args.get("disable_snat", False),
-                hostname=self.last_connect_args.get("hostname", None)
+                hostname=self.last_connect_args.get("hostname", None),
+                force_reset=self.last_connect_args.get("force_reset", False),
+                advertise_exit_node=self.last_connect_args.get("advertise_exit_node", False),
+                shields_up=self.last_connect_args.get("shields_up", False),
+                force_reauth=self.last_connect_args.get("force_reauth", False),
+                advertise_tags=self.last_connect_args.get("advertise_tags", "")
             )
 
 
@@ -279,7 +284,7 @@ class StateCoordinator(QObject):
     def check_status_sync(self):
         return self.ts_manager.check_status_sync()
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname=None):
+    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname=None, force_reset=False, advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags=""):
         self._cached_status = None  # Invalidate cache on action
         
         # PROACTIVE FALLBACK CHECK
@@ -296,15 +301,18 @@ class StateCoordinator(QObject):
                     except socket.gaierror:
                         # Domain resolution failed! Check for fallback IP
                         profile = self.manager.profiles.get(profile_name)
-                        if profile and getattr(profile, 'enable_dns_fallback', False) and getattr(profile, 'last_known_ip', None):
-                            # Try to apply fallback
-                            fallback_success = apply_fallback(domain, profile.last_known_ip)
-                            if fallback_success:
-                                # We can emit a specific message to the GUI
-                                if hasattr(self, 'fallback_applied_signal'):
-                                    self.fallback_applied_signal.emit()
-                                else:
-                                    self.ts_manager.worker.error_received.emit("Domain Unreachable: Connecting via Emergency Cached IP...")
+                        if profile and getattr(profile, 'last_known_ip', None):
+                            global_fallback = getattr(self.manager.settings, 'global_dns_fallback', False)
+                            profile_fallback = getattr(profile, 'enable_dns_fallback', False)
+                            if global_fallback or profile_fallback:
+                                # Try to apply fallback
+                                fallback_success = apply_fallback(domain, profile.last_known_ip)
+                                if fallback_success:
+                                    # We can emit a specific message to the GUI
+                                    if hasattr(self, 'fallback_applied_signal'):
+                                        self.fallback_applied_signal.emit()
+                                    else:
+                                        self.ts_manager.worker.error_received.emit("Domain Unreachable: Connecting via Emergency Cached IP...")
             except Exception:
                 pass
         
@@ -320,7 +328,12 @@ class StateCoordinator(QObject):
             "accept_dns": accept_dns,
             "allow_lan": allow_lan,
             "disable_snat": disable_snat,
-            "hostname": hostname
+            "hostname": hostname,
+            "force_reset": force_reset,
+            "advertise_exit_node": advertise_exit_node,
+            "shields_up": shields_up,
+            "force_reauth": force_reauth,
+            "advertise_tags": advertise_tags
         }
         
         # Transition to CONNECTING state via State Machine transition controller
@@ -337,7 +350,12 @@ class StateCoordinator(QObject):
             accept_dns=accept_dns,
             allow_lan=allow_lan,
             disable_snat=disable_snat,
-            hostname=hostname
+            hostname=hostname,
+            force_reset=force_reset,
+            advertise_exit_node=advertise_exit_node,
+            shields_up=shields_up,
+            force_reauth=force_reauth,
+            advertise_tags=advertise_tags
         )
 
     def switch_profile(self, native_profile_name, profile_name=None):
