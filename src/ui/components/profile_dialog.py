@@ -8,7 +8,7 @@ from .simple_dialogs import BaseUiDialog
 class ProfileDialog(BaseUiDialog):
     def __init__(self, parent=None, profile=None):
         super().__init__("credentials.ui", parent)
-        self.setFixedSize(300, 250)
+        self.setFixedSize(350, 350)
         
         # Access widgets through self.ui
         self.chkUseSSO = self.ui.findChild(QCheckBox, "chkUseSSO")
@@ -18,6 +18,8 @@ class ProfileDialog(BaseUiDialog):
         self.url_auth = self.ui.findChild(QLineEdit, "lineEditUrlAuth")
         self.url_sso = self.ui.findChild(QLineEdit, "lineEditUrlSSO")
         self.key_entry = self.ui.findChild(QLineEdit, "lineEditKey")
+        self.chkEnableFallback = self.ui.findChild(QCheckBox, "chkEnableFallback")
+        self.lineEditFallbackIP = self.ui.findChild(QLineEdit, "lineEditFallbackIP")
         
         # 3. Connection Logic (Toggled is better than stateChanged)
         if self.chkUseSSO:
@@ -41,6 +43,11 @@ class ProfileDialog(BaseUiDialog):
         if self.btnToggleKey:
             self.btnToggleKey.clicked.connect(self._toggle_key_visibility)
             
+        # 6b. Fallback Toggle logic
+        if self.chkEnableFallback and self.lineEditFallbackIP:
+            self.chkEnableFallback.toggled.connect(self.lineEditFallbackIP.setVisible)
+            self.lineEditFallbackIP.setVisible(self.chkEnableFallback.isChecked())
+            
         # 7. Set Initial State
         if profile:
             if self.url_auth: self.url_auth.setText(profile.login_server)
@@ -49,6 +56,12 @@ class ProfileDialog(BaseUiDialog):
             if profile.auth_mode == "google":
                 if self.chkUseSSO: self.chkUseSSO.setChecked(True)
                 if self.stackedWidget: self.stackedWidget.setCurrentIndex(1)
+            
+            if self.chkEnableFallback:
+                self.chkEnableFallback.setChecked(getattr(profile, 'enable_dns_fallback', False))
+            if self.lineEditFallbackIP:
+                self.lineEditFallbackIP.setText(getattr(profile, 'last_known_ip', ""))
+                self.lineEditFallbackIP.setVisible(self.chkEnableFallback.isChecked() if self.chkEnableFallback else False)
         else:
             if self.stackedWidget: self.stackedWidget.setCurrentIndex(0)
 
@@ -61,6 +74,8 @@ class ProfileDialog(BaseUiDialog):
 
     def get_data(self):
         use_sso = self.chkUseSSO.isChecked() if self.chkUseSSO else False
+        enable_fallback = self.chkEnableFallback.isChecked() if self.chkEnableFallback else False
+        fallback_ip = self.lineEditFallbackIP.text().strip() if self.lineEditFallbackIP else ""
         
         if use_sso:
             url = self.url_sso.text().strip() if self.url_sso else ""
@@ -71,7 +86,9 @@ class ProfileDialog(BaseUiDialog):
                 "name": url,
                 "login_server": url,
                 "auth_key": "",
-                "auth_mode": "google"
+                "auth_mode": "google",
+                "enable_dns_fallback": enable_fallback,
+                "last_known_ip": fallback_ip
             }
         else:
             url = self.url_auth.text().strip() if self.url_auth else ""
@@ -83,7 +100,9 @@ class ProfileDialog(BaseUiDialog):
                 "name": url,
                 "login_server": url,
                 "auth_key": key,
-                "auth_mode": "auth_key"
+                "auth_mode": "auth_key",
+                "enable_dns_fallback": enable_fallback,
+                "last_known_ip": fallback_ip
             }
 
     def _toggle_key_visibility(self):

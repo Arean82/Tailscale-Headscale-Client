@@ -55,6 +55,8 @@ class Manager:
                         routes = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_routes"))
                         native_profile = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_native_profile"))
                         is_native_switch = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_is_native_switch")) == "True"
+                        last_known_ip = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_last_known_ip"))
+                        enable_dns_fallback = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_enable_dns_fallback")) == "True"
                         
                         key = self.crypto.decrypt(enc_key)
                         self.profiles[name] = Profile(
@@ -65,7 +67,9 @@ class Manager:
                             exit_node=exit_node,
                             routes=routes,
                             native_profile=native_profile,
-                            is_native_switch=is_native_switch
+                            is_native_switch=is_native_switch,
+                            last_known_ip=last_known_ip,
+                            enable_dns_fallback=enable_dns_fallback
                         )
             except Exception:
                 pass
@@ -101,6 +105,12 @@ class Manager:
 
             with open(os.path.join(profile_dir, "Tailscale_VPN_is_native_switch"), "w") as f:
                 f.write(str(profile.is_native_switch))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_last_known_ip"), "w") as f:
+                f.write(profile.last_known_ip)
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_enable_dns_fallback"), "w") as f:
+                f.write(str(profile.enable_dns_fallback))
 
     def load_settings(self):
         if os.path.exists(self.settings_file):

@@ -61,7 +61,9 @@ class ProfilesView(QWidget):
                 name=data["name"],
                 login_server=data["login_server"],
                 auth_key=data["auth_key"],
-                auth_mode=data["auth_mode"]
+                auth_mode=data["auth_mode"],
+                enable_dns_fallback=data["enable_dns_fallback"],
+                last_known_ip=data["last_known_ip"]
             )
             self.manager.add_profile(new_profile)
             self.refresh_list()
@@ -78,6 +80,8 @@ class ProfilesView(QWidget):
             data = dialog.get_data()
             profile.login_server = data["login_server"]
             profile.auth_key = data["auth_key"]
+            profile.enable_dns_fallback = data["enable_dns_fallback"]
+            profile.last_known_ip = data["last_known_ip"]
             self.manager.save_profiles()
             self.refresh_list()
 

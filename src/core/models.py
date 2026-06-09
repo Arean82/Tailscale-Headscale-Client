@@ -26,6 +26,8 @@ class Profile:
     allow_lan: bool = False
     disable_snat: bool = False
     hostname: str = ""
+    last_known_ip: str = ""
+    enable_dns_fallback: bool = False
 
 @dataclass
 class AppSettings:

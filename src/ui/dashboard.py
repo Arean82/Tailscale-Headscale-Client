@@ -113,8 +113,8 @@ class DashboardView(QWidget):
     def update_status(self, is_connected, status_text):
         if not self.labelStatus: return
         
-        # Stop pulse if we are no longer connecting
-        if status_text != "Checking..." and "Connecting" not in self.btnVpnAction.text():
+        # Stop pulse if we are no longer connecting or checking
+        if status_text not in ["Checking...", "Connecting..."]:
             if hasattr(self, 'pulse_anim'):
                 self.pulse_anim.stop()
                 self.opacity_effect.setOpacity(1.0)

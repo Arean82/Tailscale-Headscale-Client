@@ -12,8 +12,6 @@
     <number>20</number><number>24</number><number>20</number><number>20</number>
    </property>
    <property name="spacing"><number>8</number></property>
-   <property name="alignment"><enum>Qt::AlignHCenter</enum></property>
-
    <item>
     <widget class="QLabel" name="labelAppName">
      <property name="text"><string>TAILSCALE VPN</string></property>

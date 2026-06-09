@@ -151,7 +151,10 @@ class ConnectionStateMachine(QObject):
                 exit_node=self.last_connect_args.get("exit_node"),
                 routes=self.last_connect_args.get("routes"),
                 ssh=self.last_connect_args.get("ssh", False),
-                accept_dns=self.last_connect_args.get("accept_dns", False)
+                accept_dns=self.last_connect_args.get("accept_dns", False),
+                allow_lan=self.last_connect_args.get("allow_lan", False),
+                disable_snat=self.last_connect_args.get("disable_snat", False),
+                hostname=self.last_connect_args.get("hostname", None)
             )
 
 
@@ -276,8 +279,34 @@ class StateCoordinator(QObject):
     def check_status_sync(self):
         return self.ts_manager.check_status_sync()
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False):
+    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname=None):
         self._cached_status = None  # Invalidate cache on action
+        
+        # PROACTIVE FALLBACK CHECK
+        if login_server and profile_name:
+            import urllib.parse
+            import socket
+            from src.utils.dns_fallback import apply_fallback
+            try:
+                parsed = urllib.parse.urlparse(login_server)
+                domain = parsed.hostname
+                if domain:
+                    try:
+                        socket.gethostbyname(domain)
+                    except socket.gaierror:
+                        # Domain resolution failed! Check for fallback IP
+                        profile = self.manager.profiles.get(profile_name)
+                        if profile and getattr(profile, 'enable_dns_fallback', False) and getattr(profile, 'last_known_ip', None):
+                            # Try to apply fallback
+                            fallback_success = apply_fallback(domain, profile.last_known_ip)
+                            if fallback_success:
+                                # We can emit a specific message to the GUI
+                                if hasattr(self, 'fallback_applied_signal'):
+                                    self.fallback_applied_signal.emit()
+                                else:
+                                    self.ts_manager.worker.error_received.emit("Domain Unreachable: Connecting via Emergency Cached IP...")
+            except Exception:
+                pass
         
         # Register connection arguments with the State Machine
         self.state_machine.last_connect_args = {
@@ -288,7 +317,10 @@ class StateCoordinator(QObject):
             "exit_node": exit_node,
             "routes": routes,
             "ssh": ssh,
-            "accept_dns": accept_dns
+            "accept_dns": accept_dns,
+            "allow_lan": allow_lan,
+            "disable_snat": disable_snat,
+            "hostname": hostname
         }
         
         # Transition to CONNECTING state via State Machine transition controller
@@ -302,7 +334,10 @@ class StateCoordinator(QObject):
             exit_node=exit_node,
             routes=routes,
             ssh=ssh,
-            accept_dns=accept_dns
+            accept_dns=accept_dns,
+            allow_lan=allow_lan,
+            disable_snat=disable_snat,
+            hostname=hostname
         )
 
     def switch_profile(self, native_profile_name, profile_name=None):
@@ -342,4 +377,25 @@ class StateCoordinator(QObject):
         self.connection_status_changed.emit(is_connected, status_text)
 
     def _on_state_machine_changed(self, state):
+        if state == AppState.CONNECTED:
+            # Cache the IP on successful connection
+            if self.state_machine.last_connect_args:
+                profile_name = self.state_machine.last_connect_args.get("profile_name")
+                login_server = self.state_machine.last_connect_args.get("login_server")
+                if profile_name and login_server:
+                    profile = self.manager.profiles.get(profile_name)
+                    if profile:
+                        import urllib.parse
+                        import socket
+                        try:
+                            parsed = urllib.parse.urlparse(login_server)
+                            domain = parsed.hostname
+                            if domain and getattr(profile, 'enable_dns_fallback', False):
+                                ip = socket.gethostbyname(domain)
+                                if ip and getattr(profile, 'last_known_ip', None) != ip:
+                                    profile.last_known_ip = ip
+                                    self.manager.save_profiles()
+                        except Exception:
+                            pass
+                            
         self.state_changed.emit(state)
