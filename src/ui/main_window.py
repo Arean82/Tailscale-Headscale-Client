@@ -180,6 +180,9 @@ class MainWindow(QMainWindow):
         wait_dialog.exec()
 
     def _poll_daemon_status(self):
+        if hasattr(self, 'poll_proc') and self.poll_proc is not None:
+            return
+
         from PySide6.QtCore import QProcess
         import time
         self.poll_proc = QProcess(self)
@@ -188,9 +191,14 @@ class MainWindow(QMainWindow):
             output = self.poll_proc.readAllStandardError().data().decode().lower() + \
                      self.poll_proc.readAllStandardOutput().data().decode().lower()
             is_running = not ("failed to connect" in output or "tailscaled may not be running" in output or self.poll_proc.exitCode() != 0)
+            
+            self.poll_proc.deleteLater()
+            self.poll_proc = None
+            
             if is_running or (time.time() - self.wait_start_time > 60):
                 self.wait_timer.stop()
-                self.wait_dialog.close()
+                if self.wait_dialog:
+                    self.wait_dialog.close()
                 self.refresh_tabs()
                 
         self.poll_proc.finished.connect(on_poll_finished)
@@ -364,6 +372,21 @@ class MainWindow(QMainWindow):
         self.theme_group.addAction(self.actionVibrantTheme)
         theme_menu.addAction(self.actionVibrantTheme)
         
+        # Add Material sub-menu
+        material_menu = theme_menu.addMenu("&Material")
+        try:
+            from qt_material import list_themes
+            for t in list_themes():
+                action = QAction(t.replace('.xml', '').replace('_', ' ').title(), self)
+                action.setCheckable(True)
+                action.triggered.connect(lambda checked=False, theme_name=f"material:{t}": self.change_theme(theme_name))
+                self.theme_group.addAction(action)
+                material_menu.addAction(action)
+        except ImportError:
+            action = QAction("qt-material not installed", self)
+            action.setEnabled(False)
+            material_menu.addAction(action)
+
         # Set initial check
         self.actionLightTheme.setChecked(True)
         
@@ -532,6 +555,36 @@ class MainWindow(QMainWindow):
         
         self.resolved_theme = target_theme
         
+        # Handle qt_material themes
+        if theme_name.startswith("material:"):
+            from qt_material import apply_stylesheet
+            material_theme = theme_name.split(":")[1]
+            # Apply qt_material stylesheet to the entire app instance
+            apply_stylesheet(QApplication.instance(), theme=material_theme)
+            self.current_qss = QApplication.instance().styleSheet()
+            
+            # Reset tabWidget stylesheet since qt_material handles styles globally
+            if self.tabWidget:
+                self.tabWidget.setStyleSheet("")
+                
+            # Refresh tabs
+            if self.tabWidget:
+                for i in range(self.tabWidget.count()):
+                    widget = self.tabWidget.widget(i)
+                    if widget and hasattr(widget, "update_status"):
+                        widget.update_status(*self.ts_manager.check_status())
+            return
+            
+        # Reset application-level stylesheet in case we are switching away from qt_material
+        app = QApplication.instance()
+        app.setStyleSheet("")
+        
+        # qt_material overwrites the palette and style, we must restore them
+        import sys
+        if sys.platform == "win32":
+            app.setStyle("WindowsVista")
+        app.setPalette(app.style().standardPalette())
+
         # 1. DO NOT touch QApplication stylesheet or MainWindow Palette
         # This keeps the Menu Bar 100% Native.
 
