@@ -1,6 +1,6 @@
 # Tailscale-Headscale Client Pro (PySide6 Edition)
 
-[![Tailscale](https://img.shields.io/badge/Tailscale-v1.6-blue)](https://tailscale.com) [![PySide6](https://img.shields.io/badge/PySide6-v6.6-green)](https://pyside.org) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Arean82/Tailscale-Headscale-Client) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/Python-3.12-green)](https://www.python.org)
+[![Tailscale](https://img.shields.io/badge/Tailscale-v1.6-blue)](https://tailscale.com) [![PySide6](https://img.shields.io/badge/PySide6-v6.6-green)](https://pyside.org) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Arean82/Tailscale-Headscale-Client) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](../LICENSE) [![Python](https://img.shields.io/badge/Python-3.12-green)](https://www.python.org)
 
 A professional-grade, high-performance cross-platform GUI client for Tailscale and Headscale. This client combines robust VPN logic with a premium, animated modern interface following enterprise-level separation of concerns.
 
@@ -23,6 +23,7 @@ A professional-grade, high-performance cross-platform GUI client for Tailscale a
 - **Async Image Caching:** High-performance background loading for README badges and images.
 - **Smart Setting Interlocking:** Automatically links **Auto-connect on startup** with **Run at startup** dynamically with user confirmation, providing a high-end automated UX.
 - **Dynamic Experimental Badge:** Renders a gorgeous `🧪 Experimental API` badge on the main dashboard instantly when Local API is enabled in the settings.
+- **Global Internationalization (i18n):** Deep native support for Arabic (RTL), French, Spanish, and English using `QTranslator` and `PySide6-lupdate`/`lrelease`, with an automatic background translation API script.
 
 ### ⚡ Power Features & Smart Routing (Advanced Features)
 - **Live Daemon Auto-Sync:** Advanced Options intelligently snapshot active daemon states (`tailscale debug prefs` and `tailscale status --json`) to automatically pre-fill hostname, subnet routes, and hidden network flags in real-time, featuring a manual override toggle.
@@ -75,7 +76,7 @@ To ensure maximum performance and security, your target environment must satisfy
 ## 🏛️ Comprehensive Technical Specifications
 
 <div align="center">
-  <img src="assets/state_machine.png" alt="Centralized Connection State Machine Flowchart" width="600"/>
+  <img src="../assets/state_machine.png" alt="Centralized Connection State Machine Flowchart" width="600"/>
 </div>
 
 ### Technical Metrics
@@ -141,6 +142,7 @@ python main.py
 │   └── 🖼️ windows/                 # Layouts
 │       ├── 📄 main_window.ui
 │       └── 📄 tab_widget.ui
+├── 🌐 locales/                    # i18n Translation Files (.ts, .qm)
 ├── 💻 src/                        # Core Python Source
 │   ├── 🧠 core/                   # Backend Logic
 │   │   ├── ⚙️ db_manager.py        # Traffic Persistence
@@ -164,8 +166,24 @@ python main.py
 ├── 📦 build_mac_dmg.sh            # macOS DMG Build Script
 ├── 📦 TailscaleClient_Mac.spec      # macOS App Bundle Spec
 ├── 🚀 main.py                     # Application Entry Point
-└── 📖 README.md                   # Documentation
+├── 📖 README.md                   # Repository Stub
+└── 📚 Docs/                       # Documentation & Translations
+    ├── 📖 README.md               # English Documentation
+    ├── 📖 README_ar.md            # Arabic Documentation
+    ├── 📖 README_es.md            # Spanish Documentation
+    └── 📖 README_fr.md            # French Documentation
 ```
+
+---
+
+## 🌍 Language & Translation (i18n)
+
+The application supports real-time multi-language toggling via the Settings UI. 
+If you add new UI elements or want to add a new language, follow this flow:
+
+1. **Extract new strings:** Run `scripts\update_translations.bat` (or `.sh`). This runs `pyside6-lupdate` to parse your code and update the XML `.ts` files in the `locales/` folder.
+2. **Auto-Translate:** Run `python scripts\auto_translate.py` (requires `deep-translator`). This will safely hit the Google Translate API to translate your new UI strings for Arabic, French, and Spanish while mathematically protecting your raw CSS stylesheets using `cleanup_css.py`.
+3. **Compile:** Run `scripts\update_translations.bat` a second time to safely compile the `.ts` files into binary `.qm` files using `pyside6-lrelease` so the application can load them natively.
 
 ---
 
@@ -209,4 +227,4 @@ The compilation and disk image (DMG) creation process has been completely automa
 ---
 
 ## 📄 License
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](../LICENSE) file for details.

@@ -1,7 +1,7 @@
 # src/ui/components/settings_dialog.py
 
 import os
-from PySide6.QtWidgets import QDialog, QCheckBox, QPushButton, QLabel, QMessageBox, QSlider, QVBoxLayout, QHBoxLayout, QSpinBox, QLineEdit
+from PySide6.QtWidgets import QDialog, QCheckBox, QPushButton, QLabel, QMessageBox, QSlider, QVBoxLayout, QHBoxLayout, QSpinBox, QLineEdit, QComboBox
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, Qt
 
@@ -31,6 +31,7 @@ class SettingsDialog(BaseUiDialog):
         self.lineEditLogPath = self.ui.findChild(QLineEdit, "lineEdit")
         self.btnOpenLogFolder = self.ui.findChild(QPushButton, "btnOpenLogFolder")
         self.btnClose = self.ui.findChild(QPushButton, "btnClose")
+        self.comboLanguage = self.ui.findChild(QComboBox, "comboLanguage")
         
         # Set initial values
         if self.chkAutoConnect:
@@ -57,6 +58,19 @@ class SettingsDialog(BaseUiDialog):
         if self.lineEditLogPath:
             self.lineEditLogPath.setReadOnly(True)
             self.lineEditLogPath.setText(self.manager.base_dir)
+
+        if self.comboLanguage:
+            # PySide6 QUiLoader ignores 'data' fields in .ui combobox items, so we populate manually
+            self.comboLanguage.clear()
+            self.comboLanguage.addItem("English", "en_US")
+            self.comboLanguage.addItem("Arabic", "ar_SA")
+            self.comboLanguage.addItem("French", "fr_FR")
+            self.comboLanguage.addItem("Spanish", "es_ES")
+            
+            index = self.comboLanguage.findData(self.manager.settings.language)
+            if index >= 0:
+                self.comboLanguage.setCurrentIndex(index)
+            self.comboLanguage.currentIndexChanged.connect(self._save_settings)
             
         # Access SpinBox for max profile limit from UI
         self.spinMaxTabs = self.ui.findChild(QSpinBox, "spinMaxTabs")
@@ -138,6 +152,8 @@ class SettingsDialog(BaseUiDialog):
         self._save_settings()
 
     def _save_settings(self):
+        old_language = getattr(self.manager.settings, 'language', 'en_US')
+
         self.manager.settings.auto_connect = self.chkAutoConnect.isChecked() if self.chkAutoConnect else False
         self.manager.settings.enable_logs = self.chkEnableLogs.isChecked() if self.chkEnableLogs else False
         self.manager.settings.auto_start = self.chkRunAtStartup.isChecked() if self.chkRunAtStartup else False
@@ -146,7 +162,12 @@ class SettingsDialog(BaseUiDialog):
         self.manager.settings.insecure_ssl = self.chkInsecureSSL.isChecked() if self.chkInsecureSSL else False
         self.manager.settings.global_dns_fallback = self.chkGlobalDnsFallback.isChecked() if self.chkGlobalDnsFallback else False
         self.manager.settings.startup_delay = self.spinStartupDelay.value() if self.spinStartupDelay else 10
+        if self.comboLanguage:
+            self.manager.settings.language = self.comboLanguage.currentData()
         self.manager.save_settings()
+
+        new_language = self.manager.settings.language
+        lang_changed = (old_language != new_language)
         
         # Propagate live states to the active tailscale manager in real-time
         if self.parent() and hasattr(self.parent(), "ts_manager"):
@@ -165,6 +186,21 @@ class SettingsDialog(BaseUiDialog):
         # Dynamically update advanced menu in main window
         if self.parent() and hasattr(self.parent(), "update_advanced_menu_state"):
             self.parent().update_advanced_menu_state()
+            
+        # Trigger GUI soft-restart if language changed
+        if lang_changed:
+            from PySide6.QtCore import QCoreApplication
+            title = QCoreApplication.translate("MainWindow", "Language Changed")
+            body = QCoreApplication.translate("MainWindow", "The application needs to restart to apply the new language translation.\n\nYour Tailscale VPN connection will remain safely active in the background.\n\nRestart GUI now?")
+            
+            reply = QMessageBox.question(
+                self, title, body,
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
+            )
+            if reply == QMessageBox.Yes:
+                self.accept()
+                if self.parent() and hasattr(self.parent(), "restart_app"):
+                    self.parent().restart_app()
 
     def _open_log_folder(self):
         import sys

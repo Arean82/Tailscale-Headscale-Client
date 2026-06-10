@@ -6,7 +6,9 @@ added_files = [
     ('pygui', 'pygui'),
     ('assets', 'assets'),
     ('README.md', '.'),
+    ('Docs', 'Docs'),
     ('LICENSE', '.'),
+    ('locales', 'locales'),
 ]
 
 a = Analysis(
@@ -18,7 +20,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['PyQt6', 'PyQt5'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

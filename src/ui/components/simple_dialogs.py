@@ -139,6 +139,18 @@ class ReadmeDialog(BaseUiDialog):
     def load_readme(self):
         if not self.viewer: return
         
+        # Get active language suffix
+        lang_suffix = ""
+        parent = self.parent()
+        if parent and hasattr(parent, 'manager') and parent.manager:
+            lang_code = parent.manager.settings.language
+            if lang_code.startswith("ar"):
+                lang_suffix = "_ar"
+            elif lang_code.startswith("es"):
+                lang_suffix = "_es"
+            elif lang_code.startswith("fr"):
+                lang_suffix = "_fr"
+        
         # Set base path for local images
         import sys
         if sys.platform == "win32":
@@ -148,15 +160,24 @@ class ReadmeDialog(BaseUiDialog):
         self.viewer.setSearchPaths([app_dir])
         
         md_text = ""
-        # Try to resolve README.md from the bundle/development directory
-        if hasattr(sys, '_MEIPASS'):
-            readme_path = os.path.join(sys._MEIPASS, "README.md")
-        else:
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-            readme_path = os.path.join(base_dir, "README.md")
-            
+        
+        def get_path(suffix):
+            if hasattr(sys, '_MEIPASS'):
+                return os.path.join(sys._MEIPASS, "Docs", f"README{suffix}.md")
+            else:
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                return os.path.join(base_dir, "Docs", f"README{suffix}.md")
+
+        readme_path = get_path(lang_suffix)
+        
         if not os.path.exists(readme_path):
-            readme_path = os.path.join(os.getcwd(), "README.md")
+            readme_path = os.path.join(os.getcwd(), "Docs", f"README{lang_suffix}.md")
+            
+        # Fallback to English if localized not found
+        if not os.path.exists(readme_path):
+            readme_path = get_path("")
+            if not os.path.exists(readme_path):
+                readme_path = os.path.join(os.getcwd(), "Docs", "README.md")
             
         if os.path.exists(readme_path):
             with open(readme_path, "r", encoding="utf-8") as f:

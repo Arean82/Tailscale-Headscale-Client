@@ -116,18 +116,36 @@ if __name__ == "__main__":
     from PySide6.QtCore import QLockFile, Qt, QTimer, QEventLoop
     from PySide6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QLabel, QProgressBar
     
+    # 3. Initialize Manager to load settings and translation (so early popups are translated)
+    manager = Manager(app_dir)
+    
+    # Load language translation if not English
+    if manager.settings.language != "en_US":
+        from PySide6.QtCore import QTranslator
+        translator = QTranslator(app)
+        qm_path = get_asset_path(f"locales/{manager.settings.language}.qm")
+        if os.path.exists(qm_path):
+            if translator.load(qm_path):
+                app.installTranslator(translator)
+                logger.info(f"Loaded translation file: {qm_path}")
+            else:
+                logger.warning(f"Failed to load translation file: {qm_path}")
+        else:
+            logger.warning(f"Translation file not found: {qm_path}")
+
+    from PySide6.QtCore import QCoreApplication
     lock_path = os.path.join(app_dir, "app.lock")
     lock_file = QLockFile(lock_path)
     
-    if not lock_file.tryLock(100):
-        QMessageBox.warning(None, "Already Running", 
-                          "An instance of Tailscale Client Pro is already running.\n"
-                          "Please check your task manager or system tray.")
+    if not lock_file.tryLock(2000):
+        QMessageBox.warning(None, 
+                          QCoreApplication.translate("main", "Already Running"), 
+                          QCoreApplication.translate("main", "An instance of Tailscale Client Pro is already running.\n"
+                                                             "Please check your task manager or system tray."))
         sys.exit(0)
 
-    # 3. Initialize Manager and MainWindow directly (instant launch)
+    # 4. Initialize TailscaleManager
 
-    manager = Manager(app_dir)
     ts_manager_raw = TailscaleManager(app_dir)
     ts_manager_raw.use_local_api = manager.settings.use_local_api
     ts_manager_raw.sso_timeout = manager.settings.sso_timeout

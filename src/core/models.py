@@ -45,6 +45,7 @@ class AppSettings:
     last_profile: Optional[str] = None
     use_local_api: bool = True
     sso_timeout: int = 120
+    language: str = "en_US"
     enable_tray_switcher: bool = False
     insecure_ssl: bool = False
     startup_delay: int = 10

@@ -216,6 +216,58 @@
          </item>
         </layout>
        </item>
+       <item row="5" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_Lang">
+         <item>
+          <widget class="QLabel" name="labelLanguage">
+           <property name="font">
+            <font>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Display Language (Requires Restart):</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboLanguage">
+           <item>
+            <property name="text">
+             <string>English</string>
+            </property>
+            <property name="data">
+             <string>en_US</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Arabic</string>
+            </property>
+            <property name="data">
+             <string>ar_SA</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>French</string>
+            </property>
+            <property name="data">
+             <string>fr_FR</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Spanish</string>
+            </property>
+            <property name="data">
+             <string>es_ES</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
       </layout>
      </item>
      <item>

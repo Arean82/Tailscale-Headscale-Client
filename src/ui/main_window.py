@@ -233,7 +233,36 @@ class MainWindow(QMainWindow):
         from PySide6.QtWidgets import QApplication
         QApplication.quit()
 
+    def restart_app(self):
+        """Soft-restart the GUI to apply translations without killing the VPN daemon."""
+        self.is_restarting = True
+        import sys
+        from PySide6.QtCore import QProcess
+        from PySide6.QtWidgets import QApplication
+        
+        # Manually release the single-instance lock right now so the new instance spawns instantly (0ms delay)
+        import __main__
+        if hasattr(__main__, 'lock_file'):
+            __main__.lock_file.unlock()
+            
+        # Properly handle command line arguments for both PyInstaller and raw Python
+        args = sys.argv[1:] if getattr(sys, 'frozen', False) else sys.argv
+        QProcess.startDetached(sys.executable, args)
+        
+        # Close window and quit safely
+        self.close()
+        QApplication.quit()
+
     def closeEvent(self, event):
+        # If we are soft-restarting the GUI, bypass the logout safety warnings completely
+        # because the Tailscale daemon will continue running safely in the background.
+        if getattr(self, 'is_restarting', False):
+            if hasattr(self.manager, 'db'):
+                self.manager.db.flush_buffer()
+            self.ts_manager.cleanup()
+            event.accept()
+            return
+
         # Match strict legacy logic (gui/gui_main.py:447-450)
         # Use sync check to avoid async lag during window closure
         is_connected, _ = self.ts_manager.check_status_sync()
@@ -319,61 +348,60 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         
         # --- File Menu ---
-        file_menu = menubar.addMenu("&File")
+        file_menu = menubar.addMenu(self.tr("&File"))
 
-
-        self.actionExit = QAction("&Exit", self)
-        self.actionExit.triggered.connect(self._force_quit)
-        file_menu.addAction(self.actionExit)
-        
-        self.actionSettings = QAction("&Settings", self)
+        self.actionSettings = QAction(self.tr("&Settings"), self)
         self.actionSettings.triggered.connect(self.show_settings)
         file_menu.addAction(self.actionSettings)
         
+        self.actionExit = QAction(self.tr("&Exit"), self)
+        self.actionExit.triggered.connect(self._force_quit)
+        file_menu.addAction(self.actionExit)
+        
         # --- Profile Menu ---
-        profile_menu = menubar.addMenu("&Profile")
+        profile_menu = menubar.addMenu(self.tr("&Profile"))
 
 
-        self.actionAddProfile = QAction("&Add New Profile", self)
+        self.actionAddProfile = QAction(self.tr("&Add New Profile"), self)
         self.actionAddProfile.triggered.connect(self.add_profile_clicked)
         profile_menu.addAction(self.actionAddProfile)
         
-        self.actionRemoveProfile = QAction("&Remove Current Profile", self)
+        self.actionRemoveProfile = QAction(self.tr("&Remove Current Profile"), self)
         self.actionRemoveProfile.triggered.connect(self.remove_profile_clicked)
         profile_menu.addAction(self.actionRemoveProfile)
         
         # --- Theme Menu ---
-        theme_menu = menubar.addMenu("&Theme")
+        theme_menu = menubar.addMenu(self.tr("&Theme"))
 
 
         self.theme_group = QActionGroup(self)
         
-        self.actionSystemTheme = QAction("&System Default", self)
+        self.actionSystemTheme = QAction(self.tr("&System Default"), self)
         self.actionSystemTheme.setCheckable(True)
         self.actionSystemTheme.triggered.connect(lambda: self.change_theme("system"))
         self.theme_group.addAction(self.actionSystemTheme)
         theme_menu.addAction(self.actionSystemTheme)
         
-        self.actionLightTheme = QAction("&Light Theme", self)
+        self.actionLightTheme = QAction(self.tr("&Light Theme"), self)
         self.actionLightTheme.setCheckable(True)
         self.actionLightTheme.triggered.connect(lambda: self.change_theme("light"))
         self.theme_group.addAction(self.actionLightTheme)
         theme_menu.addAction(self.actionLightTheme)
         
-        self.actionDarkTheme = QAction("&Dark Theme", self)
+        self.actionDarkTheme = QAction(self.tr("&Dark Theme"), self)
         self.actionDarkTheme.setCheckable(True)
         self.actionDarkTheme.triggered.connect(lambda: self.change_theme("dark"))
         self.theme_group.addAction(self.actionDarkTheme)
         theme_menu.addAction(self.actionDarkTheme)
         
-        self.actionVibrantTheme = QAction("&Vibrant Pro Theme", self)
+        self.actionVibrantTheme = QAction(self.tr("&Vibrant Pro Theme"), self)
         self.actionVibrantTheme.setCheckable(True)
         self.actionVibrantTheme.triggered.connect(lambda: self.change_theme("vibrant"))
         self.theme_group.addAction(self.actionVibrantTheme)
         theme_menu.addAction(self.actionVibrantTheme)
         
         # Add Material sub-menu
-        material_menu = theme_menu.addMenu("&Material")
+        material_menu = theme_menu.addMenu(self.tr("&Material"))
         try:
             from qt_material import list_themes
             for t in list_themes():
@@ -383,7 +411,7 @@ class MainWindow(QMainWindow):
                 self.theme_group.addAction(action)
                 material_menu.addAction(action)
         except ImportError:
-            action = QAction("qt-material not installed", self)
+            action = QAction(self.tr("qt-material not installed"), self)
             action.setEnabled(False)
             material_menu.addAction(action)
 
@@ -391,26 +419,26 @@ class MainWindow(QMainWindow):
         self.actionLightTheme.setChecked(True)
         
         # --- Logs Menu ---
-        logs_menu = menubar.addMenu("&Logs")
-        self.menuGlobalLogs = logs_menu.addMenu("&Global Logs")
+        logs_menu = menubar.addMenu(self.tr("&Logs"))
+        self.menuGlobalLogs = logs_menu.addMenu(self.tr("&Global Logs"))
 
         self.menuGlobalLogs.aboutToShow.connect(self.populate_logs_menu)
         
         # --- Advanced Menu ---
-        self.advanced_menu = menubar.addMenu("&Advanced")
-        self.actionAdvanced = QAction("&Advanced Options...", self)
+        self.advanced_menu = menubar.addMenu(self.tr("&Advanced"))
+        self.actionAdvanced = QAction(self.tr("&Advanced Options..."), self)
         self.actionAdvanced.triggered.connect(self.show_advanced_dialog)
         self.advanced_menu.addAction(self.actionAdvanced)
         
-        self.actionPeerList = QAction("&Peer List...", self)
+        self.actionPeerList = QAction(self.tr("&Peer List..."), self)
         self.actionPeerList.triggered.connect(self.show_peer_list)
         self.advanced_menu.addAction(self.actionPeerList)
         
-        self.actionDiagnostics = QAction("&Network Diagnostics...", self)
+        self.actionDiagnostics = QAction(self.tr("&Network Diagnostics..."), self)
         self.actionDiagnostics.triggered.connect(self.show_diagnostics)
         self.advanced_menu.addAction(self.actionDiagnostics)
         
-        self.actionTraySwitcher = QAction("Enable Quick &Exit-Node Switcher", self)
+        self.actionTraySwitcher = QAction(self.tr("Enable Quick &Exit-Node Switcher"), self)
         self.actionTraySwitcher.setCheckable(True)
         self.actionTraySwitcher.setChecked(self.manager.settings.enable_tray_switcher)
         self.actionTraySwitcher.triggered.connect(self.toggle_tray_switcher)
@@ -419,17 +447,17 @@ class MainWindow(QMainWindow):
         self.update_advanced_menu_state()
         
         # --- Help Menu ---
-        help_menu = menubar.addMenu("&Help")
+        help_menu = menubar.addMenu(self.tr("&Help"))
         
-        self.actionAbout = QAction("&About Us", self)
+        self.actionAbout = QAction(self.tr("&About Us"), self)
         self.actionAbout.triggered.connect(self.show_about)
         help_menu.addAction(self.actionAbout)
         
-        self.actionLicense = QAction("View &License", self)
+        self.actionLicense = QAction(self.tr("View &License"), self)
         self.actionLicense.triggered.connect(self.show_license)
         help_menu.addAction(self.actionLicense)
         
-        self.actionReadme = QAction("&Readme", self)
+        self.actionReadme = QAction(self.tr("&Readme"), self)
         self.actionReadme.triggered.connect(self.show_readme)
         help_menu.addAction(self.actionReadme)
 
@@ -449,7 +477,7 @@ class MainWindow(QMainWindow):
         app_dir = self.manager.base_dir
         
         if not os.path.exists(app_dir):
-            self.menuGlobalLogs.addAction("No logs found").setEnabled(False)
+            self.menuGlobalLogs.addAction(self.tr("No logs found")).setEnabled(False)
             return
             
         # 1. Main logs directly in app_dir
@@ -463,7 +491,7 @@ class MainWindow(QMainWindow):
             log_files.extend(conn_logs)
             
         if not log_files:
-            self.menuGlobalLogs.addAction("No .log files found").setEnabled(False)
+            self.menuGlobalLogs.addAction(self.tr("No .log files found")).setEnabled(False)
             return
             
         for display_name, full_path in sorted(log_files, key=lambda x: x[0]):
