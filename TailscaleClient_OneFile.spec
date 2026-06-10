@@ -5,7 +5,6 @@ block_cipher = None
 added_files = [
     ('pygui', 'pygui'),
     ('assets', 'assets'),
-    ('README.md', '.'),
     ('Docs', 'Docs'),
     ('LICENSE', '.'),
     ('locales', 'locales'),
