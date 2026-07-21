@@ -1,10 +1,11 @@
 import os
 import sys
-import random
+import re
 from PySide6.QtWidgets import QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QLabel, QMenu, QWidget, QHBoxLayout, QSpacerItem, QSizePolicy
-from PySide6.QtCore import Qt, QTimer, QSize
+from PySide6.QtCore import Qt, QTimer, QSize, QProcess
 from PySide6.QtGui import QAction, QGuiApplication, QPainter, QPen, QColor
 from .simple_dialogs import BaseUiDialog
+from ...core.tailscale import get_tailscale_path
 
 class PeerNameBadgeWidget(QWidget):
     def __init__(self, host_name, username="", tags=None, parent=None):
@@ -47,82 +48,103 @@ class PeerNameBadgeWidget(QWidget):
 
 
 class LatencySparklineWidget(QWidget):
-    def __init__(self, parent=None, is_active=True, is_online=True):
+    def __init__(self, parent=None, is_active=True, is_online=True, peer_ip=None):
         super().__init__(parent)
         self.is_active = is_active
         self.is_online = is_online
-        
-        # Establish realistic baseline latencies based on node roles
-        if not is_online:
-            self.values = [0] * 12
-        elif is_active:
-            self.values = [random.randint(15, 28) for _ in range(12)]
-        else:
-            self.values = [random.randint(45, 68) for _ in range(12)]
-            
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.add_point)
-        self.timer.start(2000)
+        self.peer_ip = peer_ip
 
-    def add_point(self):
-        if not self.is_online:
-            self.values.append(0)
-        elif self.is_active:
-            self.values.append(random.randint(15, 28))
-        else:
-            self.values.append(random.randint(45, 68))
-            
-        if len(self.values) > 12:
-            self.values.pop(0)
-        self.update()
+        # No baseline values — graph stays empty until real ping data arrives.
+        # 0 means "no data yet" and is excluded from rendering.
+        self.values = []
+
+        if self.is_online and self.peer_ip:
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self._run_ping)
+            self.timer.start(2000)
+            # Kick off the first ping immediately instead of waiting 2s
+            QTimer.singleShot(0, self._run_ping)
+
+    def _run_ping(self):
+        """Spawn a non-blocking tailscale ping against this peer's IP."""
+        if not self.peer_ip:
+            return
+        self.proc = QProcess(self)
+        self.proc.finished.connect(self._on_ping_finished)
+        # --timeout=2s keeps the subprocess short; until=false means it stops
+        # after the first successful reply (matches existing 2s timer cadence).
+        self.proc.start(get_tailscale_path(), ["ping", "--timeout=2s", "--until=false", self.peer_ip])
+
+    def _on_ping_finished(self, exit_code, exit_status):
+        output = self.proc.readAllStandardOutput().data().decode(errors="ignore")
+        # Output line looks like:
+        #   pong from mailserver-01 via 1.2.3.4:5 in 23ms
+        # Pick the first 'in <n>ms' we can find.
+        match = re.search(r'in\s+(\d+)\s*ms', output)
+        if match:
+            self.values.append(int(match.group(1)))
+            if len(self.values) > 12:
+                self.values.pop(0)
+            self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        
+
         width = self.width()
         height = self.height()
-        
+
         if not self.is_online:
             painter.setPen(QPen(QColor("#6b7280"), 1.5, Qt.DashLine))
             painter.drawLine(10, height // 2, width - 60, height // 2)
-            
+
             painter.setPen(QPen(QColor("#9ca3af"), 1))
             text_rect = self.rect()
             text_rect.setLeft(width - 55)
             painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, "Offline")
             return
 
+        # No data yet — show placeholder instead of a misleading flat line
+        if not self.values:
+            painter.setPen(QPen(QColor("#6b7280"), 1.5, Qt.DashLine))
+            painter.drawLine(10, height // 2, width - 60, height // 2)
+
+            painter.setPen(QPen(QColor("#9ca3af"), 1))
+            text_rect = self.rect()
+            text_rect.setLeft(width - 55)
+            painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, "...")
+            return
+
         # Scaling bounds
         max_val = max(self.values) if max(self.values) > 0 else 1
         avg_val = sum(self.values) / len(self.values)
-        
+
         if avg_val < 32:
             color = QColor("#10b981")  # Vibrant Green
         elif avg_val < 70:
             color = QColor("#f59e0b")  # Warm Amber
         else:
             color = QColor("#ef4444")  # Alert Red
-            
+
         pen = QPen(color, 2, Qt.SolidLine)
         painter.setPen(pen)
-        
+
         points = []
-        step = (width - 70) / 11
+        step = (width - 70) / max(11, len(self.values) - 1)
         for i, val in enumerate(self.values):
             x = 10 + i * step
             y = height - 8 - ((val / 80.0) * (height - 16))
             y = max(4, min(height - 4, y))
             points.append((x, y))
-            
+
         for i in range(len(points) - 1):
             painter.drawLine(points[i][0], points[i][1], points[i+1][0], points[i+1][1])
-            
+
         last_x, last_y = points[-1]
         painter.setBrush(color)
         painter.setPen(Qt.NoPen)
         painter.drawEllipse(last_x - 3, last_y - 3, 6, 6)
-        
+
         painter.setPen(QPen(QColor("#d1d5db"), 1))
         text_rect = self.rect()
         text_rect.setLeft(width - 55)
@@ -193,7 +215,11 @@ class PeerListDialog(BaseUiDialog):
         
         cached_status = self.ts_manager.cache.get("status")
         raw_data = cached_status.get("raw_data", {}) if cached_status else {}
-        
+
+        # Top-level User map: {user_id_int: {LoginName, DisplayName, ...}}
+        # Used to resolve each peer's numeric "User" field to a real username.
+        user_map = raw_data.get("User", {}) or {}
+
         peer_dict = raw_data.get("Peer", {})
         if not peer_dict:
             self.tablePeers.setRowCount(1)
@@ -258,13 +284,19 @@ class PeerListDialog(BaseUiDialog):
             self.tablePeers.setItem(idx, 4, item_path)
             
             # Create and Bind PeerNameBadgeWidget to column 0
-            user_name = peer_info.get("User", "")
+            # peer_info["User"] is a numeric owner ID — resolve it via the
+            # top-level User map to get a real LoginName (e.g. "alice@example.com").
+            user_id = peer_info.get("User", "")
+            user_info = user_map.get(user_id, {}) if user_id != "" else {}
+            user_name = user_info.get("LoginName") or user_info.get("DisplayName") or ""
             tags_list = peer_info.get("Tags", []) or []
             badge_widget = PeerNameBadgeWidget(host_name, username=user_name, tags=tags_list, parent=self)
             self.tablePeers.setCellWidget(idx, 0, badge_widget)
-            
+
             # Create and Bind Real-Time Sparkline Widget to column 5
-            sparkline = LatencySparklineWidget(self, is_active=active, is_online=online)
+            # Pass the peer's primary Tailscale IP so the widget can run real
+            # tailscale ping commands instead of showing placeholder data.
+            sparkline = LatencySparklineWidget(self, is_active=active, is_online=online, peer_ip=ip_str if ip_str != "-" else None)
             self.tablePeers.setCellWidget(idx, 5, sparkline)
             
         if self.labelPeerCount:

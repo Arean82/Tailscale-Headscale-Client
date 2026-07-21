@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from typing import Dict, List, Optional
 from .models import Profile, AppSettings
 from ..utils.crypto import CryptoManager
@@ -62,7 +63,12 @@ class Manager:
                         shields_up = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_shields_up")) == "True"
                         force_reauth = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_force_reauth")) == "True"
                         advertise_tags = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_advertise_tags"))
-                        
+                        enable_ssh = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_enable_ssh")) == "True"
+                        accept_dns = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_accept_dns")) == "True"
+                        allow_lan = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_allow_lan")) == "True"
+                        disable_snat = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_disable_snat")) == "True"
+                        hostname = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_hostname"))
+
                         key = self.crypto.decrypt(enc_key)
                         self.profiles[name] = Profile(
                             name=name,
@@ -79,7 +85,12 @@ class Manager:
                             advertise_exit_node=advertise_exit_node,
                             shields_up=shields_up,
                             force_reauth=force_reauth,
-                            advertise_tags=advertise_tags
+                            advertise_tags=advertise_tags,
+                            enable_ssh=enable_ssh,
+                            accept_dns=accept_dns,
+                            allow_lan=allow_lan,
+                            disable_snat=disable_snat,
+                            hostname=hostname
                         )
             except Exception:
                 pass
@@ -137,6 +148,21 @@ class Manager:
             with open(os.path.join(profile_dir, "Tailscale_VPN_advertise_tags"), "w") as f:
                 f.write(profile.advertise_tags)
 
+            with open(os.path.join(profile_dir, "Tailscale_VPN_enable_ssh"), "w") as f:
+                f.write(str(profile.enable_ssh))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_accept_dns"), "w") as f:
+                f.write(str(profile.accept_dns))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_allow_lan"), "w") as f:
+                f.write(str(profile.allow_lan))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_disable_snat"), "w") as f:
+                f.write(str(profile.disable_snat))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_hostname"), "w") as f:
+                f.write(profile.hostname)
+
     def load_settings(self):
         if os.path.exists(self.settings_file):
             try:
@@ -159,18 +185,12 @@ class Manager:
 
     def remove_profile(self, name: str):
         if name in self.profiles:
-            # Optionally remove the directory (legacy does this if empty)
             profile_dir = self._get_tab_dir(name)
             try:
                 if os.path.exists(profile_dir):
-                    # Remove files first
-                    for f in ["Tailscale_VPN_url", "Tailscale_VPN_key", "auth_mode"]:
-                        p = os.path.join(profile_dir, f)
-                        if os.path.exists(p): os.remove(p)
-                    if not os.listdir(profile_dir):
-                        os.rmdir(profile_dir)
+                    shutil.rmtree(profile_dir, ignore_errors=True)
             except Exception:
                 pass
-                
+
             del self.profiles[name]
             self.save_profiles()

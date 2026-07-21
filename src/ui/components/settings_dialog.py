@@ -10,7 +10,6 @@ from .simple_dialogs import BaseUiDialog
 class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
         super().__init__("settings.ui", parent)
-        self.setFixedSize(350, 415)
         self.manager = manager
         
         # Remove double margins and apply compact spacing

@@ -5,3 +5,4 @@ requests
 markdown
 PyInstaller
 deep-translator
+keyring

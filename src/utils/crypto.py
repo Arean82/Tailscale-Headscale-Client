@@ -1,6 +1,4 @@
 import os
-import base64
-import hashlib
 from cryptography.fernet import Fernet
 
 class CryptoManager:
@@ -8,11 +6,6 @@ class CryptoManager:
         self.key_file = key_file
         self.key = self._get_or_create_key()
         self.fernet = Fernet(self.key)
-        
-        # Legacy support
-        self.old_password = "some-hardcoded-passphrase"
-        self.old_key = base64.urlsafe_b64encode(hashlib.sha256(self.old_password.encode()).digest())
-        self.old_fernet = Fernet(self.old_key)
 
     def _get_or_create_key(self):
         try:
@@ -65,8 +58,4 @@ class CryptoManager:
         try:
             return self.fernet.decrypt(encrypted_text.encode()).decode()
         except Exception:
-            try:
-                # Fallback to old key
-                return self.old_fernet.decrypt(encrypted_text.encode()).decode()
-            except Exception:
-                return ""
+            return ""
