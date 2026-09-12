@@ -229,53 +229,87 @@ class TailscaleManager(QObject):
         else:
             self._update_state("Error")
 
+    def _build_up_args(self, connect_args):
+        """Construct a complete, unambiguous argument list for 'tailscale up' with explicit true/false values."""
+        import shlex
+        login_server = connect_args.get("login_server")
+        auth_key = connect_args.get("auth_key")
+        use_sso = connect_args.get("use_sso")
+        exit_node = connect_args.get("exit_node")
+        routes = connect_args.get("routes")
+        ssh = connect_args.get("ssh", False)
+        accept_dns = connect_args.get("accept_dns", False)
+        accept_routes = connect_args.get("accept_routes", True)
+        allow_lan = connect_args.get("allow_lan", False)
+        disable_snat = connect_args.get("disable_snat", False)
+        hostname = connect_args.get("hostname", "")
+        force_reset = connect_args.get("force_reset", False)
+        advertise_exit_node = connect_args.get("advertise_exit_node", False)
+        shields_up = connect_args.get("shields_up", False)
+        force_reauth = connect_args.get("force_reauth", False)
+        advertise_tags = connect_args.get("advertise_tags", "")
+        unattended = connect_args.get("unattended", False)
+        webclient = connect_args.get("webclient", False)
+        advertise_connector = connect_args.get("advertise_connector", False)
+        accept_risk = connect_args.get("accept_risk", "")
+        extra_args = connect_args.get("extra_args", "")
+
+        args = ["up", f"--login-server={login_server}"]
+
+        if not use_sso and auth_key:
+            args.append(f"--auth-key={auth_key}")
+
+        # Explicit tri-state / boolean flags to guarantee toggling works predictably
+        args.append(f"--accept-routes={'true' if accept_routes else 'false'}")
+        args.append(f"--accept-dns={'true' if accept_dns else 'false'}")
+        args.append(f"--shields-up={'true' if shields_up else 'false'}")
+        args.append(f"--ssh={'true' if ssh else 'false'}")
+        args.append(f"--advertise-exit-node={'true' if advertise_exit_node else 'false'}")
+
+        if force_reset:
+            args.append("--reset")
+        if force_reauth:
+            args.append("--force-reauth")
+        if advertise_tags:
+            args.append(f"--advertise-tags={advertise_tags}")
+        if getattr(self, "insecure_ssl", False):
+            args.append("--insecure-skip-tls-verify=true")
+
+        if unattended and sys.platform == "win32":
+            args.append(f"--unattended={'true' if unattended else 'false'}")
+        if webclient:
+            args.append(f"--webclient={'true' if webclient else 'false'}")
+        if advertise_connector:
+            args.append(f"--advertise-connector={'true' if advertise_connector else 'false'}")
+
+        if accept_risk and accept_risk.lower() != "none":
+            args.append(f"--accept-risk={accept_risk}")
+
+        if hostname:
+            args.append(f"--hostname={hostname}")
+
+        if exit_node:
+            args.append(f"--exit-node={exit_node}")
+            args.append(f"--exit-node-allow-lan-access={'true' if allow_lan else 'false'}")
+
+        if routes:
+            args.append(f"--advertise-routes={routes}")
+            if disable_snat:
+                args.append("--snat-subnet-routes=false")
+
+        if extra_args:
+            try:
+                args.extend(shlex.split(extra_args))
+            except Exception as e:
+                self.logger.error(f"Error parsing extra flags '{extra_args}': {e}")
+
+        return args
+
     def _on_reconnect_retry(self):
         """Executes the actual reconnection retry."""
         if self.last_connect_args:
-            login_server = self.last_connect_args.get("login_server")
-            auth_key = self.last_connect_args.get("auth_key")
-            use_sso = self.last_connect_args.get("use_sso")
             profile_name = self.last_connect_args.get("profile_name")
-            exit_node = self.last_connect_args.get("exit_node")
-            routes = self.last_connect_args.get("routes")
-            allow_lan = self.last_connect_args.get("allow_lan", False)
-            disable_snat = self.last_connect_args.get("disable_snat", False)
-            hostname = self.last_connect_args.get("hostname", "")
-            force_reset = self.last_connect_args.get("force_reset", False)
-            advertise_exit_node = self.last_connect_args.get("advertise_exit_node", False)
-            shields_up = self.last_connect_args.get("shields_up", False)
-            force_reauth = self.last_connect_args.get("force_reauth", False)
-            advertise_tags = self.last_connect_args.get("advertise_tags", "")
-            
-            args = ["up", f"--login-server={login_server}", "--accept-routes"]
-            if force_reset:
-                args.append("--reset")
-            if force_reauth:
-                args.append("--force-reauth")
-            if advertise_exit_node:
-                args.append("--advertise-exit-node")
-            if shields_up:
-                args.append("--shields-up")
-            if advertise_tags:
-                args.append(f"--advertise-tags={advertise_tags}")
-            if getattr(self, "insecure_ssl", False):
-                args.append("--insecure-skip-tls-verify=true")
-            if not use_sso and auth_key:
-                args.insert(1, f"--auth-key={auth_key}")
-                
-            if hostname:
-                args.append(f"--hostname={hostname}")
-                
-            if exit_node:
-                args.append(f"--exit-node={exit_node}")
-                if allow_lan:
-                    args.append("--exit-node-allow-lan-access=true")
-                
-            if routes:
-                args.append(f"--advertise-routes={routes}")
-                if disable_snat:
-                    args.append("--snat-subnet-routes=false")
-                
+            args = self._build_up_args(self.last_connect_args)
             self.worker.run_command(args, profile_name)
 
     def _on_sso_url_found(self, url):
@@ -399,7 +433,7 @@ class TailscaleManager(QObject):
         elif sys.platform == "darwin":
             QProcess.startDetached("launchctl", ["start", "com.tailscale.tailscaled"])
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname="", force_reset=False, advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags=""):
+    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname="", force_reset=False, advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags="", accept_routes=True, unattended=False, webclient=False, advertise_connector=False, accept_risk="", extra_args=""):
         self.last_connect_args = {
             "login_server": login_server,
             "auth_key": auth_key,
@@ -416,46 +450,21 @@ class TailscaleManager(QObject):
             "advertise_exit_node": advertise_exit_node,
             "shields_up": shields_up,
             "force_reauth": force_reauth,
-            "advertise_tags": advertise_tags
+            "advertise_tags": advertise_tags,
+            "accept_routes": accept_routes,
+            "unattended": unattended,
+            "webclient": webclient,
+            "advertise_connector": advertise_connector,
+            "accept_risk": accept_risk,
+            "extra_args": extra_args
         }
         self.reconnect_attempts = 0
         
         # 1. Best-effort service start
         self.start_service()
         
-        # 2. Run 'up' command
-        args = ["up", f"--login-server={login_server}", "--accept-routes"]
-        if force_reset:
-            args.append("--reset")
-        if force_reauth:
-            args.append("--force-reauth")
-        if advertise_exit_node:
-            args.append("--advertise-exit-node")
-        if shields_up:
-            args.append("--shields-up")
-        if advertise_tags:
-            args.append(f"--advertise-tags={advertise_tags}")
-        if getattr(self, "insecure_ssl", False):
-            args.append("--insecure-skip-tls-verify=true")
-        if ssh:
-            args.append("--ssh")
-        args.append(f"--accept-dns={'true' if accept_dns else 'false'}")
-        
-        if not use_sso and auth_key:
-            args.insert(1, f"--auth-key={auth_key}")
-            
-        if hostname:
-            args.append(f"--hostname={hostname}")
-            
-        if exit_node:
-            args.append(f"--exit-node={exit_node}")
-            if allow_lan:
-                args.append("--exit-node-allow-lan-access=true")
-            
-        if routes:
-            args.append(f"--advertise-routes={routes}")
-            if disable_snat:
-                args.append("--snat-subnet-routes=false")
+        # 2. Build 'up' command arguments
+        args = self._build_up_args(self.last_connect_args)
         
         self.cache.clear() # Clear cache on new connection attempt
         self._update_state("Connecting...")

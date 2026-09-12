@@ -37,6 +37,23 @@ class NodeDialog(BaseUiDialog):
         self.btnSave = self.ui.findChild(QPushButton, "btnSave")
         self.btnCancel = self.ui.findChild(QPushButton, "btnCancel")
         self.chkAutoPopulate = self.ui.findChild(QCheckBox, "chkAutoPopulate")
+        self.chkAcceptRoutes = self.ui.findChild(QCheckBox, "chkAcceptRoutes")
+        self.chkUnattended = self.ui.findChild(QCheckBox, "chkUnattended")
+        self.chkWebclient = self.ui.findChild(QCheckBox, "chkWebclient")
+        self.chkAdvertiseConnector = self.ui.findChild(QCheckBox, "chkAdvertiseConnector")
+        self.comboAcceptRisk = self.ui.findChild(QComboBox, "comboAcceptRisk")
+
+        # Column 1 value checkboxes
+        self.chkAllowLANValue = self.ui.findChild(QCheckBox, "chkAllowLANValue")
+        self.chkSSHValue = self.ui.findChild(QCheckBox, "chkSSHValue")
+        self.chkAcceptRoutesValue = self.ui.findChild(QCheckBox, "chkAcceptRoutesValue")
+        self.chkAcceptDNSValue = self.ui.findChild(QCheckBox, "chkAcceptDNSValue")
+        self.chkShieldsUpValue = self.ui.findChild(QCheckBox, "chkShieldsUpValue")
+        self.chkAdvertiseExitNodeValue = self.ui.findChild(QCheckBox, "chkAdvertiseExitNodeValue")
+        self.chkDisableSNATValue = self.ui.findChild(QCheckBox, "chkDisableSNATValue")
+        self.chkUnattendedValue = self.ui.findChild(QCheckBox, "chkUnattendedValue")
+        self.chkWebclientValue = self.ui.findChild(QCheckBox, "chkWebclientValue")
+        self.chkAdvertiseConnectorValue = self.ui.findChild(QCheckBox, "chkAdvertiseConnectorValue")
         
         if self.chkAutoPopulate:
             self.chkAutoPopulate.stateChanged.connect(self._on_auto_populate_changed)
@@ -111,6 +128,46 @@ class NodeDialog(BaseUiDialog):
             self.chkForceReauth.setChecked(getattr(self.profile, 'force_reauth', False))
             self.chkForceReauth.setToolTip("Force re-authentication with the login server when connecting.")
 
+        if hasattr(self, 'chkAcceptRoutes') and self.chkAcceptRoutes:
+            self.chkAcceptRoutes.setChecked(getattr(self.profile, 'accept_routes', True))
+
+        if hasattr(self, 'chkUnattended') and self.chkUnattended:
+            self.chkUnattended.setChecked(getattr(self.profile, 'unattended', False))
+
+        if hasattr(self, 'chkWebclient') and self.chkWebclient:
+            self.chkWebclient.setChecked(getattr(self.profile, 'webclient', False))
+
+        if hasattr(self, 'chkAdvertiseConnector') and self.chkAdvertiseConnector:
+            self.chkAdvertiseConnector.setChecked(getattr(self.profile, 'advertise_connector', False))
+
+        # Column 1 Value checkboxes
+        if hasattr(self, 'chkAllowLANValue') and self.chkAllowLANValue:
+            self.chkAllowLANValue.setChecked(getattr(self.profile, 'allow_lan', False))
+        if hasattr(self, 'chkSSHValue') and self.chkSSHValue:
+            self.chkSSHValue.setChecked(getattr(self.profile, 'enable_ssh', False))
+        if hasattr(self, 'chkAcceptRoutesValue') and self.chkAcceptRoutesValue:
+            self.chkAcceptRoutesValue.setChecked(getattr(self.profile, 'accept_routes', True))
+        if hasattr(self, 'chkAcceptDNSValue') and self.chkAcceptDNSValue:
+            self.chkAcceptDNSValue.setChecked(getattr(self.profile, 'accept_dns', False))
+        if hasattr(self, 'chkShieldsUpValue') and self.chkShieldsUpValue:
+            self.chkShieldsUpValue.setChecked(getattr(self.profile, 'shields_up', False))
+        if hasattr(self, 'chkAdvertiseExitNodeValue') and self.chkAdvertiseExitNodeValue:
+            self.chkAdvertiseExitNodeValue.setChecked(getattr(self.profile, 'advertise_exit_node', False))
+        if hasattr(self, 'chkDisableSNATValue') and self.chkDisableSNATValue:
+            self.chkDisableSNATValue.setChecked(getattr(self.profile, 'disable_snat', False))
+        if hasattr(self, 'chkUnattendedValue') and self.chkUnattendedValue:
+            self.chkUnattendedValue.setChecked(getattr(self.profile, 'unattended', False))
+        if hasattr(self, 'chkWebclientValue') and self.chkWebclientValue:
+            self.chkWebclientValue.setChecked(getattr(self.profile, 'webclient', False))
+        if hasattr(self, 'chkAdvertiseConnectorValue') and self.chkAdvertiseConnectorValue:
+            self.chkAdvertiseConnectorValue.setChecked(getattr(self.profile, 'advertise_connector', False))
+
+        if hasattr(self, 'comboAcceptRisk') and self.comboAcceptRisk:
+            self.comboAcceptRisk.setEditText(getattr(self.profile, 'accept_risk', ''))
+
+        if hasattr(self, 'lineEditExtraArgs') and self.lineEditExtraArgs:
+            self.lineEditExtraArgs.setText(getattr(self.profile, 'extra_args', ''))
+
         if self.lineEditTags:
             self.lineEditTags.setText(getattr(self.profile, 'advertise_tags', ""))
             self.lineEditTags.setToolTip("A comma-separated list of ACL tags to advertise for this device (e.g., tag:server, tag:prod).")
@@ -157,6 +214,10 @@ class NodeDialog(BaseUiDialog):
                     self.chkDisableSNAT.setChecked(True)
                 if self.chkShieldsUp and prefs.get("ShieldsUp"):
                     self.chkShieldsUp.setChecked(True)
+                if hasattr(self, 'chkAcceptRoutes') and self.chkAcceptRoutes and "RouteAll" in prefs:
+                    self.chkAcceptRoutes.setChecked(bool(prefs.get("RouteAll")))
+                if hasattr(self, 'chkUnattended') and self.chkUnattended and "Unattended" in prefs:
+                    self.chkUnattended.setChecked(bool(prefs.get("Unattended")))
                     
                 # Exit nodes are advertised by routing 0.0.0.0/0
                 routes = prefs.get("AdvertiseRoutes") or []
@@ -297,16 +358,24 @@ class NodeDialog(BaseUiDialog):
         self.profile.exit_node = exit_node
         self.profile.routes = routes
         self.profile.hostname = hostname
-        self.profile.enable_ssh = self.chkSSH.isChecked() if self.chkSSH else False
-        self.profile.accept_dns = self.chkAcceptDNS.isChecked() if self.chkAcceptDNS else False
-        self.profile.allow_lan = self.chkAllowLAN.isChecked() if self.chkAllowLAN else False
-        self.profile.disable_snat = self.chkDisableSNAT.isChecked() if self.chkDisableSNAT else False
+        self.profile.enable_ssh = (self.chkSSHValue.isChecked() if hasattr(self, 'chkSSHValue') and self.chkSSHValue else (self.chkSSH.isChecked() if self.chkSSH else False))
+        self.profile.accept_dns = (self.chkAcceptDNSValue.isChecked() if hasattr(self, 'chkAcceptDNSValue') and self.chkAcceptDNSValue else (self.chkAcceptDNS.isChecked() if self.chkAcceptDNS else False))
+        self.profile.allow_lan = (self.chkAllowLANValue.isChecked() if hasattr(self, 'chkAllowLANValue') and self.chkAllowLANValue else (self.chkAllowLAN.isChecked() if self.chkAllowLAN else False))
+        self.profile.disable_snat = (self.chkDisableSNATValue.isChecked() if hasattr(self, 'chkDisableSNATValue') and self.chkDisableSNATValue else (self.chkDisableSNAT.isChecked() if self.chkDisableSNAT else False))
         self.profile.enable_dns_fallback = self.chkDnsFallback.isChecked() if self.chkDnsFallback else False
         self.profile.force_reset = self.chkForceReset.isChecked() if self.chkForceReset else False
-        self.profile.advertise_exit_node = self.chkAdvertiseExitNode.isChecked() if self.chkAdvertiseExitNode else False
-        self.profile.shields_up = self.chkShieldsUp.isChecked() if self.chkShieldsUp else False
+        self.profile.advertise_exit_node = (self.chkAdvertiseExitNodeValue.isChecked() if hasattr(self, 'chkAdvertiseExitNodeValue') and self.chkAdvertiseExitNodeValue else (self.chkAdvertiseExitNode.isChecked() if self.chkAdvertiseExitNode else False))
+        self.profile.shields_up = (self.chkShieldsUpValue.isChecked() if hasattr(self, 'chkShieldsUpValue') and self.chkShieldsUpValue else (self.chkShieldsUp.isChecked() if self.chkShieldsUp else False))
         self.profile.force_reauth = self.chkForceReauth.isChecked() if self.chkForceReauth else False
         self.profile.advertise_tags = self.lineEditTags.text().strip() if self.lineEditTags else ""
+        self.profile.accept_routes = (self.chkAcceptRoutesValue.isChecked() if hasattr(self, 'chkAcceptRoutesValue') and self.chkAcceptRoutesValue else (self.chkAcceptRoutes.isChecked() if hasattr(self, 'chkAcceptRoutes') and self.chkAcceptRoutes else True))
+        self.profile.unattended = (self.chkUnattendedValue.isChecked() if hasattr(self, 'chkUnattendedValue') and self.chkUnattendedValue else (self.chkUnattended.isChecked() if hasattr(self, 'chkUnattended') and self.chkUnattended else False))
+        self.profile.webclient = (self.chkWebclientValue.isChecked() if hasattr(self, 'chkWebclientValue') and self.chkWebclientValue else (self.chkWebclient.isChecked() if hasattr(self, 'chkWebclient') and self.chkWebclient else False))
+        self.profile.advertise_connector = (self.chkAdvertiseConnectorValue.isChecked() if hasattr(self, 'chkAdvertiseConnectorValue') and self.chkAdvertiseConnectorValue else (self.chkAdvertiseConnector.isChecked() if hasattr(self, 'chkAdvertiseConnector') and self.chkAdvertiseConnector else False))
+        if hasattr(self, 'comboAcceptRisk') and self.comboAcceptRisk:
+            self.profile.accept_risk = self.comboAcceptRisk.currentText().strip()
+        if hasattr(self, 'lineEditExtraArgs') and self.lineEditExtraArgs:
+            self.profile.extra_args = self.lineEditExtraArgs.text().strip()
 
         # Save checked profiles
         if self.listNativeSwitch:

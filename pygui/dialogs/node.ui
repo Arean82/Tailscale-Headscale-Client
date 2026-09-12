@@ -205,99 +205,240 @@
         </widget>
        </item>
        <item>
-        <layout class="QGridLayout" name="flagsLayout">
-         <item row="5" column="0">
-          <widget class="QCheckBox" name="chkForceReset">
-           <property name="toolTip">
-            <string>Wipe local daemon state (routes, exit nodes) before bringing up this profile.</string>
-           </property>
-           <property name="text">
-            <string>Force Reset (--reset)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="0">
-          <widget class="QCheckBox" name="chkAllowLAN">
-           <property name="toolTip">
-            <string>Allow access to local LAN when using an Exit Node.</string>
-           </property>
-           <property name="text">
-            <string>Allow LAN (--exit-node-allow-lan-access)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QCheckBox" name="chkDisableSNAT">
-           <property name="toolTip">
-            <string>Disable Source NAT for advertised routes. Required for site-to-site networking.</string>
-           </property>
-           <property name="text">
-            <string>Disable SNAT (--snat-subnet-routes=false)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QCheckBox" name="chkSSH">
-           <property name="toolTip">
-            <string>Allow remote Tailscale SSH connections to this machine.</string>
-           </property>
-           <property name="text">
-            <string>Enable SSH (--ssh)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="8" column="0">
-          <widget class="QCheckBox" name="chkForceReauth">
-           <property name="toolTip">
-            <string>Forces the daemon to completely re-authenticate with the control server.</string>
-           </property>
-           <property name="text">
-            <string>Force Reauth (--force-reauth)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="6" column="0">
-          <widget class="QCheckBox" name="chkAdvertiseExitNode">
-           <property name="toolTip">
-            <string>Allows this machine to act as an exit node for the rest of your Tailnet.</string>
-           </property>
-           <property name="text">
-            <string>Run as Exit Node (--advertise-exit-node)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="0">
-          <widget class="QCheckBox" name="chkDnsFallback">
-           <property name="toolTip">
-            <string>Use the cached Emergency IP if the login server domain cannot be resolved.</string>
-           </property>
-           <property name="text">
-            <string>Enable DNS Fallback</string>
-           </property>
-          </widget>
-         </item>
-         <item row="7" column="0">
-          <widget class="QCheckBox" name="chkShieldsUp">
-           <property name="toolTip">
-            <string>Blocks incoming connections from other devices on your Tailnet for maximum security.</string>
-           </property>
-           <property name="text">
-            <string>Shields Up (--shields-up)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0">
-          <widget class="QCheckBox" name="chkAcceptDNS">
-           <property name="toolTip">
-            <string>Accept DNS settings pushed by the Tailnet.</string>
-           </property>
-           <property name="text">
-            <string>Accept DNS (--accept-dns)</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
+         <layout class="QGridLayout" name="flagsLayout">
+          <item row="0" column="0">
+           <widget class="QCheckBox" name="chkAllowLAN">
+            <property name="toolTip">
+             <string>Allow access to local LAN when using an Exit Node.</string>
+            </property>
+            <property name="text">
+             <string>Allow LAN (--exit-node-allow-lan-access)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="chkSSH">
+            <property name="toolTip">
+             <string>Allow remote Tailscale SSH connections to this machine.</string>
+            </property>
+            <property name="text">
+             <string>Enable SSH (--ssh)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="chkAcceptRoutes">
+            <property name="toolTip">
+             <string>Accept subnet routes advertised by other nodes.</string>
+            </property>
+            <property name="text">
+             <string>Accept Routes (--accept-routes)</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QCheckBox" name="chkAcceptDNS">
+            <property name="toolTip">
+             <string>Accept DNS settings pushed by the Tailnet.</string>
+            </property>
+            <property name="text">
+             <string>Accept DNS (--accept-dns)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QCheckBox" name="chkShieldsUp">
+            <property name="toolTip">
+             <string>Blocks incoming connections from other devices on your Tailnet for maximum security.</string>
+            </property>
+            <property name="text">
+             <string>Shields Up (--shields-up)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QCheckBox" name="chkAdvertiseExitNode">
+            <property name="toolTip">
+             <string>Allows this machine to act as an exit node for the rest of your Tailnet.</string>
+            </property>
+            <property name="text">
+             <string>Run as Exit Node (--advertise-exit-node)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0">
+           <widget class="QCheckBox" name="chkDisableSNAT">
+            <property name="toolTip">
+             <string>Disable Source NAT for advertised routes. Required for site-to-site networking.</string>
+            </property>
+            <property name="text">
+             <string>Disable SNAT (--snat-subnet-routes=false)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0">
+           <widget class="QCheckBox" name="chkUnattended">
+            <property name="toolTip">
+             <string>Run Tailscale unattended in background without user session.</string>
+            </property>
+            <property name="text">
+             <string>Unattended Mode (--unattended)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="0">
+           <widget class="QCheckBox" name="chkWebclient">
+            <property name="toolTip">
+             <string>Enable Tailscale web client interface on this machine.</string>
+            </property>
+            <property name="text">
+             <string>Web Client (--webclient)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="0">
+           <widget class="QCheckBox" name="chkAdvertiseConnector">
+            <property name="toolTip">
+             <string>Advertise this machine as an app connector.</string>
+            </property>
+            <property name="text">
+             <string>App Connector (--advertise-connector)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="0">
+           <widget class="QCheckBox" name="chkForceReset">
+            <property name="toolTip">
+             <string>Wipe local daemon state (routes, exit nodes) before bringing up this profile.</string>
+            </property>
+            <property name="text">
+             <string>Force Reset (--reset)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="0">
+           <widget class="QCheckBox" name="chkForceReauth">
+            <property name="toolTip">
+             <string>Forces the daemon to completely re-authenticate with the control server.</string>
+            </property>
+            <property name="text">
+             <string>Force Reauth (--force-reauth)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="12" column="0">
+           <widget class="QCheckBox" name="chkDnsFallback">
+            <property name="toolTip">
+             <string>Use the cached Emergency IP if the login server domain cannot be resolved.</string>
+            </property>
+            <property name="text">
+             <string>Enable DNS Fallback</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QCheckBox" name="chkAllowLANValue">
+            <property name="text">
+             <string>true / false</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QCheckBox" name="chkSSHValue">
+            <property name="text">
+             <string>true / false</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QCheckBox" name="chkAcceptRoutesValue">
+            <property name="text">
+             <string>true / false</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QCheckBox" name="chkAcceptDNSValue">
+            <property name="text">
+             <string>true / false</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QCheckBox" name="chkShieldsUpValue">
+            <property name="text">
+             <string>true / false</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QCheckBox" name="chkAdvertiseExitNodeValue">
+            <property name="text">
+             <string>true / false</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QCheckBox" name="chkDisableSNATValue">
+            <property name="text">
+             <string>false / true</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QCheckBox" name="chkUnattendedValue">
+            <property name="text">
+             <string>true / false</string>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="1">
+           <widget class="QCheckBox" name="chkWebclientValue">
+            <property name="text">
+             <string>true / false</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="1">
+           <widget class="QCheckBox" name="chkAdvertiseConnectorValue">
+            <property name="text">
+             <string>true / false</string>
+            </property>
+           </widget>
+          </item>
+          <item row="12" column="1">
+           <widget class="QComboBox" name="comboAcceptRisk">
+            <property name="toolTip">
+             <string>Select risk acceptance argument (--accept-risk=...)</string>
+            </property>
+            <property name="editable">
+             <bool>true</bool>
+            </property>
+            <item>
+             <property name="text">
+              <string/>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>all</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>lose-ssh</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </item>
       </layout>
      </item>
     </layout>

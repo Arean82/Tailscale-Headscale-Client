@@ -33,6 +33,12 @@ class Profile:
     shields_up: bool = False
     force_reauth: bool = False
     advertise_tags: str = ""
+    accept_routes: bool = True
+    unattended: bool = False
+    webclient: bool = False
+    advertise_connector: bool = False
+    accept_risk: str = ""
+    extra_args: str = ""
 
 @dataclass
 class AppSettings:
