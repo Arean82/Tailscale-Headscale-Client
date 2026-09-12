@@ -203,5 +203,7 @@ traffic_stats.db
 master.key
 settings.json
 app.log
-
-scratch/*
+temp_data/
+scratch/
+.system_generated/
+*.log

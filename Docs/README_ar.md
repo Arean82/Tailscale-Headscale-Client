@@ -1,230 +1,211 @@
-# Tailscale-Headscale Client Pro (إصدار PySide6)
+# عميل Tailscale / Headscale برو (إصدار البلاتين للمؤسسات)
 
-[![Tailscale](https://img.shields.io/badge/Tailscale-v1.6-blue)](https://tailscale.com) [![PySide6](https://img.shields.io/badge/PySide6-v6.6-green)](https://pyside.org) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Arean82/Tailscale-Headscale-Client) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](../LICENSE) [![Python](https://img.shields.io/badge/Python-3.12-green)](https://www.python.org)
+[![Release](https://img.shields.io/badge/Release-v5.0.0--Enterprise-emerald?style=for-the-badge&logo=shield)](https://github.com/Arean82/Tailscale-Headscale-Client)
+[![Tailscale Engine](https://img.shields.io/badge/Tailscale%20Engine-v1.6%2B-blue?style=for-the-badge&logo=tailscale)](https://tailscale.com)
+[![PySide6 Qt6](https://img.shields.io/badge/Framework-PySide6%20Qt6-41CD52?style=for-the-badge&logo=qt)](https://pyside.org)
+[![Platform Matrix](https://img.shields.io/badge/Platforms-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=for-the-badge)](https://github.com/Arean82/Tailscale-Headscale-Client)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge)](../LICENSE)
+[![Security Standard](https://img.shields.io/badge/Security-Hardware%20Keyring%20Vault-orange?style=for-the-badge)](SECURITY.md)
 
-عميل واجهة المستخدم الرسومية (GUI) ذو المستوى الاحترافي وعالي الأداء عبر الأنظمة الأساسية لـ Tailscale وHeadscale. يجمع هذا العميل بين منطق VPN القوي والواجهة الحديثة المتميزة والمتحركة بعد فصل الاهتمامات على مستوى المؤسسة.
+**Tailscale / Headscale Client Pro** هو تطبيق واجهة مستخدم رسومية (GUI) عالي الأداء ومعد للإنتاج المؤسسي الحساس، تم تصميمه للتشغيل المتوافق والآمن بين شبكات **Tailscale** السحابية الرسمية وخوادم التنسيق الخاصة ذاتية الاستضافة **Headscale**.
 
----
-
-## ✨ جناح كامل الميزات
-
-### 🎨 التميز البصري وتجربة المستخدم
-- ** واجهة المستخدم المتميزة الحديثة: ** جمالية نظيفة تتميز بتدرجات الزمرد والياقوت والنيلي والعنبر النابضة بالحياة للتفاعل البديهي.
-- **مساحة الاسم وشارات كبسولة العلامات:** تعرض شارات كبسولة الأقراص المخصصة باللون الأزرق الملكي (🔵) والأرجواني (🟣) أسماء المستخدمين للمالك وعلامات أمان ACL بجوار أسماء المضيفين داخل قائمة النظراء.
-- **خطوط تألق زمن الاستجابة في الوقت الفعلي:** رسوم بيانية جميلة ومحسنة لزمن الاستجابة تم رسمها باستخدام `QPainter` والتي ترسم اتجاهات الاتصال وتنبض كل ثانيتين بحدود مرمزة بالألوان (أخضر `<32 مللي ثانية`، كهرماني `<70 مللي ثانية`، أحمر `>70 مللي ثانية`).
-- ** التفاف الجدول وأشرطة التمرير سريعة الاستجابة: ** تم تنفيذ سياسات التفاف الكلمات القوية وشريط التمرير المزدوج داخل قائمة النظراء لدعم جميع القرارات دون قص النص.
-- **موضوعات QSS الموحدة:** يفصل تصميم التخطيط تمامًا عن كود Python باستخدام أوراق أنماط السمات الخارجية المستقلة `.qss` (`assets/themes/`).
-- **زر الحفظ والإغلاق المتميز:** زر متدرج أخضر متطور مع تمرير سلس وحالات ضغط، مما يوفر إحساسًا ملموسًا أنيقًا في نافذة الإعدادات.
-- ** الرسوم المتحركة المميزة: **
-    - بدء التشغيل السلس بسرعة 500 مللي ثانية.
-    - نبض "نبض القلب" الديناميكي لحالات الاتصال.
-    - انتقالات الخبو الشاملة لجميع نوافذ الحوار.
-- **Direct Numeric SpinBox:** تم دمج `QSpinBox` نظيف وحديث لتعيين الحد الأقصى لملف التعريف، ودعم الإدخال الرقمي المباشر السهل الذي يصل إلى `1000` مع محاذاة التخطيط التلقائي.
-- **التخزين المؤقت للصور غير المتزامنة:** تحميل خلفية عالي الأداء لشارات وصور README.
-- **تشابك الإعدادات الذكية:** يربط تلقائيًا **الاتصال التلقائي عند بدء التشغيل** مع **التشغيل عند بدء التشغيل** ديناميكيًا مع تأكيد المستخدم، مما يوفر تجربة مستخدم آلية متطورة.
-- **الشارة التجريبية الديناميكية:** تعرض شارة 🧪 Experimental API` الرائعة على لوحة التحكم الرئيسية فورًا عند تمكين Local API في الإعدادات.
-- **التدويل العالمي (i18n):** دعم أصلي عميق للغات العربية (RTL) والفرنسية والإسبانية والإنجليزية باستخدام `QTranslator' و`PySide6-lupdate`/`lrelease`، مع برنامج نصي API لترجمة الخلفية التلقائية.
-
-### ⚡ ميزات الطاقة والتوجيه الذكي (ميزات متقدمة)
-- **المزامنة التلقائية لـ Live Daemon:** تلتقط الخيارات المتقدمة بذكاء حالات البرنامج الخفي النشطة (`تفضيلات تصحيح الأخطاء` و`حالة مقياس الخلفية --json`) للملء المسبق تلقائيًا لاسم المضيف، ومسارات الشبكة الفرعية، وإشارات الشبكة المخفية في الوقت الفعلي، مع ميزة تبديل التجاوز اليدوي.
-- ** احتياطي DNS في حالات الطوارئ (الثقة عند الاستخدام الأول): ** يتميز بدقة DNS النشطة `ControlURL` لحساب عناوين IPv4 للخادم المستهدف وتخزينها مؤقتًا بشكل ديناميكي عند اتصال ناجح. إذا فشل تحليل اسم النطاق الأساسي أثناء الإطلاق المستقبلي، فسيقوم العميل باعتراض الفشل بذكاء وتوجيه حركة المرور مباشرة إلى عنوان IP للطوارئ المخزن مؤقتًا.
-- **تحديد عقدة الخروج والشبكة الفرعية الدقيقة:** خيارات متقدمة (`node.ui`) لكل علامة تبويب لكل ملف شخصي تسمح بمعلمات `-exit-node` و`-advertise-routes` القابلة للتخصيص.
-- **السماح بتبديل الوصول إلى الشبكة المحلية (`--exit-node-allow-lan-access`):** تمت إضافة تبديل آمن للوصول إلى أجهزة الشبكة الفعلية المحلية أثناء الاتصال عبر الأنفاق عبر عقدة الخروج.
-- **تعطيل تبديل SNAT (`--snat-subnet-routes=false`):** تمت إضافة تبديل الشبكة الفرعية للتوجيه للحفاظ على عناوين IP الفعلية للعميل في سجلات تدقيق الخادم.
-- **تجاوزات اسم المضيف المخصصة (`--اسم المضيف`):** تمت إضافة حقل إدخال قابل للتخصيص داخل مربع حوار العقدة لإلحاق تجاوزات اسم مضيف العقدة المخصصة لكل ملف تعريف اتصال.
-- **الاقتراح التلقائي للمسار الذكي:** يؤدي تحديد عقدة الخروج إلى الاستعلام فورًا عن مسارات IP المعلن عنها وملء حقل مسارات الشبكة الفرعية تلقائيًا في الوقت الفعلي، مما يؤدي إلى القضاء على النسخ اليدوي.
-- **مبدل عقدة الخروج السريع للدرج:** مبدل سياق شريط المهام الديناميكي الذي يسمح للمستخدمين المتميزين بتغيير توجيه عقدة الخروج النشط أو تبديله أو تحريره مباشرة من قائمة سياق علبة النظام عند النقر بزر الماوس الأيمن.
-- **مراقبة حركة المرور:** يوقف مؤقتًا استقصاء إحصائيات نظام التشغيل وكتابة قاعدة البيانات عندما يتم تصغير نافذة العميل أو إخفائها في علبة النظام، مما يؤدي إلى تحسين وحدة المعالجة المركزية وإدخال/إخراج القرص واستخدام البطارية.
-- **التبديل الأصلي للحسابات المتعددة:** دعم التبديل السريع لملف التعريف الأصلي ("مفتاح التبديل") في أقل من 0.5 ثانية بدون أي عوائق مصادقة.
-- **تجميع علامات التبويب تلقائيًا:** يتم ترتيب ملفات تعريف التبديل الأصلية المتقدمة تلقائيًا جنبًا إلى جنب في مقدمة شريط علامات التبويب للحصول على تنظيم مرئي مثالي.
-- **مصفوفة قفل علامات التبويب الذكية:** يؤدي الاتصال بملف تعريف التبديل الأصلي النشط إلى قفل علامات تبويب الخادم المخصصة القياسية تلقائيًا (يتحول لونها إلى اللون الرمادي)، مع ترك علامات تبويب التبديل الفوري المتوافقة فقط مفتوحة لضمان الأمان الكامل للجلسة.
-- **تأكيد تبديل الاتصال:** يطالبك تحذير أنيق في حالة محاولة بدء اتصال جديد بينما يكون آخر نشطًا بالفعل لمنع قطع الاتصال غير المقصود.
-
-### 🧠 آلة الدولة المركزية والموثوقية
-- **وحدة التحكم الرسمية في انتقال آلة الحالة:** تعمل على توجيه تدفقات الاتصال بشكل نظيف من خلال الحالات المحمية (`DISCONNECTED`، `CONNECTING`، `CONNECTED`، `LOGGED_OUT`، `PENDING_APPROVAL`، `ERROR`)، والقضاء تمامًا على حالات السباق، والمؤقتات المكررة، وانتقالات الحالة التي لا معنى لها.
-- **استثناءات شهادة SSL/MITM ذاتية التوقيع:** تمت إضافة مفتاح تبديل مرن `السماح بـ SSL ذاتي التوقيع / غير آمن` في الإعدادات، والذي يُلحق ديناميكيًا `--insecure-skip-tls-verify=true` إلى تدفقات أوامر CLI القياسية وإعادة الاتصال، مما يتيح تشغيلًا آمنًا وخاليًا من الأعطال في مختبرات Headscale الرئيسية المستضافة ذاتيًا.
-- **سياسة إعادة الاتصال الأسية للتراجع:** أعد محاولة الاتصالات الفاشلة برمجيًا على فترات زمنية متزايدة بشكل كبير ('3s`، `6s`، `12s`) بدلاً من تكرار حلقات الفيضانات العدوانية لإعادة الاتصال.
-- **ملكية مهلة تسجيل الدخول الموحّد (SSO):** يتتبع تسجيلات الدخول الموحّد (SSO) تلقائيًا وينهي مهام مصادقة المتصفح التي لا معنى لها.
-- ** تتبع حركة دلتا: ** منطق الثبات المتقدم لمنع فقدان البيانات عبر عمليات إعادة التشغيل.
-- **التشغيل عبر الأنظمة الأساسية عند بدء التشغيل:** تسجيل حديث ومستقل وفي الوقت الفعلي يدعم مفاتيح تسجيل Windows ('HKCU\...\Run`)، ووكلاء تشغيل macOS، وإدخالات Linux `.desktop`.
-- **فرض المثيل الفردي:** يمنع تصادمات العمليات من خلال القفل على مستوى النظام.
-- **إخفاء بيانات الاعتماد:** تخزين مفتاح المصادقة الآمن باستخدام مفتاح تبديل العين التفاعلي.
-- **تدفق تسجيل الدخول الموحّد (SSO) الصامت:** اكتشاف عنوان URL للخلفية (stdout/stderr) لتسجيل دخول سلس يعتمد على المتصفح.
-- **مراقبة العمليات:** تقوم هيئة مراقبة قوية تعتمد على psutil بحصد عمليات CLI الخلفية اليتيمة بقوة عند إيقاف تشغيل التطبيق لمنع تسرب الخلفية.
+تم بناؤه بالكامل بالاعتماد على **PySide6 (Qt for Python)** دون الاعتماد على متصفحات الويب المدمجة، ويفرض دورات حياة حتمية للعمليات، وتخزيناً مشفراً لبيانات الاعتماد دون أي نصوص واضحة، وقياسات لحظية دقيقة لجودة الاتصال، وتحكماً كاملاً عبر شبكة من عمودين لضمان استقرار العمليات.
 
 ---
 
-## 📋 متطلبات النظام
+## 🏛️ مواصفات بنية النظام (System Architecture)
 
-لضمان أقصى قدر من الأداء والأمان، يجب أن تستوفي البيئة المستهدفة المعايير التالية:
+يعتمد العميل بنية متعددة الطبقات ومعزولة بدقة تفصل بين واجهة العرض وتنسيق الحالات وتشغيل البرنامج الخفي المحلي ومخازن التشفير الآمنة:
 
-### متطلبات البرمجيات
-* **Python:** إصدار وقت التشغيل **Python 3.10** أو أعلى.
-* **Tailscale Daemon:** يجب أن تكون خدمة Tailscale في الخلفية (البرنامج الخفي "tailscaled" على Unix، أو خدمة "Tailscale") نشطة في Windows.
-* **دعم نظام التشغيل:**
-    * **Windows 10/11:** تم تمكين Powershell (للحصول على أفضل جهد لأوامر بدء تشغيل البرنامج الخفي).
-    * **Linux (Ubuntu/Debian/Fedora):** مطلوب `systemd` لربط خدمة التشغيل التلقائي.
-    * **نظام التشغيل macOS (11.0 Big Sur أو الأحدث):** مطلوب `launchctl` لإدارة القائمة.
+```mermaid
+graph TB
+    %% Explicit Node Styling - Colors ONLY on Nodes
+    classDef uiNode fill:#1e1b4b,stroke:#818cf8,stroke-width:1.5px,color:#ffffff;
+    classDef coordNode fill:#064e3b,stroke:#34d399,stroke-width:1.5px,color:#ffffff;
+    classDef daemonNode fill:#451a03,stroke:#fbbf24,stroke-width:1.5px,color:#ffffff;
+    classDef storageNode fill:#164e63,stroke:#22d3ee,stroke-width:1.5px,color:#ffffff;
 
-### حزم بايثون (مضمنة في ملف `requirements.txt`)
-* `PySide6>=6.6.0` (إطار عمل واجهة المستخدم الرسومية وQUiLoader Core)
-* `psutil>=5.9.0` (إحصائيات حركة المرور، مراقب واجهة الشبكة، مراقب العمليات)
-* `keyring>=24.0.0` (تكامل سلسلة مفاتيح نظام التشغيل الآمن تشفيرًا)
+    %% 100% Transparent Subgraph Containers (Zero Flood Color)
+    style UI fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+    style Core fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+    style Daemon fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+    style Storage fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+
+    subgraph UI ["🖥️ Presentation Layer (PySide6 GUI)"]
+        MW["MainWindow & System Tray"]:::uiNode
+        DB["Dashboard & Profile Tabs"]:::uiNode
+        ND["NodeDialog (Advanced Options)"]:::uiNode
+        PL["PeerList & Sparklines"]:::uiNode
+        RD["Markdown Viewer Studio"]:::uiNode
+    end
+
+    subgraph Core ["🧠 Core Control & State Coordination"]
+        SC["StateCoordinator (Deterministic Gatekeeper)"]:::coordNode
+        SM["AppState FSM Machine"]:::coordNode
+        TSM["TailscaleProcess (Execution Engine)"]:::coordNode
+        WM["ProcessWatchdog (psutil Reaper)"]:::coordNode
+    end
+
+    subgraph Daemon ["⚙️ Host OS Daemon Interface"]
+        TD["Local tailscaled / Windows Service"]:::daemonNode
+        CLI["tailscale CLI (JSON IPC Engine)"]:::daemonNode
+        API["Local API Pipe / Domain Socket"]:::daemonNode
+    end
+
+    subgraph Storage ["💾 Persistence & Security Layer"]
+        KR["OS Credential Vault (Keyring)"]:::storageNode
+        SQL["SQLite Database (Traffic History)"]:::storageNode
+        FS["Profile Store (JSON)"]:::storageNode
+    end
+
+    %% Flow Connections
+    MW -->|User Actions| SC
+    DB -->|Switch Profile| SC
+    ND -->|Flags & Routes| SC
+    SC -->|State Guard| SM
+    SC -->|Array Execution| TSM
+    TSM -->|IPC Commands| CLI
+    TSM -->|Local Named Pipe| TD
+    TSM -->|Socket Stream| API
+    WM -->|Process Health| TD
+    SC -->|Persist Config| FS
+    TSM -->|Retrieve Keys| KR
+    SC -->|Commit Stats| SQL
+```
 
 ---
 
-## 🏛️ المواصفات الفنية الشاملة
+## 🔄 محرك الحالات المحددة (FSM) ودورة حياة الاتصال
 
-<div align="center">
-  <img src="../assets/state_machine.png" alt="Centralized Connection State Machine Flowchart" width="600"/>
-</div>
+تتحرك حالات الاتصال حصرياً عبر آلة حالات محددة رسمية وحتمية لمنع تضارب العمليات والعمليات الشاردة المعلقة:
 
-### المقاييس الفنية
-* **وحدة المعالجة المركزية الخاملة:** `< 0.1%` (تم تحقيق ذلك أصلاً من خلال قناة API المحلية المسماة API أو مآخذ توصيل Unix).
-* ** فترة تهدئة استعلام الحالة: ** `2.0 ثانية` (يمنع ارتفاع عملية واجهة سطر الأوامر المتزامنة).
-* **فترة السماح لتسجيل الدخول الموحَّد (SSO):** `120 ثانية` (قابلة للتخصيص في الإعدادات).
-* **بصمة الذاكرة:** `~85 ميجابايت من ذاكرة الوصول العشوائي` (هياكل تخطيط PySide6 المحسنة).
+```mermaid
+stateDiagram-v2
+    [*] --> DISCONNECTED
+
+    DISCONNECTED --> CONNECTING : بدء الاتصال (مفتاح المصادقة / مصافحة SSO)
+    CONNECTING --> CONNECTED : نجاح الربط مع البرنامج الخفي (200 OK)
+    CONNECTING --> ERROR : انتهاء الوقت / مفتاح غير صالح / خطأ SSL
+    CONNECTING --> PENDING_APPROVAL : العقدة بحاجة لموافقة لوحة الإدارة
+
+    PENDING_APPROVAL --> CONNECTED : تمت الموافقة من مدير الشبكة
+    PENDING_APPROVAL --> DISCONNECTED : إلغاء من المستخدم / انتهاء المهلة
+
+    CONNECTED --> CONNECTING : تبديل ملف التعريف / إعادة الاتصال الفوري
+    CONNECTED --> DISCONNECTED : قطع الاتصال اليدوي المنظم
+    CONNECTED --> LOGGED_OUT : إلغاء جلسة ملف التعريف
+    CONNECTED --> ERROR : انهيار البرنامج الخفي / انقطاع بطاقة الشبكة
+
+    ERROR --> CONNECTING : محاولة إعادة الاتصال التلقائي بالتراجع الأسي (3s, 6s, 12s)
+    ERROR --> DISCONNECTED : استنفاد الحد الأقصى لمحاولات إعادة الاتصال (3)
+
+    LOGGED_OUT --> DISCONNECTED : اختيار ملف تعريف بديل
+```
 
 ---
 
-## 🛠️ البدء السريع وإعداد المطور
+## ⚙️ مصفوفة الخيارات المتقدمة للمؤسسات (نظام العمودين المتطابق)
 
-لتشغيل التطبيق واختباره محليًا، اتبع الخطوات البسيطة التالية:
+تطبق لوحة الإعدادات المتقدمة `NodeDialog` عقداً صارماً من عمودين: **العمود 0** يحتوي على مفاتيح التحكم الخاصة بالمشغل، بينما يظهر **العمود 1** شارات الحالة الحية للبرنامج الخفي باللون الأخضر `#22c55e` (**`True`**) أو الأحمر `#ef4444` (**`False`**):
 
-### 1. قم بإعداد البيئة الافتراضية
+| اسم الميزة | معامل أمر CLI النشط | مفتاح الشارة في العمود 1 | الوصف التشغيلي |
+| :--- | :--- | :--- | :--- |
+| **السماح بالشبكة المحلية** | `--exit-node-allow-lan-access` | `chkAllowLANValue` | يتيح الوصول لأجهزة الشبكة المحلية (Ethernet/Wi-Fi) أثناء التوجيه عبر عقدة الخروج. |
+| **تفعيل SSH** | `--ssh` | `chkSSHValue` | يشغل خادم Tailscale SSH الآمن المدار بسياسات التحكم بالوصول ACL. |
+| **قبول المسارات** | `--accept-routes` | `chkAcceptRoutesValue` | يتيح استقبال مسارات الشبكات الفرعية CIDR المعلنة عبر شبكة Tailnet. |
+| **قبول DNS** | `--accept-dns` | `chkAcceptDNSValue` | يدمج نطاقات بحث MagicDNS وخوادم التوجيه المحددة في الشبكة. |
+| **تفعيل الدروع (Shields Up)** | `--shields-up` | `chkShieldsUpValue` | يحجب جميع الاتصالات الواردة من الأجهزة الأخرى لأقصى حماية بنموذج Zero-Trust. |
+| **العمل كعقدة خروج** | `--advertise-exit-node` | `chkAdvertiseExitNodeValue` | يحول الجهاز الحالي إلى بوابة خروج رئيسية لإنترنت أجهزة الشبكة. |
+| **تعطيل SNAT** | `--snat-subnet-routes=false` | `chkDisableSNATValue` | يحافظ على عناوين IP المصدر الأصلية للأجهزة في التوجيه بين المواقع. |
+| **الوضع غير المراقب** | `--unattended` | `chkUnattendedValue` | يشغل الخدمة في الخلفية دون الحاجة لتسجيل دخول جلسة مستخدم تفاعلية في ويندوز. |
+| **عميل الويب** | `--webclient` | `chkWebclientValue` | يتيح واجهة إدارة الويب المحلية المؤمّنة عبر المتصفح. |
+| **موصل التطبيقات** | `--advertise-connector` | `chkAdvertiseConnectorValue` | يعين الجهاز كوسيط حركة مرور آمن للوصول إلى تطبيقات السحابة المؤسسية. |
+| **مسارات الشبكات الفرعية** | `--advertise-routes=<CIDR>` | *حقل إدخال* | يعلن عن شبكات RFC 1918 المحلية (مثل `10.0.0.0/24, 192.168.1.0/24`). |
+| **اسم الجهاز المخصص** | `--hostname=<NAME>` | *حقل إدخال* | يعيد تعيين اسم الجهاز الظاهر في سجلات DNS لـ Headscale/Tailscale. |
+| **إعادة الضبط الإجبارية** | `--reset` | *خيار تنفيذ* | يمسح المسارات والإعدادات السابقة من البرنامج الخفي قبل تشغيل الملف. |
+| **إعادة المصادقة الإجبارية** | `--force-reauth` | *خيار تنفيذ* | يجبر الجهاز على تبادل مفاتيح جديد بالكامل مع خادم التحكم. |
+
+---
+
+## 🔒 هندسة الأمان وحماية البيانات
+
+1. **مخزن آمن دون نصوص واضحة:** يتم تشفير مفاتيح المصادقة والرموز الحساسة وحفظها عبر مخازن النظام الرسمية (`keyring`: Windows Credential Locker و macOS Keychain و Linux Secret Service).
+2. **الحماية من حقن الأوامر:** تمرر جميع أوامر CLI كمصفوفات مفهرسة بدقة (`subprocess.Popen([cmd, arg1, arg2], shell=False)`) مع حظر تام لتوسيع نصوص Shell.
+3. **مراقب العمليات الصارم (Watchdog):** متابعة مستمرة عبر `psutil` لإنهاء العمليات الفرعية المعلقة فور إغلاق التطبيق أو تبديل الملفات لمنع تضارب المنافذ.
+4. **التراجع الأسي المتزن:** تعتمد إعادة الاتصال التلقائي فترات انتظار تصاعدية (`3s` -> `6s` -> `12s`) لمنع إغراق الخوادم بالطلبات أثناء انقطاع الشبكة.
+5. **دعم شهادات SSL الموقعة ذاتياً:** دعم تشغيل كامل لبيئات الاختبار وخوادم Headscale المغلقة عبر خيار `--insecure-skip-tls-verify=true`.
+
+---
+
+## 📋 مصفوفة توافق أنظمة التشغيل
+
+| نظام التشغيل | المعماريات المدعومة | الحد الأدنى للإصدار | مدير الخدمات | نموذج الصلاحيات |
+| :--- | :--- | :--- | :--- | :--- |
+| **ويندوز** | x86_64, ARM64 | Windows 10 (Build 19041+) / Windows 11 | خدمة Windows (`Tailscale`) | مستخدم قياسي (خدمة بصلاحيات مرتفعة) |
+| **لينكس** | x86_64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+ | `systemd` (`tailscaled.service`) | مجموعة `tailscale` / صلاحيات المقبس |
+| **ماك** | x86_64, Apple Silicon | macOS 11.0 (Big Sur) أو أحدث | `launchd` / `launchctl` | عزل Keychain |
+
+---
+
+## 🛠️ إعداد المطورين والتحقق
+
 ```bash
-# Create virtual environment
+# 1. استنساخ المستودع
+git clone https://github.com/Arean82/Tailscale-Headscale-Client.git
+cd Tailscale-Headscale-Client
+
+# 2. إعداد بيئة بايثون الافتراضية
 python -m venv venv
 
-# Activate virtual environment
-# On Windows:
+# ويندوز:
 .\venv\Scripts\activate
-# On macOS/Linux:
+# لينكس / ماك:
 source venv/bin/activate
-```
 
-### 2. تثبيت التبعيات
-```bash
+# 3. تثبيت حزم الإنتاج
 pip install -r requirements.txt
-```
 
-### 3. إطلاق عميل التطوير
-```bash
+# 4. تشغيل عميل التطوير
 python main.py
 ```
 
-> [!هام]
-> تأكد من تشغيل البرنامج الخفي للخلفية Tailscale (`tailscaled` على Linux/macOS أو خدمة Tailscale Windows) على نظامك حتى يتمكن العميل من إنشاء اتصالات ناجحة.
-
 ---
 
-## 📂 هيكل المشروع البصري
+## 📦 حزم التوزيع والإنتاج
 
-```text
-📂 Tailscale-Headscale-Client/
-├── 🖼️ assets/                     # Icons, logos, and branding assets
-│   └── 🎨 themes/                 # Dynamic stylesheet sheets (.qss)
-│       ├── 📄 dark.qss
-│       └── 📄 light.qss
-├── 🎨 pygui/                      # UI Definition Files (.ui)
-│   ├── 🪟 dialogs/                # Popup windows
-│   │   ├── 📄 about.ui
-│   │   ├── 📄 credentials.ui
-│   │   ├── 📄 diagnostics.ui
-│   │   ├── 📄 log_viewer.ui
-│   │   ├── 📄 node.ui                 # Exit Node & Advanced Options Dialog
-│   │   ├── 📄 peer_list.ui
-│   │   ├── 📄 profile.ui
-│   │   ├── 📄 progress.ui
-│   │   ├── 📄 readme.ui
-│   │   ├── 📄 settings.ui
-│   │   └── 📄 traffic.ui
-│   └── 🖼️ windows/                 # Layouts
-│       ├── 📄 main_window.ui
-│       └── 📄 tab_widget.ui
-├── 🌐 locales/                    # i18n Translation Files (.ts, .qm)
-├── 💻 src/                        # Core Python Source
-│   ├── 🧠 core/                   # Backend Logic
-│   │   ├── ⚙️ db_manager.py        # Traffic Persistence
-│   │   ├── ⚙️ tailscale.py         # Process & SSO management
-│   │   ├── ⚙️ cache_manager.py     # Image & State caching
-│   │   └── ⚙️ state_coordinator.py # Central State Machine & Watchdogs
-│   ├── 🖥️ ui/                     # PySide6 Implementations
-│   │   ├── 🧩 components/          # Shared Dialog Logic
-│   │   ├── 🧩 dashboard.py         # Tab View logic
-│   │   └── 🧩 main_window.py       # Main Application logic
-│   └── 🛠️ utils/                  # Helpers
-│       ├── ⚙️ constants.py         # Global application constants
-│       ├── ⚙️ crypto.py            # Key encryption/decryption
-│       ├── ⚙️ logger.py            # Event/Activity Logging
-│       ├── ⚙️ local_api.py         # Named Pipes & Unix Sockets Client
-│       └── ⚙️ autostart.py         # Native Boot Configuration Manager
-├── 📦 TailscaleClient_Installer.iss # Windows Installer Script
-├── 📦 TailscaleClient_OneDir.spec   # Windows Unpacked Spec file
-├── 📦 TailscaleClient_OneFile.spec  # Windows Single Exe Spec file
-├── 📦 build_linux_deb.sh          # Linux Packaging Script
-├── 📦 build_mac_dmg.sh            # macOS DMG Build Script
-├── 📦 TailscaleClient_Mac.spec      # macOS App Bundle Spec
-├── 🚀 main.py                     # Application Entry Point
-├── 📖 README.md                   # Repository Stub
-└── 📚 Docs/                       # Documentation & Translations
-    ├── 📖 README.md               # English Documentation
-    ├── 📖 README_ar.md            # Arabic Documentation
-    ├── 📖 README_es.md            # Spanish Documentation
-    └── 📖 README_fr.md            # French Documentation
+```mermaid
+graph LR
+    SRC["شفرة بايثون المصدرية"] --> PYI["محرك بناء PyInstaller (.spec)"]
+    PYI --> DIR["المجلد التنفيذي المستقل (OneDir)"]
+    DIR --> WIN["Inno Setup Compiler -> ويندوز (.exe)"]
+    DIR --> DEB["محرك dpkg-deb -> لينكس (.deb)"]
+    DIR --> MAC["أداة create-dmg -> ماك (.dmg)"]
+```
+
+### مثبت ويندوز للمؤسسات (Inno Setup)
+1. بناء المجلد التنفيذي:
+   ```powershell
+   pyinstaller .\TailscaleClient_OneDir.spec
+   ```
+2. التجميع عبر Inno Setup Compiler (`TailscaleClient_Installer.iss`):
+   الملف الناتج: `dist\installer\TailscaleClientPro_Setup.exe`
+
+### حزمة لينكس دبيان (.deb)
+```bash
+chmod +x build_linux_deb.sh
+./build_linux_deb.sh
+# الناتج: dist/tailscale-client-pro_5.0.0_amd64.deb
+```
+
+### صورة ماك الموقعة (.dmg)
+```bash
+chmod +x build_mac_dmg.sh
+./build_mac_dmg.sh
+# الناتج: dist/TailscaleClientPro_Setup.dmg
 ```
 
 ---
 
-## 🌍 اللغة والترجمة (i18n)
+## 📄 الترخيص والحوكمة
 
-يدعم التطبيق التبديل متعدد اللغات في الوقت الفعلي عبر واجهة مستخدم الإعدادات.
-إذا قمت بإضافة عناصر واجهة مستخدم جديدة أو أردت إضافة لغة جديدة، فاتبع هذا التدفق:
-
-1. **استخرج سلاسل جديدة:** قم بتشغيل `scripts\update_translations.bat` (أو `.sh`). يؤدي هذا إلى تشغيل pyside6-lupdate لتحليل التعليمات البرمجية الخاصة بك وتحديث ملفات XML `.ts` في المجلد `locales/`.
-2. **الترجمة التلقائية:** قم بتشغيل `python scripts\auto_translate.py` (يتطلب `مترجمًا عميقًا`). سيؤدي هذا إلى الوصول بأمان إلى Google Translate API لترجمة سلاسل واجهة المستخدم الجديدة الخاصة بك إلى العربية والفرنسية والإسبانية مع حماية أوراق أنماط CSS الأولية رياضيًا باستخدام "cleanup_css.py".
-3. **Compile:** قم بتشغيل `scripts\update_translations.bat` مرة أخرى لتجميع ملفات `.ts` بأمان إلى ملفات `.qm` الثنائية باستخدام `pyside6-lrelease` حتى يتمكن التطبيق من تحميلها محليًا.
-
----
-
-## 📦 أوامر التغليف والبناء
-
-### 🪟 Windows (إعداد Inno)
-1. **تجميع ثنائيات بايثون:** تأكد من تثبيت `pyinstaller`، ثم أنشئ بنية الدليل القابلة للتنفيذ التي تم فك حزمتها:
-``` بوويرشيل
-نقطة تثبيت pyinstaller psutil PySide6 حلقة المفاتيح
-pyinstaller .\TailscaleClient_OneDir.spec
-   ```
-2. **Build Installer:** افتح Inno Setup Compiler وقم بتجميع "TailscaleClient_Installer.iss". يؤدي هذا إلى إخراج إصدار آمن ومضغوط **5.0.0** مثبت الإعداد `dist\installer\TailscaleClientPro_Setup.exe` مع رؤوس حقوق الطبع والنشر القانونية الكاملة، وتكامل التسجيل/التشغيل التلقائي، واختصارات سطح المكتب التلقائية.
-
-### 🐧 لينكس (أوبونتو/ديبيان .deb)
-1. **تجميع ثنائيات بايثون:** قم بتجميع ثنائيات التفريغ لبنية الهدف المحلية الخاصة بك (على سبيل المثال `amd64`):
-``` باش
-نقطة تثبيت pyinstaller psutil PySide6 حلقة المفاتيح
-pyinstaller TailscaleClient_OneDir.spec
-   ```
-2. **إنشاء حزمة دبيان:** نفذ البرنامج النصي للتغليف لتنظيم الشجرة الثنائية في `/opt/tailscale-client-pro` وتجميع الحزمة `.deb`:
-``` باش
-chmod +x build_linux_deb.sh
-./build_linux_deb.sh
-   ```
-3. **تثبيت الحزمة:** قم بتثبيت الحزمة ذات الإصدار الصحيح باستخدام `dpkg`:
-``` باش
-sudo dpkg -i dist/tailscale-client-pro_5.0.0_amd64.deb
-   ```
-
-### 🍎 نظام التشغيل macOS (حزمة التطبيق وDMG)
-تمت أتمتة عملية إنشاء التجميع وصورة القرص (DMG) بالكامل باستخدام برنامج نصي قوي:
-1. ** تشغيل برنامج البناء الآلي: ** تشغيل برنامج البناء النصي المضمن لتنظيف الدلائل، وتشغيل PyInstaller، وتجميع برنامج التثبيت المتميز بالسحب والإفلات:
-``` باش
-chmod +x build_mac_dmg.sh
-./build_mac_dmg.sh
-   ```
-2. **استرداد الضرر:** احصل على أداة تثبيت صورة القرص **5.0.0** الجاهزة للتوزيع على:
-``dist/TailscaleClientPro_Setup.dmg``
-3. **التثبيت:** انقر نقرًا مزدوجًا على DMG واسحب رمز التطبيق الخاص بك إلى اختصار المجلد `/Applications` داخل النافذة المنبثقة.
-
----
-
-## 📄 الترخيص
-هذا المشروع مرخص بموجب رخصة جنو العامة الإصدار 3.0 - راجع ملف [الترخيص](../LICENSE) للحصول على التفاصيل.
+هذا البرنامج مرخص وموزع بموجب **رخصة جنو العمومية الإصدار 3.0 (GPLv3)**. راجع ملف [LICENSE](../LICENSE) للاطلاع على كامل بنود الترخيص وحقوق إعادة التوزيع.

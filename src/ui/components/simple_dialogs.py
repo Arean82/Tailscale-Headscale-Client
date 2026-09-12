@@ -130,6 +130,9 @@ class ReadmeDialog(BaseUiDialog):
         if self.btnClose:
             self.btnClose.clicked.connect(self.accept)
             
+        if self.viewer:
+            self.viewer.setOpenExternalLinks(True)
+            
         # For background downloads
         self.download_thread = None
         self.worker = None
@@ -151,13 +154,14 @@ class ReadmeDialog(BaseUiDialog):
             elif lang_code.startswith("fr"):
                 lang_suffix = "_fr"
         
-        # Set base path for local images
         import sys
         if sys.platform == "win32":
             app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
         else:
             app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
-        self.viewer.setSearchPaths([app_dir])
+            
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        self.viewer.setSearchPaths([app_dir, base_dir, os.path.join(base_dir, "assets"), os.path.join(base_dir, "Docs")])
         
         md_text = ""
         
@@ -165,7 +169,6 @@ class ReadmeDialog(BaseUiDialog):
             if hasattr(sys, '_MEIPASS'):
                 return os.path.join(sys._MEIPASS, "Docs", f"README{suffix}.md")
             else:
-                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
                 return os.path.join(base_dir, "Docs", f"README{suffix}.md")
 
         readme_path = get_path(lang_suffix)
@@ -184,24 +187,29 @@ class ReadmeDialog(BaseUiDialog):
                 md_text = f.read()
         
         if md_text:
-            # 1. First Pass: Replace already cached images and identify missing ones
-            md_text, missing_urls = self._prepare_readme_content(md_text)
+            # 1. First Pass: Resolve local and cached images, identify missing remote ones
+            md_text, missing_urls = self._prepare_readme_content(md_text, base_dir)
             
-            # 2. Start background downloader if needed
+            # 2. Start background downloader for remote badges/images if needed
             if missing_urls:
                 self._start_background_download(missing_urls)
             
+            # 3. md_converter enhancements: checklists & callout blocks
+            md_text = re.sub(r'-\s+\[\s*\]\s+(.*?)$', r'- [ ] \1', md_text, flags=re.MULTILINE)
+            md_text = re.sub(r'-\s+\[\s*x\s*\]\s+(.*?)$', r'- [x] \1', md_text, flags=re.MULTILINE)
+            
             try:
                 import markdown
-                html_body = markdown.markdown(md_text, extensions=["fenced_code", "tables", "extra"])
+                extensions = ["tables", "footnotes", "fenced_code", "sane_lists", "extra"]
+                html_body = markdown.markdown(md_text, extensions=extensions)
             except ImportError:
                 html_body = f"<pre style='white-space: pre-wrap;'>{md_text}</pre>"
             
-            bg_color = "#ffffff" if self.theme == "light" else "#1a1e2e"
-            text_color = "#1a1a1a" if self.theme == "light" else "#e5e7eb"
-            link_color = "#0056b3" if self.theme == "light" else "#60a5fa"
-            code_bg = "#f6f8fa" if self.theme == "light" else "#0f111a"
-            border_color = "#eaecef" if self.theme == "light" else "#3d4b7c"
+            bg_color = "#ffffff" if self.theme == "light" else "#0d1117"
+            text_color = "#24292f" if self.theme == "light" else "#c9d1d9"
+            link_color = "#0969da" if self.theme == "light" else "#58a6ff"
+            code_bg = "#f6f8fa" if self.theme == "light" else "#161b22"
+            border_color = "#d0d7de" if self.theme == "light" else "#30363d"
             
             content = f"""
             <html>
@@ -212,10 +220,10 @@ class ReadmeDialog(BaseUiDialog):
                         background-color: {bg_color};
                         color: {text_color};
                         line-height: 1.6;
-                        padding: 20px;
+                        padding: 24px;
                     }}
-                    img {{ max-width: 100%; height: auto; display: inline-block; margin: 5px; }}
-                    h1, h2, h3 {{ border-bottom: 1px solid {border_color}; padding-bottom: .3em; margin-top: 24px; margin-bottom: 16px; font-weight: 600; }}
+                    img {{ max-width: 100%; height: auto; display: inline-block; margin: 6px 0; border-radius: 4px; }}
+                    h1, h2, h3, h4 {{ border-bottom: 1px solid {border_color}; padding-bottom: .3em; margin-top: 24px; margin-bottom: 16px; font-weight: 600; color: {text_color}; }}
                     pre {{ 
                         background-color: {code_bg}; 
                         padding: 16px; 
@@ -223,10 +231,13 @@ class ReadmeDialog(BaseUiDialog):
                         border: 1px solid {border_color};
                         overflow-x: auto;
                     }}
-                    code {{ background-color: {code_bg}; padding: .2em .4em; border-radius: 3px; font-family: 'Consolas', 'Monaco', monospace; }}
-                    a {{ color: {link_color}; text-decoration: none; }}
-                    table {{ border-spacing: 0; border-collapse: collapse; width: 100%; margin-bottom: 16px; }}
-                    table th, table td {{ border: 1px solid {border_color}; padding: 6px 13px; }}
+                    code {{ background-color: {code_bg}; padding: .2em .4em; border-radius: 4px; font-family: 'Consolas', 'Monaco', monospace; font-size: 85%; }}
+                    a {{ color: {link_color}; text-decoration: none; font-weight: 500; }}
+                    table {{ border-spacing: 0; border-collapse: collapse; width: 100%; margin-bottom: 16px; margin-top: 8px; }}
+                    table th, table td {{ border: 1px solid {border_color}; padding: 8px 14px; }}
+                    table th {{ background-color: {code_bg}; font-weight: 600; }}
+                    blockquote {{ border-left: 4px solid #3b82f6; margin: 16px 0; padding: 8px 16px; background-color: {code_bg}; border-radius: 0 4px 4px 0; }}
+                    hr {{ height: 1px; background-color: {border_color}; border: none; margin: 24px 0; }}
                 </style>
             </head>
             <body>
@@ -238,8 +249,8 @@ class ReadmeDialog(BaseUiDialog):
         else:
             self.viewer.setPlainText("README.md not found.")
 
-    def _prepare_readme_content(self, md_text):
-        """Identifies which images are cached and which need downloading."""
+    def _prepare_readme_content(self, md_text, base_dir):
+        """Resolves local relative image paths and caches remote badges."""
         import sys
         if sys.platform == "win32":
             app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
@@ -249,6 +260,36 @@ class ReadmeDialog(BaseUiDialog):
         cache_dir = os.path.join(app_dir, "assets", "cache")
         os.makedirs(cache_dir, exist_ok=True)
         
+        # 1. Resolve local relative images (e.g., ../assets/image.png, assets/...)
+        def resolve_local_img(match):
+            alt_text = match.group(1)
+            rel_path = match.group(2)
+            if rel_path.startswith("http://") or rel_path.startswith("https://"):
+                return match.group(0)
+            clean_path = rel_path.replace("../", "").replace("./", "")
+            candidate = os.path.join(base_dir, clean_path)
+            if os.path.exists(candidate):
+                return f"![{alt_text}]({QUrl.fromLocalFile(candidate).toString()})"
+            return match.group(0)
+
+        md_text = re.sub(r'!\[(.*?)\]\((.*?)\)', resolve_local_img, md_text)
+        
+        # Also resolve HTML <img src="..."> tags
+        def resolve_html_img(match):
+            pre = match.group(1)
+            src = match.group(2)
+            post = match.group(3)
+            if src.startswith("http://") or src.startswith("https://"):
+                return match.group(0)
+            clean_path = src.replace("../", "").replace("./", "")
+            candidate = os.path.join(base_dir, clean_path)
+            if os.path.exists(candidate):
+                return f'<img{pre}src="{QUrl.fromLocalFile(candidate).toString()}"{post}>'
+            return match.group(0)
+
+        md_text = re.sub(r'<img([^>]*?)src=["\'](.*?)["\']([^>]*?)>', resolve_html_img, md_text)
+
+        # 2. Remote URLs check and caching
         img_urls = re.findall(r'!\[.*?\]\((https?://.*?)\)', md_text)
         img_urls += re.findall(r'<img.*?src=["\'](https?://.*?)["\']', md_text)
         

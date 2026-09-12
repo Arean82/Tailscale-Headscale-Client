@@ -1,230 +1,211 @@
-# Tailscale-Headscale Client Pro (PySide6 Edition)
+# Tailscale / Headscale Client Pro (Enterprise Platinum Edition)
 
-[![Tailscale](https://img.shields.io/badge/Tailscale-v1.6-blue)](https://tailscale.com) [![PySide6](https://img.shields.io/badge/PySide6-v6.6-green)](https://pyside.org) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Arean82/Tailscale-Headscale-Client) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](../LICENSE) [![Python](https://img.shields.io/badge/Python-3.12-green)](https://www.python.org)
+[![Release](https://img.shields.io/badge/Release-v5.0.0--Enterprise-emerald?style=for-the-badge&logo=shield)](https://github.com/Arean82/Tailscale-Headscale-Client)
+[![Tailscale Engine](https://img.shields.io/badge/Tailscale%20Engine-v1.6%2B-blue?style=for-the-badge&logo=tailscale)](https://tailscale.com)
+[![PySide6 Qt6](https://img.shields.io/badge/Framework-PySide6%20Qt6-41CD52?style=for-the-badge&logo=qt)](https://pyside.org)
+[![Platform Matrix](https://img.shields.io/badge/Platforms-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=for-the-badge)](https://github.com/Arean82/Tailscale-Headscale-Client)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge)](../LICENSE)
+[![Security Standard](https://img.shields.io/badge/Security-Hardware%20Keyring%20Vault-orange?style=for-the-badge)](SECURITY.md)
 
-A professional-grade, high-performance cross-platform GUI client for Tailscale and Headscale. This client combines robust VPN logic with a premium, animated modern interface following enterprise-level separation of concerns.
+**Tailscale / Headscale Client Pro** is a mission-critical, enterprise-grade desktop coordination client engineered for seamless interoperability between official **Tailscale** control networks and private, self-hosted **Headscale** orchestration nodes. 
 
----
-
-## ✨ Full Feature Suite
-
-### 🎨 Visual & UX Excellence
-- **Modern Premium UI:** Clean aesthetic featuring vibrant emerald, ruby, indigo, and amber gradients for intuitive interaction.
-- **Namespace & Tag Capsule Badges:** Custom royal blue (🔵) and purple (🟣) pill capsule badges render owner usernames and ACL security tags cleanly next to hostnames inside the Peers List.
-- **Real-Time Latency Sparklines:** Beautiful, antialiased latency graphs drawn with `QPainter` that plot connection trends and pulse every 2 seconds with color-coded boundaries (Green `<32ms`, Amber `<70ms`, Red `>70ms`).
-- **Responsive Table Wrapping & Scrollbars:** Implemented robust word wrapping and dual-scrollbar policies inside the Peers List to support all resolutions without clipping text.
-- **Unified QSS Theming:** Separates layout styling completely from Python code using standalone external `.qss` theme stylesheets (`assets/themes/`).
-- **Premium Save & Close Button:** High-end green gradient button with smooth hover and pressed states, offering an elegant tactile feel in the Settings window.
-- **Premium Animations:** 
-    - Smooth 500ms startup fade-in.
-    - Dynamic "heartbeat" pulse for connection states.
-    - Universal fade transitions for all dialog windows.
-- **Direct Numeric SpinBox:** Integrated a clean, modern `QSpinBox` for setting the Max Profile Limit, supporting easy direct numeric input up to `1000` with automatic layout alignment.
-- **Async Image Caching:** High-performance background loading for README badges and images.
-- **Smart Setting Interlocking:** Automatically links **Auto-connect on startup** with **Run at startup** dynamically with user confirmation, providing a high-end automated UX.
-- **Dynamic Experimental Badge:** Renders a gorgeous `🧪 Experimental API` badge on the main dashboard instantly when Local API is enabled in the settings.
-- **Global Internationalization (i18n):** Deep native support for Arabic (RTL), French, Spanish, and English using `QTranslator` and `PySide6-lupdate`/`lrelease`, with an automatic background translation API script.
-
-### ⚡ Power Features & Smart Routing (Advanced Features)
-- **Live Daemon Auto-Sync:** Advanced Options intelligently snapshot active daemon states (`tailscale debug prefs` and `tailscale status --json`) to automatically pre-fill hostname, subnet routes, and hidden network flags in real-time, featuring a manual override toggle.
-- **Emergency DNS Fallback (Trust on First Use):** Features Active `ControlURL` DNS Resolution to dynamically calculate and cache target server IPv4 addresses upon a successful connection. If primary domain name resolution fails during a future launch, the client intelligently intercepts the failure and tunnels traffic directly to the cached emergency IP.
-- **Granular Exit Node & Subnet Selection:** Advanced options (`node.ui`) per-profile tab allowing customizable `--exit-node` and `--advertise-routes` parameters.
-- **Allow LAN Access Toggle (`--exit-node-allow-lan-access`):** Added a secure toggle to access local physical network devices while tunneling through an exit node.
-- **Disable SNAT Toggle (`--snat-subnet-routes=false`):** Added a routing subnet toggle to preserve actual client IP addresses in server audit logs.
-- **Custom Hostname Overrides (`--hostname`):** Added a customizable input field inside the Node Dialog to append custom node hostname overrides per connection profile.
-- **Intelligent Route Auto-Suggestion:** Selecting an exit node instantly queries its advertised IP routes and automatically populates the Subnet Routes field in real-time, eliminating manual copying.
-- **Tray Quick Exit-Node Switcher:** Dynamic taskbar context switcher that allows power users to change, toggle, or release active exit-node routing directly from the system tray context menu on right-click.
-- **Traffic Monitor Throttling:** Pauses OS statistics polling and database writes when the client window is minimized or hidden in the system tray, optimizing CPU, disk I/O, and battery usage.
-- **Native Multi-Account Switching:** Support for rapid native profile swapping (`tailscale switch`) under 0.5s with zero authentication barriers.
-- **Automatic Tab Grouping:** Advanced native-switch profiles are automatically arranged side-by-side at the front of the tab bar for perfect visual organization.
-- **Smart Tab Locking Matrix:** Connecting to an active native switch profile automatically locks standard custom-server tabs (greying them out), leaving only compatible instant-switch tabs unlocked for complete session safety.
-- **Connection Switch Confirmation:** Sleek warning prompts if attempting to initiate a new connection while another is already active to prevent accidental disconnects.
-
-### 🧠 Centralized State Machine & Reliability
-- **Formal State Machine Transition Controller:** Drives connection flows cleanly through guarded states (`DISCONNECTED`, `CONNECTING`, `CONNECTED`, `LOGGED_OUT`, `PENDING_APPROVAL`, `ERROR`), completely eliminating race conditions, duplicate timers, and stale state transitions.
-- **SSL/MITM Self-Signed Cert Exceptions:** Added a flexible `Allow Self-Signed / Insecure SSL` toggle in the Settings, which dynamically appends `--insecure-skip-tls-verify=true` to standard and reconnect CLI command streams, enabling secure, crash-free operation in self-hosted Headscale home labs.
-- **Exponential Backoff Reconnect Policy:** Programmatically retry failed connections at exponentially growing intervals (`3s`, `6s`, `12s`) rather than aggressive reconnect flood loops.
-- **SSO Login Timeout Ownership:** Automatically tracks SSO logins and cleanly terminates stale browser authentication tasks.
-- **Delta Traffic Tracking:** Advanced persistence logic to prevent data loss across reboots.
-- **Cross-Platform Run on Startup:** Modern, independent, real-time registration supporting Windows Registry keys (`HKCU\...\Run`), macOS Launch Agents, and Linux `.desktop` entries.
-- **Single Instance Enforcement:** Prevents process collisions with system-wide locking.
-- **Credential Masking:** Secure Auth Key storage with an interactive eye-toggle switch.
-- **Silent SSO Flow:** Background URL detection (stdout/stderr) for a seamless browser-based login.
-- **Process Watchdog:** A robust `psutil`-based watchdog forcefully reaps orphaned background CLI processes upon application shutdown to prevent background leakage.
+Built strictly on **PySide6 (Qt for Python)** without webview bloat, the application enforces deterministic process lifecycles, zero-plaintext credential persistence, high-fidelity real-time telemetry, and complete two-column operational controls designed for zero-drift site reliability operations.
 
 ---
 
-## 📋 System Requirements
+## 🏛️ System Architecture Specification
 
-To ensure maximum performance and security, your target environment must satisfy the following criteria:
+The client implements an isolated, multi-tier architecture separating user interface presentation from state coordination, local daemon execution, and persistent hardware vaults:
 
-### Software Requirements
-*   **Python:** Runtime version **Python 3.10** or higher.
-*   **Tailscale Daemon:** The background Tailscale service (`tailscaled` daemon on Unix, or the Windows `Tailscale` Service) must be active.
-*   **Operating System Support:**
-    *   **Windows 10/11:** Powershell enabled (for best-effort daemon startup commands).
-    *   **Linux (Ubuntu/Debian/Fedora):** `systemd` required for autostart service bindings.
-    *   **macOS (11.0 Big Sur or later):** `launchctl` required for plist management.
+```mermaid
+graph TB
+    %% Explicit Node Styling - Colors ONLY on Nodes
+    classDef uiNode fill:#1e1b4b,stroke:#818cf8,stroke-width:1.5px,color:#ffffff;
+    classDef coordNode fill:#064e3b,stroke:#34d399,stroke-width:1.5px,color:#ffffff;
+    classDef daemonNode fill:#451a03,stroke:#fbbf24,stroke-width:1.5px,color:#ffffff;
+    classDef storageNode fill:#164e63,stroke:#22d3ee,stroke-width:1.5px,color:#ffffff;
 
-### Python Packages (Included in `requirements.txt`)
-*   `PySide6>=6.6.0` (GUI Framework & QUiLoader Core)
-*   `psutil>=5.9.0` (Traffic stats, network interface watcher, process watchdog)
-*   `keyring>=24.0.0` (Cryptographically secured OS keychain integration)
+    %% 100% Transparent Subgraph Containers (Zero Flood Color)
+    style UI fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+    style Core fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+    style Daemon fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+    style Storage fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+
+    subgraph UI ["🖥️ Presentation Layer (PySide6 GUI)"]
+        MW["MainWindow & System Tray"]:::uiNode
+        DB["Dashboard & Profile Tabs"]:::uiNode
+        ND["NodeDialog (Advanced Options)"]:::uiNode
+        PL["PeerList & Sparklines"]:::uiNode
+        RD["Markdown Viewer Studio"]:::uiNode
+    end
+
+    subgraph Core ["🧠 Core Control & State Coordination"]
+        SC["StateCoordinator (Deterministic Gatekeeper)"]:::coordNode
+        SM["AppState FSM Machine"]:::coordNode
+        TSM["TailscaleProcess (Execution Engine)"]:::coordNode
+        WM["ProcessWatchdog (psutil Reaper)"]:::coordNode
+    end
+
+    subgraph Daemon ["⚙️ Host OS Daemon Interface"]
+        TD["Local tailscaled / Windows Service"]:::daemonNode
+        CLI["tailscale CLI (JSON IPC Engine)"]:::daemonNode
+        API["Local API Pipe / Domain Socket"]:::daemonNode
+    end
+
+    subgraph Storage ["💾 Persistence & Security Layer"]
+        KR["OS Credential Vault (Keyring)"]:::storageNode
+        SQL["SQLite Database (Traffic History)"]:::storageNode
+        FS["Profile Store (JSON)"]:::storageNode
+    end
+
+    %% Flow Connections
+    MW -->|User Actions| SC
+    DB -->|Switch Profile| SC
+    ND -->|Flags & Routes| SC
+    SC -->|State Guard| SM
+    SC -->|Array Execution| TSM
+    TSM -->|IPC Commands| CLI
+    TSM -->|Local Named Pipe| TD
+    TSM -->|Socket Stream| API
+    WM -->|Process Health| TD
+    SC -->|Persist Config| FS
+    TSM -->|Retrieve Keys| KR
+    SC -->|Commit Stats| SQL
+```
 
 ---
 
-## 🏛️ Comprehensive Technical Specifications
+## 🔄 Finite State Machine (FSM) & Connection Lifecycle
 
-<div align="center">
-  <img src="../assets/state_machine.png" alt="Centralized Connection State Machine Flowchart" width="600"/>
-</div>
+Network connection state flows strictly through a formal, deterministic Finite State Machine to eliminate race conditions, duplicate execution loops, and orphaned zombie processes:
 
-### Technical Metrics
-*   **Idle CPU:** `< 0.1%` (natively achieved via zero-spawning Local API Named Pipe or Unix Sockets).
-*   **Status Query Coalescing Cooldown:** `2.0 seconds` (blocks concurrent CLI process spikes).
-*   **SSO Login Grace Period:** `120 seconds` (customizable in settings).
-*   **Memory Footprint:** `~85 MB RAM` (optimized PySide6 layout structures).
+```mermaid
+stateDiagram-v2
+    [*] --> DISCONNECTED
+
+    DISCONNECTED --> CONNECTING : Connect Trigger (AuthKey / SSO Handshake)
+    CONNECTING --> CONNECTED : Daemon Handshake 200 OK (Interface Active)
+    CONNECTING --> ERROR : Timeout / Invalid Key / SSL Refusal / Service Stale
+    CONNECTING --> PENDING_APPROVAL : Node Requires Admin Console Authorization
+
+    PENDING_APPROVAL --> CONNECTED : Approved by Administrator
+    PENDING_APPROVAL --> DISCONNECTED : User Abort / Handshake Expired
+
+    CONNECTED --> CONNECTING : Switch Environment Profile / Dynamic Reconnect
+    CONNECTED --> DISCONNECTED : Clean Operator Disconnect
+    CONNECTED --> LOGGED_OUT : Invalidate Profile Session
+    CONNECTED --> ERROR : Daemon Crash / Network Interface Dropped
+
+    ERROR --> CONNECTING : Exponential Backoff Retry (3s, 6s, 12s)
+    ERROR --> DISCONNECTED : Max Retries (3) Exhausted / Fatal Failure
+
+    LOGGED_OUT --> DISCONNECTED : Select Alternate Environment Profile
+```
 
 ---
 
-## 🛠️ Quick Start & Developer Setup
+## ⚙️ Enterprise Advanced Options (Two-Column Status Matrix)
 
-To run and test the application locally, follow these simple steps:
+The `NodeDialog` advanced configuration panel enforces an exact two-column contract: **Column 0** exposes operator-controlled toggles, while **Column 1** displays live, read-only daemon status badges dynamically colored in `#22c55e` (**`True`**) or `#ef4444` (**`False`**):
 
-### 1. Set Up Virtual Environment
+| Feature Name | Active CLI Flag Parameter | Column 1 Badge Key | Operational Specification |
+| :--- | :--- | :--- | :--- |
+| **Allow LAN Access** | `--exit-node-allow-lan-access` | `chkAllowLANValue` | Retains direct local Ethernet/Wi-Fi access while tunneling through an Exit Node. |
+| **Enable SSH** | `--ssh` | `chkSSHValue` | Provisions secure Tailscale SSH server daemon managed by network ACL policies. |
+| **Accept Routes** | `--accept-routes` | `chkAcceptRoutesValue` | Enables client acceptance of advertised CIDR subnet routes across the Tailnet. |
+| **Accept DNS** | `--accept-dns` | `chkAcceptDNSValue` | Injects MagicDNS search domains and designated upstream resolver servers. |
+| **Shields Up** | `--shields-up` | `chkShieldsUpValue` | Enforces zero-trust endpoint firewalling by blocking all inbound peer connections. |
+| **Run as Exit Node** | `--advertise-exit-node` | `chkAdvertiseExitNodeValue` | Converts the local endpoint into a default gateway for whole-network internet egress. |
+| **Disable SNAT** | `--snat-subnet-routes=false` | `chkDisableSNATValue` | Preserves source client IP addresses for bidirectional site-to-site routing. |
+| **Unattended Mode** | `--unattended` | `chkUnattendedValue` | Runs daemon persistently in background without an active interactive Windows user session. |
+| **Web Client** | `--webclient` | `chkWebclientValue` | Binds internal authenticated browser-based management interface. |
+| **App Connector** | `--advertise-connector` | `chkAdvertiseConnectorValue` | Designates the machine as a secure traffic proxy for external corporate SaaS targets. |
+| **Subnet Routes** | `--advertise-routes=<CIDR>` | *Input Field* | Publishes RFC 1918 internal subnets (e.g. `10.0.0.0/24, 192.168.1.0/24`). |
+| **Custom Hostname** | `--hostname=<NAME>` | *Input Field* | Overrides the local machine name registered within Headscale/Tailscale DNS tables. |
+| **Force Reset** | `--reset` | *Execution Flag* | Flushes lingering runtime route state prior to bringing profile up. |
+| **Force Reauth** | `--force-reauth` | *Execution Flag* | Enforces complete key exchange with control server, purging cached session tokens. |
+
+---
+
+## 🔒 Security Architecture & Trust Engineering
+
+1. **Zero-Plaintext Credential Vault:** All machine auth keys, pre-shared tokens, and sensitive URLs are encrypted and stored via platform-native credential managers using the `keyring` standard (Windows Credential Locker, macOS Keychain, Linux Secret Service).
+2. **Subprocess Injection Defense:** All CLI executions pass commands as tokenized argument arrays (`subprocess.Popen([cmd, arg1, arg2], shell=False)`). Shell interpolation is strictly prohibited, neutralizing command injection vectors.
+3. **Automated Process Watchdog:** Process supervision powered by `psutil` actively reaps orphaned daemon tasks upon application exit or profile switching, preventing socket binding collisions.
+4. **Resilient Exponential Backoff:** Reconnection logic implements bounded exponential backoff (`3s` -> `6s` -> `12s`), preventing connection flooding and server DDoS during outages.
+5. **Self-Signed SSL Accommodation:** Isolated homelab deployments with self-hosted Headscale servers support TLS verification bypass via the `--insecure-skip-tls-verify=true` setting.
+
+---
+
+## 📋 System Compatibility Matrix
+
+| Operating System | Supported Architecture | Minimum Version | Service Manager | Privilege Model |
+| :--- | :--- | :--- | :--- | :--- |
+| **Windows** | x86_64, ARM64 | Windows 10 (Build 19041+) / Windows 11 | Windows Service (`Tailscale`) | Standard User (Service elevated) |
+| **Linux** | x86_64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+ | `systemd` (`tailscaled.service`) | Group `tailscale` / Socket ACL |
+| **macOS** | x86_64, Apple Silicon | macOS 11.0 (Big Sur) or higher | `launchd` / `launchctl` | Keychain Sandbox |
+
+---
+
+## 🛠️ Developer Setup & Verification
+
 ```bash
-# Create virtual environment
+# 1. Clone repository
+git clone https://github.com/Arean82/Tailscale-Headscale-Client.git
+cd Tailscale-Headscale-Client
+
+# 2. Configure dedicated virtual environment
 python -m venv venv
 
-# Activate virtual environment
-# On Windows:
+# Windows:
 .\venv\Scripts\activate
-# On macOS/Linux:
+# Linux / macOS:
 source venv/bin/activate
-```
 
-### 2. Install Dependencies
-```bash
+# 3. Install release-grade production dependencies
 pip install -r requirements.txt
-```
 
-### 3. Launch Development Client
-```bash
+# 4. Launch development client
 python main.py
 ```
 
-> [!IMPORTANT]
-> Ensure the Tailscale background daemon (`tailscaled` on Linux/macOS or the Tailscale Windows Service) is running on your system for the client to establish successful connections.
-
 ---
 
-## 📂 Visual Project Structure
+## 📦 Production Packaging & Distribution
 
-```text
-📂 Tailscale-Headscale-Client/
-├── 🖼️ assets/                     # Icons, logos, and branding assets
-│   └── 🎨 themes/                 # Dynamic stylesheet sheets (.qss)
-│       ├── 📄 dark.qss
-│       └── 📄 light.qss
-├── 🎨 pygui/                      # UI Definition Files (.ui)
-│   ├── 🪟 dialogs/                # Popup windows
-│   │   ├── 📄 about.ui
-│   │   ├── 📄 credentials.ui
-│   │   ├── 📄 diagnostics.ui
-│   │   ├── 📄 log_viewer.ui
-│   │   ├── 📄 node.ui                 # Exit Node & Advanced Options Dialog
-│   │   ├── 📄 peer_list.ui
-│   │   ├── 📄 profile.ui
-│   │   ├── 📄 progress.ui
-│   │   ├── 📄 readme.ui
-│   │   ├── 📄 settings.ui
-│   │   └── 📄 traffic.ui
-│   └── 🖼️ windows/                 # Layouts
-│       ├── 📄 main_window.ui
-│       └── 📄 tab_widget.ui
-├── 🌐 locales/                    # i18n Translation Files (.ts, .qm)
-├── 💻 src/                        # Core Python Source
-│   ├── 🧠 core/                   # Backend Logic
-│   │   ├── ⚙️ db_manager.py        # Traffic Persistence
-│   │   ├── ⚙️ tailscale.py         # Process & SSO management
-│   │   ├── ⚙️ cache_manager.py     # Image & State caching
-│   │   └── ⚙️ state_coordinator.py # Central State Machine & Watchdogs
-│   ├── 🖥️ ui/                     # PySide6 Implementations
-│   │   ├── 🧩 components/          # Shared Dialog Logic
-│   │   ├── 🧩 dashboard.py         # Tab View logic
-│   │   └── 🧩 main_window.py       # Main Application logic
-│   └── 🛠️ utils/                  # Helpers
-│       ├── ⚙️ constants.py         # Global application constants
-│       ├── ⚙️ crypto.py            # Key encryption/decryption
-│       ├── ⚙️ logger.py            # Event/Activity Logging
-│       ├── ⚙️ local_api.py         # Named Pipes & Unix Sockets Client
-│       └── ⚙️ autostart.py         # Native Boot Configuration Manager
-├── 📦 TailscaleClient_Installer.iss # Windows Installer Script
-├── 📦 TailscaleClient_OneDir.spec   # Windows Unpacked Spec file
-├── 📦 TailscaleClient_OneFile.spec  # Windows Single Exe Spec file
-├── 📦 build_linux_deb.sh          # Linux Packaging Script
-├── 📦 build_mac_dmg.sh            # macOS DMG Build Script
-├── 📦 TailscaleClient_Mac.spec      # macOS App Bundle Spec
-├── 🚀 main.py                     # Application Entry Point
-├── 📖 README.md                   # Repository Stub
-└── 📚 Docs/                       # Documentation & Translations
-    ├── 📖 README.md               # English Documentation
-    ├── 📖 README_ar.md            # Arabic Documentation
-    ├── 📖 README_es.md            # Spanish Documentation
-    └── 📖 README_fr.md            # French Documentation
+```mermaid
+graph LR
+    SRC["Python Source Core"] --> PYI["PyInstaller Build Engine (.spec)"]
+    PYI --> DIR["Standalone Binary Directory (OneDir)"]
+    DIR --> WIN["Inno Setup Compiler -> Windows (.exe)"]
+    DIR --> DEB["dpkg-deb Engine -> Linux (.deb)"]
+    DIR --> MAC["create-dmg Utility -> macOS (.dmg)"]
+```
+
+### Windows Enterprise Installer (Inno Setup)
+1. Build binary tree:
+   ```powershell
+   pyinstaller .\TailscaleClient_OneDir.spec
+   ```
+2. Compile with Inno Setup Compiler (`TailscaleClient_Installer.iss`):
+   Outputs: `dist\installer\TailscaleClientPro_Setup.exe`
+
+### Linux Debian Distribution (.deb)
+```bash
+chmod +x build_linux_deb.sh
+./build_linux_deb.sh
+# Outputs: dist/tailscale-client-pro_5.0.0_amd64.deb
+```
+
+### macOS Signed Image (.dmg)
+```bash
+chmod +x build_mac_dmg.sh
+./build_mac_dmg.sh
+# Outputs: dist/TailscaleClientPro_Setup.dmg
 ```
 
 ---
 
-## 🌍 Language & Translation (i18n)
+## 📄 Licensing & Governance
 
-The application supports real-time multi-language toggling via the Settings UI. 
-If you add new UI elements or want to add a new language, follow this flow:
-
-1. **Extract new strings:** Run `scripts\update_translations.bat` (or `.sh`). This runs `pyside6-lupdate` to parse your code and update the XML `.ts` files in the `locales/` folder.
-2. **Auto-Translate:** Run `python scripts\auto_translate.py` (requires `deep-translator`). This will safely hit the Google Translate API to translate your new UI strings for Arabic, French, and Spanish while mathematically protecting your raw CSS stylesheets using `cleanup_css.py`.
-3. **Compile:** Run `scripts\update_translations.bat` a second time to safely compile the `.ts` files into binary `.qm` files using `pyside6-lrelease` so the application can load them natively.
-
----
-
-## 📦 Packaging & Build Commands
-
-### 🪟 Windows (Inno Setup)
-1. **Compile Python Binaries:** Ensure `pyinstaller` is installed, then build the unpacked executable directory structure:
-   ```powershell
-   pip install pyinstaller psutil PySide6 keyring
-   pyinstaller .\TailscaleClient_OneDir.spec
-   ```
-2. **Build Installer:** Open Inno Setup Compiler and compile `TailscaleClient_Installer.iss`. This outputs a secure, compact, version **5.0.0** setup installer `dist\installer\TailscaleClientPro_Setup.exe` with complete legal copyright headers, registry/autostart integration, and automated desktop shortcuts.
-
-### 🐧 Linux (Ubuntu/Debian .deb)
-1. **Compile Python Binaries:** Compile the unpacking binaries for your local target architecture (e.g. `amd64`):
-   ```bash
-   pip install pyinstaller psutil PySide6 keyring
-   pyinstaller TailscaleClient_OneDir.spec
-   ```
-2. **Create Debian Package:** Execute the packaging shell script to organize the binary tree into `/opt/tailscale-client-pro` and compile the `.deb` package:
-   ```bash
-   chmod +x build_linux_deb.sh
-   ./build_linux_deb.sh
-   ```
-3. **Install Package:** Install the correctly versioned package using `dpkg`:
-   ```bash
-   sudo dpkg -i dist/tailscale-client-pro_5.0.0_amd64.deb
-   ```
-
-### 🍎 macOS (.app Bundle & DMG)
-The compilation and disk image (DMG) creation process has been completely automated with a robust shell script:
-1. **Run Automated Build Script:** Run the included build script to clean directories, run PyInstaller, and compile a premium, drag-and-drop installer:
-   ```bash
-   chmod +x build_mac_dmg.sh
-   ./build_mac_dmg.sh
-   ```
-2. **Retrieve DMG:** Grab your ready-to-distribute **5.0.0** disk image installer at:
-   `dist/TailscaleClientPro_Setup.dmg`
-3. **Install:** Double-click the DMG and drag your application icon into the `/Applications` folder shortcut inside the pop-up window.
-
----
-
-## 📄 License
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](../LICENSE) file for details.
+This software is released and distributed under the **GNU General Public License v3.0**. Review the [LICENSE](../LICENSE) file for complete warranty disclaimers and redistribution rights.

@@ -69,6 +69,14 @@ class Manager:
                         disable_snat = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_disable_snat")) == "True"
                         hostname = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_hostname"))
 
+                        accept_routes_val = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_accept_routes"))
+                        accept_routes = (accept_routes_val != "False") # default True
+                        unattended = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_unattended")) == "True"
+                        webclient = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_webclient")) == "True"
+                        advertise_connector = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_advertise_connector")) == "True"
+                        accept_risk = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_accept_risk"))
+                        extra_args = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_extra_args"))
+
                         key = self.crypto.decrypt(enc_key)
                         self.profiles[name] = Profile(
                             name=name,
@@ -90,7 +98,13 @@ class Manager:
                             accept_dns=accept_dns,
                             allow_lan=allow_lan,
                             disable_snat=disable_snat,
-                            hostname=hostname
+                            hostname=hostname,
+                            accept_routes=accept_routes,
+                            unattended=unattended,
+                            webclient=webclient,
+                            advertise_connector=advertise_connector,
+                            accept_risk=accept_risk,
+                            extra_args=extra_args
                         )
             except Exception:
                 pass
@@ -162,6 +176,24 @@ class Manager:
 
             with open(os.path.join(profile_dir, "Tailscale_VPN_hostname"), "w") as f:
                 f.write(profile.hostname)
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_accept_routes"), "w") as f:
+                f.write(str(getattr(profile, 'accept_routes', True)))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_unattended"), "w") as f:
+                f.write(str(getattr(profile, 'unattended', False)))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_webclient"), "w") as f:
+                f.write(str(getattr(profile, 'webclient', False)))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_advertise_connector"), "w") as f:
+                f.write(str(getattr(profile, 'advertise_connector', False)))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_accept_risk"), "w") as f:
+                f.write(getattr(profile, 'accept_risk', ""))
+
+            with open(os.path.join(profile_dir, "Tailscale_VPN_extra_args"), "w") as f:
+                f.write(getattr(profile, 'extra_args', ""))
 
     def load_settings(self):
         if os.path.exists(self.settings_file):

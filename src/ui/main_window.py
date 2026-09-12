@@ -308,6 +308,11 @@ class MainWindow(QMainWindow):
             if name != "Default":
                 self.manager.settings.last_profile = name
                 self.manager.save_settings()
+            
+            # Immediately refresh the active tab with cached status to avoid stale UI
+            widget = self.tabWidget.widget(index)
+            if widget and hasattr(widget, "update_status"):
+                widget.update_status(*self.ts_manager.check_status())
 
     def auto_connect_if_enabled(self):
         if self.manager.settings.auto_connect:

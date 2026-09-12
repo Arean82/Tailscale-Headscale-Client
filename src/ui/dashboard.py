@@ -392,6 +392,12 @@ class DashboardView(QWidget):
             shields_up = self.profile.shields_up if (self.profile and self.manager.settings.advanced_features) else False
             force_reauth = self.profile.force_reauth if (self.profile and self.manager.settings.advanced_features) else False
             advertise_tags = self.profile.advertise_tags if (self.profile and self.manager.settings.advanced_features) else ""
+            accept_routes = getattr(self.profile, 'accept_routes', True) if (self.profile and self.manager.settings.advanced_features) else True
+            unattended = getattr(self.profile, 'unattended', False) if (self.profile and self.manager.settings.advanced_features) else False
+            webclient = getattr(self.profile, 'webclient', False) if (self.profile and self.manager.settings.advanced_features) else False
+            advertise_connector = getattr(self.profile, 'advertise_connector', False) if (self.profile and self.manager.settings.advanced_features) else False
+            accept_risk = getattr(self.profile, 'accept_risk', "") if (self.profile and self.manager.settings.advanced_features) else ""
+            extra_args = getattr(self.profile, 'extra_args', "") if (self.profile and self.manager.settings.advanced_features) else ""
 
             if native_profile:
                 self.ts_manager.switch_profile(native_profile, self.profile.name if self.profile else None)
@@ -404,7 +410,9 @@ class DashboardView(QWidget):
                     exit_node=exit_node, routes=routes, ssh=ssh, accept_dns=accept_dns,
                     allow_lan=allow_lan, disable_snat=disable_snat, hostname=hostname,
                     force_reset=force_reset, advertise_exit_node=advertise_exit_node,
-                    shields_up=shields_up, force_reauth=force_reauth, advertise_tags=advertise_tags
+                    shields_up=shields_up, force_reauth=force_reauth, advertise_tags=advertise_tags,
+                    accept_routes=accept_routes, unattended=unattended, webclient=webclient,
+                    advertise_connector=advertise_connector, accept_risk=accept_risk, extra_args=extra_args
                 )
             else:
                 self.ts_manager.connect(
@@ -413,7 +421,9 @@ class DashboardView(QWidget):
                     exit_node=exit_node, routes=routes, ssh=ssh, accept_dns=accept_dns,
                     allow_lan=allow_lan, disable_snat=disable_snat, hostname=hostname,
                     force_reset=force_reset, advertise_exit_node=advertise_exit_node,
-                    shields_up=shields_up, force_reauth=force_reauth, advertise_tags=advertise_tags
+                    shields_up=shields_up, force_reauth=force_reauth, advertise_tags=advertise_tags,
+                    accept_routes=accept_routes, unattended=unattended, webclient=webclient,
+                    advertise_connector=advertise_connector, accept_risk=accept_risk, extra_args=extra_args
                 )
                 # Brief delay to allow command to start before checking status
                 from PySide6.QtCore import QTimer

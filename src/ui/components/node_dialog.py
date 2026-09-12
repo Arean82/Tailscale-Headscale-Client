@@ -9,7 +9,7 @@ from .simple_dialogs import BaseUiDialog
 class NodeDialog(BaseUiDialog):
     def __init__(self, profile, manager, parent=None):
         super().__init__("node.ui", parent)
-        self.setFixedSize(700, 420)
+        self.setFixedSize(720, 420)
         self.profile = profile
         self.manager = manager
         self.setWindowTitle(f"Advanced Options: {profile.name}")
@@ -27,7 +27,6 @@ class NodeDialog(BaseUiDialog):
         self.chkAcceptDNS = self.ui.findChild(QCheckBox, "chkAcceptDNS")
         self.chkAllowLAN = self.ui.findChild(QCheckBox, "chkAllowLAN")
         self.chkDisableSNAT = self.ui.findChild(QCheckBox, "chkDisableSNAT")
-        self.chkDnsFallback = self.ui.findChild(QCheckBox, "chkDnsFallback")
         self.chkForceReset = self.ui.findChild(QCheckBox, "chkForceReset")
         self.chkAdvertiseExitNode = self.ui.findChild(QCheckBox, "chkAdvertiseExitNode")
         self.chkShieldsUp = self.ui.findChild(QCheckBox, "chkShieldsUp")
@@ -37,6 +36,44 @@ class NodeDialog(BaseUiDialog):
         self.btnSave = self.ui.findChild(QPushButton, "btnSave")
         self.btnCancel = self.ui.findChild(QPushButton, "btnCancel")
         self.chkAutoPopulate = self.ui.findChild(QCheckBox, "chkAutoPopulate")
+        self.chkAcceptRoutes = self.ui.findChild(QCheckBox, "chkAcceptRoutes")
+        self.chkUnattended = self.ui.findChild(QCheckBox, "chkUnattended")
+        self.chkWebclient = self.ui.findChild(QCheckBox, "chkWebclient")
+        self.chkAdvertiseConnector = self.ui.findChild(QCheckBox, "chkAdvertiseConnector")
+        
+        # Column 1 status value checkboxes
+        self.chkAllowLANValue = self.ui.findChild(QCheckBox, "chkAllowLANValue")
+        self.chkSSHValue = self.ui.findChild(QCheckBox, "chkSSHValue")
+        self.chkAcceptRoutesValue = self.ui.findChild(QCheckBox, "chkAcceptRoutesValue")
+        self.chkAcceptDNSValue = self.ui.findChild(QCheckBox, "chkAcceptDNSValue")
+        self.chkShieldsUpValue = self.ui.findChild(QCheckBox, "chkShieldsUpValue")
+        self.chkAdvertiseExitNodeValue = self.ui.findChild(QCheckBox, "chkAdvertiseExitNodeValue")
+        self.chkDisableSNATValue = self.ui.findChild(QCheckBox, "chkDisableSNATValue")
+        self.chkUnattendedValue = self.ui.findChild(QCheckBox, "chkUnattendedValue")
+        self.chkWebclientValue = self.ui.findChild(QCheckBox, "chkWebclientValue")
+        self.chkAdvertiseConnectorValue = self.ui.findChild(QCheckBox, "chkAdvertiseConnectorValue")
+
+        # Dynamic live updates: clicking either checkbox updates badge to bold green True / bold red False
+        pairs = [
+            (self.chkAllowLAN, self.chkAllowLANValue),
+            (self.chkSSH, self.chkSSHValue),
+            (self.chkAcceptRoutes, self.chkAcceptRoutesValue),
+            (self.chkAcceptDNS, self.chkAcceptDNSValue),
+            (self.chkShieldsUp, self.chkShieldsUpValue),
+            (self.chkAdvertiseExitNode, self.chkAdvertiseExitNodeValue),
+            (self.chkDisableSNAT, self.chkDisableSNATValue),
+            (self.chkUnattended, self.chkUnattendedValue),
+            (self.chkWebclient, self.chkWebclientValue),
+            (self.chkAdvertiseConnector, self.chkAdvertiseConnectorValue),
+        ]
+        for left_chk, right_chk in pairs:
+            if left_chk and right_chk:
+                def make_left_sync(r):
+                    return lambda checked: (r.setChecked(checked), self._update_bool_badge(r, checked))
+                def make_right_sync(l, r):
+                    return lambda checked: (l.setChecked(checked), self._update_bool_badge(r, checked))
+                left_chk.toggled.connect(make_left_sync(right_chk))
+                right_chk.toggled.connect(make_right_sync(left_chk, right_chk))
         
         if self.chkAutoPopulate:
             self.chkAutoPopulate.stateChanged.connect(self._on_auto_populate_changed)
@@ -90,11 +127,6 @@ class NodeDialog(BaseUiDialog):
             self.chkDisableSNAT.setChecked(self.profile.disable_snat)
             self.chkDisableSNAT.setToolTip("Disable Source NAT (SNAT) for subnet routes. Traffic will appear with its original source IP.")
 
-        if self.chkDnsFallback:
-            global_fallback = getattr(self.manager.settings, 'global_dns_fallback', False)
-            self.chkDnsFallback.setChecked(self.profile.enable_dns_fallback or global_fallback)
-            self.chkDnsFallback.setToolTip("Fallback to public DNS (e.g., 8.8.8.8) if the Tailnet DNS fails to resolve.")
-
         if self.chkForceReset:
             self.chkForceReset.setChecked(getattr(self.profile, 'force_reset', False))
             self.chkForceReset.setToolTip("Force reset Tailscale settings (--reset) when connecting to clear stuck configurations.")
@@ -111,6 +143,63 @@ class NodeDialog(BaseUiDialog):
             self.chkForceReauth.setChecked(getattr(self.profile, 'force_reauth', False))
             self.chkForceReauth.setToolTip("Force re-authentication with the login server when connecting.")
 
+        if hasattr(self, 'chkAcceptRoutes') and self.chkAcceptRoutes:
+            self.chkAcceptRoutes.setChecked(getattr(self.profile, 'accept_routes', True))
+
+        if hasattr(self, 'chkUnattended') and self.chkUnattended:
+            self.chkUnattended.setChecked(getattr(self.profile, 'unattended', False))
+
+        if hasattr(self, 'chkWebclient') and self.chkWebclient:
+            self.chkWebclient.setChecked(getattr(self.profile, 'webclient', False))
+
+        if hasattr(self, 'chkAdvertiseConnector') and self.chkAdvertiseConnector:
+            self.chkAdvertiseConnector.setChecked(getattr(self.profile, 'advertise_connector', False))
+
+        # Column 1 Value Checkboxes (True / False status badges)
+        if self.chkAllowLANValue:
+            val = getattr(self.profile, 'allow_lan', False)
+            self.chkAllowLANValue.setChecked(val)
+            self._update_bool_badge(self.chkAllowLANValue, val)
+        if self.chkSSHValue:
+            val = getattr(self.profile, 'enable_ssh', False)
+            self.chkSSHValue.setChecked(val)
+            self._update_bool_badge(self.chkSSHValue, val)
+        if self.chkAcceptRoutesValue:
+            val = getattr(self.profile, 'accept_routes', True)
+            self.chkAcceptRoutesValue.setChecked(val)
+            self._update_bool_badge(self.chkAcceptRoutesValue, val)
+        if self.chkAcceptDNSValue:
+            val = getattr(self.profile, 'accept_dns', False)
+            self.chkAcceptDNSValue.setChecked(val)
+            self._update_bool_badge(self.chkAcceptDNSValue, val)
+        if self.chkShieldsUpValue:
+            val = getattr(self.profile, 'shields_up', False)
+            self.chkShieldsUpValue.setChecked(val)
+            self._update_bool_badge(self.chkShieldsUpValue, val)
+        if self.chkAdvertiseExitNodeValue:
+            val = getattr(self.profile, 'advertise_exit_node', False)
+            self.chkAdvertiseExitNodeValue.setChecked(val)
+            self._update_bool_badge(self.chkAdvertiseExitNodeValue, val)
+        if self.chkDisableSNATValue:
+            val = getattr(self.profile, 'disable_snat', False)
+            self.chkDisableSNATValue.setChecked(val)
+            self._update_bool_badge(self.chkDisableSNATValue, val)
+        if self.chkUnattendedValue:
+            val = getattr(self.profile, 'unattended', False)
+            self.chkUnattendedValue.setChecked(val)
+            self._update_bool_badge(self.chkUnattendedValue, val)
+        if self.chkWebclientValue:
+            val = getattr(self.profile, 'webclient', False)
+            self.chkWebclientValue.setChecked(val)
+            self._update_bool_badge(self.chkWebclientValue, val)
+        if self.chkAdvertiseConnectorValue:
+            val = getattr(self.profile, 'advertise_connector', False)
+            self.chkAdvertiseConnectorValue.setChecked(val)
+            self._update_bool_badge(self.chkAdvertiseConnectorValue, val)
+
+        if hasattr(self, 'lineEditExtraArgs') and self.lineEditExtraArgs:
+            self.lineEditExtraArgs.setText(getattr(self.profile, 'extra_args', ''))
+
         if self.lineEditTags:
             self.lineEditTags.setText(getattr(self.profile, 'advertise_tags', ""))
             self.lineEditTags.setToolTip("A comma-separated list of ACL tags to advertise for this device (e.g., tag:server, tag:prod).")
@@ -124,6 +213,15 @@ class NodeDialog(BaseUiDialog):
         self._fetch_active_status()
         self._fetch_active_prefs()
 
+    def _update_bool_badge(self, chk, checked):
+        if chk:
+            if checked:
+                chk.setText("True")
+                chk.setStyleSheet("color: #22c55e; font-weight: bold; font-size: 10pt;")
+            else:
+                chk.setText("False")
+                chk.setStyleSheet("color: #ef4444; font-weight: bold; font-size: 10pt;")
+
     def _on_auto_populate_changed(self, state):
         if state == Qt.Checked.value or state == Qt.Checked:
             self._fetch_active_status()
@@ -135,7 +233,12 @@ class NodeDialog(BaseUiDialog):
         self.prefs_proc = QProcess(self)
         
         def on_prefs_finished(*args):
-            output = self.prefs_proc.readAllStandardOutput().data().decode().strip()
+            try:
+                if not hasattr(self, 'prefs_proc') or self.prefs_proc is None:
+                    return
+                output = self.prefs_proc.readAllStandardOutput().data().decode().strip()
+            except RuntimeError:
+                return
             if not output: return
             
             # Don't auto-populate if the user disabled it
@@ -157,6 +260,10 @@ class NodeDialog(BaseUiDialog):
                     self.chkDisableSNAT.setChecked(True)
                 if self.chkShieldsUp and prefs.get("ShieldsUp"):
                     self.chkShieldsUp.setChecked(True)
+                if hasattr(self, 'chkAcceptRoutes') and self.chkAcceptRoutes and "RouteAll" in prefs:
+                    self.chkAcceptRoutes.setChecked(bool(prefs.get("RouteAll")))
+                if hasattr(self, 'chkUnattended') and self.chkUnattended and "Unattended" in prefs:
+                    self.chkUnattended.setChecked(bool(prefs.get("Unattended")))
                     
                 # Exit nodes are advertised by routing 0.0.0.0/0
                 routes = prefs.get("AdvertiseRoutes") or []
@@ -198,7 +305,12 @@ class NodeDialog(BaseUiDialog):
         self.status_proc = QProcess(self)
         
         def on_finished(*args):
-            output = self.status_proc.readAllStandardOutput().data().decode().strip()
+            try:
+                if not hasattr(self, 'status_proc') or self.status_proc is None:
+                    return
+                output = self.status_proc.readAllStandardOutput().data().decode().strip()
+            except RuntimeError:
+                return
             print("DEBUG [node_dialog]: tailscale status output length:", len(output))
             if self.comboBoxExitNode:
                 self.comboBoxExitNode.setPlaceholderText("Select exit node or type custom...")
@@ -293,6 +405,18 @@ class NodeDialog(BaseUiDialog):
         exit_node = self.comboBoxExitNode.currentText().strip() if self.comboBoxExitNode else ""
         routes = self.lineEditRoutes.text().strip() if self.lineEditRoutes else ""
         hostname = self.lineEditHostname.text().strip() if self.lineEditHostname else ""
+        advertise_exit_node = (self.chkAdvertiseExitNodeValue.isChecked() if hasattr(self, 'chkAdvertiseExitNodeValue') and self.chkAdvertiseExitNodeValue else (self.chkAdvertiseExitNode.isChecked() if self.chkAdvertiseExitNode else False))
+        
+        # Conflict guard: A node cannot route all internet traffic through an external exit node while also advertising itself as an exit node
+        if exit_node and (advertise_exit_node or "0.0.0.0/0" in routes or "::/0" in routes):
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "Exit Node Conflict",
+                "A node cannot both route all internet traffic through an external exit node and advertise itself as an exit node (or advertise 0.0.0.0/0).\n\n"
+                "Please either clear the Exit Node selection or uncheck 'Run as Exit Node'."
+            )
+            return
 
         self.profile.exit_node = exit_node
         self.profile.routes = routes
@@ -301,12 +425,17 @@ class NodeDialog(BaseUiDialog):
         self.profile.accept_dns = self.chkAcceptDNS.isChecked() if self.chkAcceptDNS else False
         self.profile.allow_lan = self.chkAllowLAN.isChecked() if self.chkAllowLAN else False
         self.profile.disable_snat = self.chkDisableSNAT.isChecked() if self.chkDisableSNAT else False
-        self.profile.enable_dns_fallback = self.chkDnsFallback.isChecked() if self.chkDnsFallback else False
         self.profile.force_reset = self.chkForceReset.isChecked() if self.chkForceReset else False
-        self.profile.advertise_exit_node = self.chkAdvertiseExitNode.isChecked() if self.chkAdvertiseExitNode else False
+        self.profile.advertise_exit_node = advertise_exit_node
         self.profile.shields_up = self.chkShieldsUp.isChecked() if self.chkShieldsUp else False
         self.profile.force_reauth = self.chkForceReauth.isChecked() if self.chkForceReauth else False
         self.profile.advertise_tags = self.lineEditTags.text().strip() if self.lineEditTags else ""
+        self.profile.accept_routes = self.chkAcceptRoutes.isChecked() if hasattr(self, 'chkAcceptRoutes') and self.chkAcceptRoutes else True
+        self.profile.unattended = self.chkUnattended.isChecked() if hasattr(self, 'chkUnattended') and self.chkUnattended else False
+        self.profile.webclient = self.chkWebclient.isChecked() if hasattr(self, 'chkWebclient') and self.chkWebclient else False
+        self.profile.advertise_connector = self.chkAdvertiseConnector.isChecked() if hasattr(self, 'chkAdvertiseConnector') and self.chkAdvertiseConnector else False
+        if hasattr(self, 'lineEditExtraArgs') and self.lineEditExtraArgs:
+            self.profile.extra_args = self.lineEditExtraArgs.text().strip()
 
         # Save checked profiles
         if self.listNativeSwitch:
@@ -327,3 +456,19 @@ class NodeDialog(BaseUiDialog):
             self.parent().refresh_tabs()
             
         self.accept()
+
+    def _cleanup_processes(self):
+        """Gracefully terminate active probing processes when the dialog closes."""
+        for proc in (getattr(self, 'prefs_proc', None), getattr(self, 'status_proc', None)):
+            if proc is not None and proc.state() != QProcess.NotRunning:
+                proc.terminate()
+                if not proc.waitForFinished(300):
+                    proc.kill()
+
+    def reject(self):
+        self._cleanup_processes()
+        super().reject()
+
+    def closeEvent(self, event):
+        self._cleanup_processes()
+        super().closeEvent(event)
