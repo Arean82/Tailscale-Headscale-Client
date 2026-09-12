@@ -1,70 +1,83 @@
-# Tailscale / Headscale Client Pro (Edición Empresarial PySide6)
+# Tailscale / Headscale Client Pro (Edición Platino Empresarial)
 
-[![Tailscale](https://img.shields.io/badge/Tailscale-v1.6-blue)](https://tailscale.com) [![PySide6](https://img.shields.io/badge/PySide6-v6.6-green)](https://pyside.org) [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](https://github.com/Arean82/Tailscale-Headscale-Client) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](../LICENSE) [![Python](https://img.shields.io/badge/Python-3.10%2B-green)](https://www.python.org)
+[![Release](https://img.shields.io/badge/Release-v5.0.0--Enterprise-emerald?style=for-the-badge&logo=shield)](https://github.com/Arean82/Tailscale-Headscale-Client)
+[![Tailscale Engine](https://img.shields.io/badge/Tailscale%20Engine-v1.6%2B-blue?style=for-the-badge&logo=tailscale)](https://tailscale.com)
+[![PySide6 Qt6](https://img.shields.io/badge/Framework-PySide6%20Qt6-41CD52?style=for-the-badge&logo=qt)](https://pyside.org)
+[![Platform Matrix](https://img.shields.io/badge/Platforms-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=for-the-badge)](https://github.com/Arean82/Tailscale-Headscale-Client)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge)](../LICENSE)
+[![Security Standard](https://img.shields.io/badge/Security-Hardware%20Keyring%20Vault-orange?style=for-the-badge)](SECURITY.md)
 
-**Tailscale / Headscale Client Pro** es una aplicación GUI de escritorio de alto rendimiento y nivel de producción, diseñada para la coordinación unificada con redes oficiales de **Tailscale** y servidores de control autohospedados de **Headscale**. Desarrollada con **PySide6 (Qt para Python)**, combina una orquestación sólida del demonio, telemetría en tiempo real, almacenamiento criptográfico de tokens y una interfaz receptiva adaptada para implementaciones de misión crítica.
+**Tailscale / Headscale Client Pro** es un cliente de escritorio de nivel de producción y misión crítica, diseñado para una interoperabilidad perfecta entre las redes de control oficiales de **Tailscale** y nodos de orquestación privados autohospedados de **Headscale**.
+
+Construido estrictamente sobre **PySide6 (Qt para Python)** sin sobrecarga de motores web, la aplicación impone ciclos de vida de procesos deterministas, almacenamiento de credenciales seguro sin texto plano, telemetría en tiempo real y controles operativos completos en dos columnas para operaciones confiables sin desvíos.
 
 ---
 
-## 🏛️ Arquitectura del Sistema
+## 🏛️ Especificación de Arquitectura del Sistema
 
-El cliente sigue una estricta separación de responsabilidades entre presentación, coordinación de dominio, ejecución de procesos y almacenamiento persistente:
+El cliente implementa una arquitectura aislada de múltiples capas que separa la interfaz gráfica de la coordinación de estados, la ejecución del demonio local y los almacenes criptográficos del sistema operativo:
 
 ```mermaid
 graph TB
-    %% Styling Classes
-    classDef uiLayer fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
-    classDef coordLayer fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc;
-    classDef daemonLayer fill:#18181b,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
-    classDef storageLayer fill:#27272a,stroke:#8b5cf6,stroke-width:2px,color:#f8fafc;
+    %% Explicit Node Styling - Colors ONLY on Nodes
+    classDef uiNode fill:#1e1b4b,stroke:#818cf8,stroke-width:1.5px,color:#ffffff;
+    classDef coordNode fill:#064e3b,stroke:#34d399,stroke-width:1.5px,color:#ffffff;
+    classDef daemonNode fill:#451a03,stroke:#fbbf24,stroke-width:1.5px,color:#ffffff;
+    classDef storageNode fill:#164e63,stroke:#22d3ee,stroke-width:1.5px,color:#ffffff;
 
-    subgraph UI ["🖥️ Capa de Presentación (PySide6 GUI)"]
-        MW["MainWindow y Bandeja del Sistema"]:::uiLayer
-        DB["Panel Principal y Pestañas de Perfiles"]:::uiLayer
-        ND["NodeDialog (Flags y Subredes)"]:::uiLayer
-        PL["Lista de Pares y Gráficos Sparkline"]:::uiLayer
-        RD["Estudio Visor de Markdown"]:::uiLayer
+    %% 100% Transparent Subgraph Containers (Zero Flood Color)
+    style UI fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+    style Core fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+    style Daemon fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+    style Storage fill:none,stroke:#475569,stroke-width:1.5px,stroke-dasharray: 5 5,color:#cbd5e1;
+
+    subgraph UI ["🖥️ Presentation Layer (PySide6 GUI)"]
+        MW["MainWindow & System Tray"]:::uiNode
+        DB["Dashboard & Profile Tabs"]:::uiNode
+        ND["NodeDialog (Advanced Options)"]:::uiNode
+        PL["PeerList & Sparklines"]:::uiNode
+        RD["Markdown Viewer Studio"]:::uiNode
     end
 
-    subgraph Core ["🧠 Control Central y Coordinación de Estado"]
-        SC["StateCoordinator (Guardianes y Transición)"]:::coordLayer
-        SM["Máquina FSM de AppState"]:::coordLayer
-        TSM["TailscaleManager (Motor de Subprocesos)"]:::coordLayer
-        WM["ProcessWatchdog (psutil)"]:::coordLayer
+    subgraph Core ["🧠 Core Control & State Coordination"]
+        SC["StateCoordinator (Deterministic Gatekeeper)"]:::coordNode
+        SM["AppState FSM Machine"]:::coordNode
+        TSM["TailscaleProcess (Execution Engine)"]:::coordNode
+        WM["ProcessWatchdog (psutil Reaper)"]:::coordNode
     end
 
-    subgraph Daemon ["⚙️ Interfaz del Demonio del SO Host"]
-        TD["tailscaled Local / Servicio Tailscale"]:::daemonLayer
-        CLI["tailscale CLI (Motor IPC JSON)"]:::daemonLayer
-        API["Named Pipe / Socket Unix de API Local"]:::daemonLayer
+    subgraph Daemon ["⚙️ Host OS Daemon Interface"]
+        TD["Local tailscaled / Windows Service"]:::daemonNode
+        CLI["tailscale CLI (JSON IPC Engine)"]:::daemonNode
+        API["Local API Pipe / Domain Socket"]:::daemonNode
     end
 
-    subgraph Storage ["💾 Capa de Persistencia y Seguridad"]
-        KR["Llavero del SO / Depósito de Credenciales (keyring)"]:::storageLayer
-        SQL["Base de Datos Local SQLite (Estadísticas de Tráfico)"]:::storageLayer
-        FS["Almacenamiento de Archivos por Perfil (JSON)"]:::storageLayer
+    subgraph Storage ["💾 Persistence & Security Layer"]
+        KR["OS Credential Vault (Keyring)"]:::storageNode
+        SQL["SQLite Database (Traffic History)"]:::storageNode
+        FS["Profile Store (JSON)"]:::storageNode
     end
 
-    %% Interconnections
-    MW --> SC
-    DB --> SC
-    ND --> SC
-    SC --> SM
-    SC --> TSM
-    TSM --> CLI
-    TSM --> TD
-    TSM --> API
-    WM --> TD
-    SC --> FS
-    TSM --> KR
-    SC --> SQL
+    %% Flow Connections
+    MW -->|User Actions| SC
+    DB -->|Switch Profile| SC
+    ND -->|Flags & Routes| SC
+    SC -->|State Guard| SM
+    SC -->|Array Execution| TSM
+    TSM -->|IPC Commands| CLI
+    TSM -->|Local Named Pipe| TD
+    TSM -->|Socket Stream| API
+    WM -->|Process Health| TD
+    SC -->|Persist Config| FS
+    TSM -->|Retrieve Keys| KR
+    SC -->|Commit Stats| SQL
 ```
 
 ---
 
-## 🔄 Máquina de Estados y Ciclo de Vida de Conexión
+## 🔄 Máquina de Estados Finitos (FSM) y Ciclo de Vida de Conexión
 
-Los estados de conexión se gestionan estrictamente a través de una Máquina de Estados Finitos (FSM) determinista para evitar condiciones de carrera, sockets obsoletos y procesos huérfanos:
+El flujo de estados de conexión se gestiona estrictamente mediante una Máquina de Estados Finitos formal y determinista para eliminar condiciones de carrera, bucles duplicados y procesos zombis:
 
 ```mermaid
 stateDiagram-v2
@@ -76,87 +89,83 @@ stateDiagram-v2
     CONNECTING --> PENDING_APPROVAL : El Nodo Requiere Aprobación del Administrador
 
     PENDING_APPROVAL --> CONNECTED : Aprobado por el Administrador
-    PENDING_APPROVAL --> DISCONNECTED : Cancelado / Tiempo Agotado
+    PENDING_APPROVAL --> DISCONNECTED : Cancelado por Usuario / Tiempo Agotado
 
-    CONNECTED --> CONNECTING : Cambiar Perfil / Reconectar
-    CONNECTED --> DISCONNECTED : Desconexión del Usuario
-    CONNECTED --> LOGGED_OUT : Cierre de Sesión
-    CONNECTED --> ERROR : Fallo de Red / Caída del Servicio
+    CONNECTED --> CONNECTING : Cambiar Perfil / Reconexión Dinámica
+    CONNECTED --> DISCONNECTED : Desconexión Limpia del Operador
+    CONNECTED --> LOGGED_OUT : Invalidar Sesión del Perfil
+    CONNECTED --> ERROR : Caída del Demonio / Pérdida de Interfaz de Red
 
     ERROR --> CONNECTING : Retroceso Exponencial Automático (3s, 6s, 12s)
-    ERROR --> DISCONNECTED : Límite Máximo de Reintentos (3) Alcanzado
+    ERROR --> DISCONNECTED : Límite Máximo de Reintentos (3) Agotado
 
-    LOGGED_OUT --> DISCONNECTED : Seleccionar Perfil
+    LOGGED_OUT --> DISCONNECTED : Seleccionar Perfil Alternativo
 ```
 
 ---
 
-## ✨ Suite de Características Empresariales
+## ⚙️ Opciones Avanzadas Empresariales (Matriz de Estado de Dos Columnas)
 
-### 🎨 Excelencia Visual y Experiencia de Usuario (UX)
-- **Tematización Dinámica QSS Unificada:** Cero estilos codificados en la lógica de Python. Las interfaces se estilizan limpiamente mediante hojas de estilo externas `.qss` (`assets/themes/dark.qss` y `light.qss`).
-- **Gráficos Sparkline de Latencia en Tiempo Real:** Gráficos de calidad de conexión suavizados renderizados en cadencias de muestreo de 2 segundos con clasificación automática de estado (`<32ms` verde, `<70ms` ámbar, `>70ms` rojo).
-- **Estudio Visor de Markdown Interactivo:** Motor Markdown integrado de alta fidelidad que admite resolución de imágenes locales, listas de verificación de GitHub, formato de tablas y delegación segura de URL externas.
-- **Micro-Animaciones de Estado:** Transiciones de ventana suaves, pulso de latido de conexión y retroalimentación contextual durante la sincronización con el demonio.
-- **Soporte Multilingüe (i18n):** Internacionalización nativa en inglés (`en_US`), árabe (`ar_SA` con diseño RTL completo), español (`es_ES`) y francés (`fr_FR`).
+El diálogo de configuración avanzada `NodeDialog` impone un contrato estricto de dos columnas: la **Columna 0** expone los selectores controlados por el operador, mientras que la **Columna 1** muestra las insignias de estado en vivo del demonio en `#22c55e` (**`True`**) o `#ef4444` (**`False`**):
 
-### ⚡ Potencia y Enrutamiento Inteligente
-- **Compatibilidad Dual Headscale + Tailscale:** Totalmente compatible con servidores de control Headscale autohospedados mediante `--login-server=<URL>` y con el plano de control oficial de Tailscale.
-- **Opciones Avanzadas de Red Granulares:** Control por perfil de nodos de salida, rutas de subred (`--advertise-routes`), acceso LAN (`--exit-node-allow-lan-access`), preservación de SNAT (`--snat-subnet-routes=false`), anulación de nombre de host y Tailscale SSH.
-- **Cuadrícula Receptiva de Indicadores de 2 Columnas:** Controles de características a la izquierda acoplados con insignias de estado en vivo codificadas por color (`True` verde / `False` rojo) para visibilidad en tiempo real del demonio.
-- **Autosugerencia de Rutas de Subred:** Al seleccionar un nodo de salida, se extraen automáticamente las rutas anunciadas de la telemetría de pares, eliminando errores manuales.
-- **Conmutador en la Bandeja del Sistema:** Cambio de perfil de baja latencia y alternancia de nodos de salida directamente desde el menú contextual de la barra de tareas.
-- **Regulación del Sondeo de Tráfico:** La tasa de sondeo de estadísticas de uso de red se reduce dinámicamente cuando la ventana está minimizada para conservar CPU y batería.
-
-### 🛡️ Seguridad y Resiliencia Empresarial
-- **Integración con el Llavero del SO:** Las claves de la máquina y los tokens de autenticación se cifran utilizando depósitos seguros nativos de la plataforma (`keyring`: Windows Credential Locker, macOS Keychain, Linux Secret Service).
-- **Guardián de Procesos (Watchdog):** Seguimiento de procesos impulsado por `psutil` que elimina procesos CLI huérfanos durante cierres abruptos para evitar colisiones de puertos y estados.
-- **Motor de Retroceso Exponencial:** Los intentos automáticos de reconexión se retrasan exponencialmente (`3s`, `6s`, `12s`) para proteger los servidores contra saturación.
-- **Tolerancia a SSL Autofirmado:** Configuración SSL dedicada que añade `--insecure-skip-tls-verify=true` para pruebas en entornos aislados de laboratorio.
-
----
-
-## 📋 Requisitos del Sistema
-
-### Hardware y Plataforma
-| Plataforma | Arquitectura | Versión Mínima | Notas |
+| Nombre de la Característica | Parámetro CLI Activo | Clave de Badge Columna 1 | Especificación Operativa |
 | :--- | :--- | :--- | :--- |
-| **Windows** | x64, ARM64 | Windows 10 (Compilación 19041+) / Windows 11 | PowerShell habilitado |
-| **Linux** | x64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+ | Requiere `systemd` |
-| **macOS** | x64, Apple Silicon | macOS 11.0 (Big Sur) o superior | Gestión con `launchctl` |
-
-### Dependencias Principales de Ejecución
-- **Python:** Versión `3.10` o superior
-- **Demonio de Tailscale:** Servicio en segundo plano (`tailscaled` en Unix, servicio `Tailscale` en Windows) instalado y activo.
+| **Permitir Acceso LAN** | `--exit-node-allow-lan-access` | `chkAllowLANValue` | Retiene acceso Ethernet/Wi-Fi local mientras se enruta a través de un Nodo de Salida. |
+| **Habilitar SSH** | `--ssh` | `chkSSHValue` | Habilita el demonio Tailscale SSH administrado por directivas ACL de red. |
+| **Aceptar Rutas** | `--accept-routes` | `chkAcceptRoutesValue` | Permite aceptar rutas de subred CIDR anunciadas a través de la Tailnet. |
+| **Aceptar DNS** | `--accept-dns` | `chkAcceptDNSValue` | Inyecta dominios de búsqueda MagicDNS y servidores de resolución designados. |
+| **Activar Escudos (Shields Up)** | `--shields-up` | `chkShieldsUpValue` | Bloquea todas las conexiones entrantes de otros dispositivos para máxima seguridad. |
+| **Ejecutar como Nodo de Salida** | `--advertise-exit-node` | `chkAdvertiseExitNodeValue` | Convierte el equipo local en puerta de enlace predeterminada para el tráfico de la red. |
+| **Deshabilitar SNAT** | `--snat-subnet-routes=false` | `chkDisableSNATValue` | Preserva las direcciones IP de origen del cliente para enrutamiento sitio a sitio. |
+| **Modo Desatendido** | `--unattended` | `chkUnattendedValue` | Mantiene el demonio activo sin requerir una sesión de usuario de Windows interactiva. |
+| **Cliente Web** | `--webclient` | `chkWebclientValue` | Habilita la interfaz de gestión autenticada basada en navegador. |
+| **Conector de Aplicaciones** | `--advertise-connector` | `chkAdvertiseConnectorValue` | Designa el dispositivo como proxy de tráfico seguro para recursos SaaS empresariales. |
+| **Rutas de Subred** | `--advertise-routes=<CIDR>` | *Campo de Entrada* | Publica subredes RFC 1918 locales (ej. `10.0.0.0/24, 192.168.1.0/24`). |
+| **Nombre de Host Personalizado** | `--hostname=<NOMBRE>` | *Campo de Entrada* | Anula el nombre de la máquina en los registros DNS de Headscale/Tailscale. |
+| **Reinicio Forzado** | `--reset` | *Flag de Ejecución* | Limpia el estado previo de rutas en el demonio antes de activar el perfil. |
+| **Reautenticación Forzada** | `--force-reauth` | *Flag de Ejecución* | Obliga al intercambio completo de claves con el servidor de control. |
 
 ---
 
-## 🛠️ Configuración para Desarrolladores y Ejecución
+## 🔒 Arquitectura de Seguridad e Ingeniería de Confianza
 
-### 1. Clonar Repositorio
+1. **Depósito Seguro Sin Texto Plano:** Las claves de máquina, tokens y direcciones sensibles se almacenan en el llavero seguro nativo del sistema operativo mediante `keyring` (Windows Credential Locker, macOS Keychain, Linux Secret Service).
+2. **Defensa contra Inyecciones:** Todas las invocaciones CLI se ejecutan mediante vectores de argumentos estrictos (`subprocess.Popen([cmd, arg1, arg2], shell=False)`), neutralizando cualquier inyección en el shell.
+3. **Supervisor Automático (Watchdog):** Monitoreo continuo vía `psutil` que cierra de manera limpia procesos CLI huérfanos al salir o cambiar de perfil, previniendo conflictos de puertos.
+4. **Retroceso Exponencial Resiliente:** La reconexión automática utiliza pausas progresivas (`3s` -> `6s` -> `12s`) para proteger los servidores contra saturación de tráfico.
+5. **Compatibilidad SSL Autofirmado:** Los despliegues de laboratorio con servidores Headscale autohospedados admiten el modo de prueba segura mediante `--insecure-skip-tls-verify=true`.
+
+---
+
+## 📋 Matriz de Compatibilidad del Sistema
+
+| Sistema Operativo | Arquitectura Soportada | Versión Mínima | Gestor de Servicio | Modelo de Privilegios |
+| :--- | :--- | :--- | :--- | :--- |
+| **Windows** | x86_64, ARM64 | Windows 10 (Compilación 19041+) / Windows 11 | Servicio Windows (`Tailscale`) | Usuario Estándar (Servicio Elevado) |
+| **Linux** | x86_64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+ | `systemd` (`tailscaled.service`) | Grupo `tailscale` / ACL Socket |
+| **macOS** | x86_64, Apple Silicon | macOS 11.0 (Big Sur) o superior | `launchd` / `launchctl` | Aislamiento Keychain |
+
+---
+
+## 🛠️ Configuración para Desarrolladores y Verificación
+
 ```bash
+# 1. Clonar repositorio
 git clone https://github.com/Arean82/Tailscale-Headscale-Client.git
 cd Tailscale-Headscale-Client
-```
 
-### 2. Configuración del Entorno Virtual
-```bash
-# Windows (PowerShell)
+# 2. Configurar entorno virtual dedicado
 python -m venv venv
+
+# Windows:
 .\venv\Scripts\activate
-
-# Linux / macOS
-python3 -m venv venv
+# Linux / macOS:
 source venv/bin/activate
-```
 
-### 3. Instalación de Dependencias
-```bash
+# 3. Instalar dependencias de producción
 pip install -r requirements.txt
-```
 
-### 4. Ejecutar Aplicación
-```bash
+# 4. Iniciar cliente de desarrollo
 python main.py
 ```
 
@@ -166,29 +175,29 @@ python main.py
 
 ```mermaid
 graph LR
-    SRC["Código Fuente Python"] --> PYI["Compilación PyInstaller (.spec)"]
+    SRC["Código Fuente Python"] --> PYI["Motor PyInstaller (.spec)"]
     PYI --> DIR["Directorio Binario Independiente (OneDir)"]
-    DIR --> WIN["Inno Setup -> Instalador de Windows (.exe)"]
-    DIR --> DEB["dpkg-deb -> Paquete Linux (.deb)"]
-    DIR --> MAC["create-dmg -> Imagen macOS (.dmg)"]
+    DIR --> WIN["Compilador Inno Setup -> Windows (.exe)"]
+    DIR --> DEB["Motor dpkg-deb -> Linux (.deb)"]
+    DIR --> MAC["Utilidad create-dmg -> macOS (.dmg)"]
 ```
 
-### Instalador de Windows (Inno Setup)
+### Instalador Empresarial Windows (Inno Setup)
 1. Compilar directorio binario:
    ```powershell
    pyinstaller .\TailscaleClient_OneDir.spec
    ```
-2. Compilar instalador usando Inno Setup Compiler (`TailscaleClient_Installer.iss`) para generar:
-   `dist\installer\TailscaleClientPro_Setup.exe`
+2. Compilar con Inno Setup (`TailscaleClient_Installer.iss`):
+   Salida: `dist\installer\TailscaleClientPro_Setup.exe`
 
-### Distribución Linux (.deb)
+### Distribución Linux Debian (.deb)
 ```bash
 chmod +x build_linux_deb.sh
 ./build_linux_deb.sh
 # Salida: dist/tailscale-client-pro_5.0.0_amd64.deb
 ```
 
-### Paquete macOS (.dmg)
+### Imagen Firmada macOS (.dmg)
 ```bash
 chmod +x build_mac_dmg.sh
 ./build_mac_dmg.sh
@@ -197,6 +206,6 @@ chmod +x build_mac_dmg.sh
 
 ---
 
-## 📄 Licencia
+## 📄 Licencia y Gobernanza
 
-Este software se distribuye bajo la licencia **GNU General Public License v3.0**. Consulte el archivo [LICENSE](../LICENSE) para conocer los términos completos.\n
+Este software se distribuye bajo los términos de la **GNU General Public License v3.0**. Consulte el archivo [LICENSE](../LICENSE) para obtener los términos legales completos y derechos de redistribución.
