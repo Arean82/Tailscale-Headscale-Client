@@ -116,6 +116,33 @@ class TailscaleProcess(QObject):
         self.profile_name = profile_name
         self.process.start(get_tailscale_path(), cmd_args)
 
+    def _extract_auth_url(self, text: str) -> str | None:
+        """Deterministically extracts and validates an authentication/registration URL without regex."""
+        import urllib.parse
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            for token in line.split():
+                # Strip common terminal wrapper/punctuation characters
+                clean = token.strip(" \t\r\n'\"()[]<>,;")
+                clean = clean.rstrip(".")
+                if clean.startswith(("https://", "http://")):
+                    try:
+                        parsed = urllib.parse.urlparse(clean)
+                        if parsed.scheme in ("http", "https") and parsed.netloc:
+                            # Verify path points to Tailscale/Headscale auth endpoints or contains auth key
+                            path_lower = parsed.path.lower()
+                            if any(k in path_lower for k in ("/register", "/a/", "/auth", "mkey:")) or "mkey:" in clean:
+                                return clean
+                            # General fallback if line explicitly states to authenticate/visit
+                            line_lower = line.lower()
+                            if "authenticate" in line_lower or "visit:" in line_lower:
+                                return clean
+                    except ValueError:
+                        continue
+        return None
+
     def _handle_stdout(self):
         data = self.process.readAllStandardOutput().data().decode().strip()
         if data:
@@ -126,22 +153,26 @@ class TailscaleProcess(QObject):
                 from ..utils.logger import write_profile_log
                 write_profile_log(self.profile_name, data)
             
-            # Check for SSO URL
-            if "https://" in data:
-                match = re.search(r'https://\S+', data)
-                if match:
-                    self.sso_url_found.emit(match.group(0))
+            # Deterministically check for auth URL
+            url = self._extract_auth_url(data)
+            if url:
+                self.sso_url_found.emit(url)
 
     def _handle_stderr(self):
         data = self.process.readAllStandardError().data().decode().strip()
         if data:
-            # Check for SSO login/authentication instructions in stderr
-            if "https://" in data or "to authenticate" in data.lower() or "visit:" in data.lower():
-                match = re.search(r'https://\S+', data)
-                if match:
-                    self.sso_url_found.emit(match.group(0))
-                return # Do NOT emit as a critical error
-                
+            # Deterministically check for auth URL in stderr
+            url = self._extract_auth_url(data)
+            if url:
+                self.sso_url_found.emit(url)
+                return  # Do NOT emit as a critical error
+
+            # Actionable diagnostics for Headscale pre-auth key expiration
+            data_lower = data.lower()
+            if "invalid auth key" in data_lower or "key has expired" in data_lower or "authorization failed" in data_lower:
+                p_info = f" for profile '{self.profile_name}'" if hasattr(self, 'profile_name') and self.profile_name else ""
+                data = f"Authentication Failed{p_info}: Headscale Auth Key is expired or invalid. Please update the key in the profile settings.\n\nDetails: {data}"
+
             self.error_received.emit(data)
 
     def _handle_finished(self, exit_code, exit_status):
@@ -426,14 +457,20 @@ class TailscaleManager(QObject):
         # This is a best-effort start. If it requires elevation, 
         # it might fail if the user isn't admin, but matches legacy behavior.
         if sys.platform == "win32":
-            # Using QProcess for non-blocking start
-            QProcess.startDetached("powershell", ["-Command", "Start-Service Tailscale"])
+            # Native Windows net command starts service instantly without PowerShell overhead
+            QProcess.startDetached("net", ["start", "Tailscale"])
         elif sys.platform.startswith("linux"):
             QProcess.startDetached("systemctl", ["start", "tailscaled"])
         elif sys.platform == "darwin":
             QProcess.startDetached("launchctl", ["start", "com.tailscale.tailscaled"])
 
     def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname="", force_reset=False, advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags="", accept_routes=True, unattended=False, webclient=False, advertise_connector=False, accept_risk="", extra_args=""):
+        # Detect if switching to a different Headscale server to prevent machine key conflicts
+        last_server = self.last_connect_args.get("login_server") if self.last_connect_args else None
+        if last_server and login_server and last_server.strip() != login_server.strip():
+            # Server changed: Perform synchronous logout so old machine key doesn't conflict
+            self.logout_sync()
+
         self.last_connect_args = {
             "login_server": login_server,
             "auth_key": auth_key,

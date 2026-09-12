@@ -3,6 +3,8 @@ cryptography
 psutil
 requests
 markdown
+pygments
+beautifulsoup4
 PyInstaller
 deep-translator
 keyring

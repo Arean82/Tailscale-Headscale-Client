@@ -103,8 +103,9 @@ class ConnectionStateMachine(QObject):
             self.reconnect_timer.stop()
             
         elif new_state == AppState.CONNECTING:
-            # Start SSO login timeout timer
-            sso_time = getattr(self.coordinator.manager.settings, 'sso_timeout', 120)
+            # Start SSO login timeout timer dynamically from AppSettings or ts_manager
+            settings = getattr(self.coordinator.manager, 'settings', None)
+            sso_time = getattr(settings, 'sso_timeout', None) or getattr(self.ts_manager, 'sso_timeout', 120)
             self.sso_timer.start(sso_time * 1000)
             
         elif new_state == AppState.ERROR:
@@ -159,7 +160,13 @@ class ConnectionStateMachine(QObject):
                 advertise_exit_node=self.last_connect_args.get("advertise_exit_node", False),
                 shields_up=self.last_connect_args.get("shields_up", False),
                 force_reauth=self.last_connect_args.get("force_reauth", False),
-                advertise_tags=self.last_connect_args.get("advertise_tags", "")
+                advertise_tags=self.last_connect_args.get("advertise_tags", ""),
+                accept_routes=self.last_connect_args.get("accept_routes", True),
+                unattended=self.last_connect_args.get("unattended", False),
+                webclient=self.last_connect_args.get("webclient", False),
+                advertise_connector=self.last_connect_args.get("advertise_connector", False),
+                accept_risk=self.last_connect_args.get("accept_risk", ""),
+                extra_args=self.last_connect_args.get("extra_args", "")
             )
 
 
@@ -284,7 +291,7 @@ class StateCoordinator(QObject):
     def check_status_sync(self):
         return self.ts_manager.check_status_sync()
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname=None, force_reset=False, advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags=""):
+    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname=None, force_reset=False, advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags="", **kwargs):
         self._cached_status = None  # Invalidate cache on action
         
         # PROACTIVE FALLBACK CHECK
@@ -315,8 +322,17 @@ class StateCoordinator(QObject):
                                         self.ts_manager.worker.error_received.emit("Domain Unreachable: Connecting via Emergency Cached IP...")
             except Exception:
                 pass
+
+        # Pull exact persisted flags from profile if available to guarantee zero dropped flags
+        profile = self.manager.profiles.get(profile_name) if profile_name else None
+        accept_routes = kwargs.get("accept_routes", getattr(profile, "accept_routes", True))
+        unattended = kwargs.get("unattended", getattr(profile, "unattended", False))
+        webclient = kwargs.get("webclient", getattr(profile, "webclient", False))
+        advertise_connector = kwargs.get("advertise_connector", getattr(profile, "advertise_connector", False))
+        accept_risk = kwargs.get("accept_risk", getattr(profile, "accept_risk", ""))
+        extra_args = kwargs.get("extra_args", getattr(profile, "extra_args", ""))
         
-        # Register connection arguments with the State Machine
+        # Register complete connection arguments with the State Machine for robust retries
         self.state_machine.last_connect_args = {
             "login_server": login_server,
             "auth_key": auth_key,
@@ -333,7 +349,13 @@ class StateCoordinator(QObject):
             "advertise_exit_node": advertise_exit_node,
             "shields_up": shields_up,
             "force_reauth": force_reauth,
-            "advertise_tags": advertise_tags
+            "advertise_tags": advertise_tags,
+            "accept_routes": accept_routes,
+            "unattended": unattended,
+            "webclient": webclient,
+            "advertise_connector": advertise_connector,
+            "accept_risk": accept_risk,
+            "extra_args": extra_args
         }
         
         # Transition to CONNECTING state via State Machine transition controller
@@ -355,7 +377,13 @@ class StateCoordinator(QObject):
             advertise_exit_node=advertise_exit_node,
             shields_up=shields_up,
             force_reauth=force_reauth,
-            advertise_tags=advertise_tags
+            advertise_tags=advertise_tags,
+            accept_routes=accept_routes,
+            unattended=unattended,
+            webclient=webclient,
+            advertise_connector=advertise_connector,
+            accept_risk=accept_risk,
+            extra_args=extra_args
         )
 
     def switch_profile(self, native_profile_name, profile_name=None):

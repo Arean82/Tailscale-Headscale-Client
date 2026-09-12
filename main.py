@@ -45,7 +45,7 @@ def start_daemon_service(logger):
     try:
         if sys.platform == "win32":
             subprocess.Popen(
-                ["powershell", "-Command", "Start-Service Tailscale"],
+                ["net", "start", "Tailscale"],
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
         elif sys.platform.startswith("linux"):
