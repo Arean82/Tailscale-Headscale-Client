@@ -59,3 +59,49 @@ class CryptoManager:
             return self.fernet.decrypt(encrypted_text.encode()).decode()
         except Exception:
             return ""
+
+KEYRING_SERVICE = "TailscaleClientPro"
+
+def store_profile_secret(profile_id: str, secret: str) -> None:
+    """Stores sensitive profile authentication key in OS Keyring."""
+    if not profile_id:
+        return
+    try:
+        import keyring
+        username = f"auth_key_{profile_id}"
+        if secret:
+            keyring.set_password(KEYRING_SERVICE, username, secret)
+        else:
+            try:
+                keyring.delete_password(KEYRING_SERVICE, username)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+def get_profile_secret(profile_id: str) -> str:
+    """Retrieves sensitive profile authentication key from OS Keyring."""
+    if not profile_id:
+        return ""
+    try:
+        import keyring
+        username = f"auth_key_{profile_id}"
+        secret = keyring.get_password(KEYRING_SERVICE, username)
+        return secret or ""
+    except Exception:
+        return ""
+
+def delete_profile_secret(profile_id: str) -> None:
+    """Deletes sensitive profile authentication key from OS Keyring."""
+    if not profile_id:
+        return
+    try:
+        import keyring
+        username = f"auth_key_{profile_id}"
+        try:
+            keyring.delete_password(KEYRING_SERVICE, username)
+        except Exception:
+            pass
+    except Exception:
+        pass
+

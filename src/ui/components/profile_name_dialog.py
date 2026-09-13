@@ -34,7 +34,13 @@ class ProfileNameDialog(QDialog):
             self.line_edit = self.ui_content.findChild(QLineEdit, "lineEdit")
             self.btn_create = self.ui_content.findChild(QPushButton, "btnClose")
             
+            # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+            if self.line_edit:
+                self.line_edit.setAccessibleName("New Profile Name Input")
+                self.line_edit.setAccessibleDescription("Enter an alphanumeric name for the new network profile.")
             if self.btn_create:
+                self.btn_create.setAccessibleName("Create Profile Button")
+                self.btn_create.setAccessibleDescription("Validates the entered name and creates the new profile tab.")
                 self.btn_create.clicked.connect(self.accept)
             
     def accept(self):
@@ -53,3 +59,11 @@ class ProfileNameDialog(QDialog):
 
     def get_name(self):
         return self.line_edit.text().strip() if self.line_edit else ""
+
+    def keyPressEvent(self, event):
+        """Ensure Escape cancels ProfileNameDialog (EN 301 549 11.2.1.2 - No Keyboard Trap)."""
+        if event.key() == Qt.Key_Escape:
+            self.reject()
+            event.accept()
+            return
+        super().keyPressEvent(event)

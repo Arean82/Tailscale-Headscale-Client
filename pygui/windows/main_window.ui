@@ -47,15 +47,19 @@
   </widget>
   <action name="actionSettings">
    <property name="text"><string>&amp;Settings</string></property>
+   <property name="shortcut"><string>Ctrl+,</string></property>
   </action>
   <action name="actionExit">
    <property name="text"><string>E&amp;xit</string></property>
+   <property name="shortcut"><string>Ctrl+Q</string></property>
   </action>
   <action name="actionAddProfile">
    <property name="text"><string>&amp;Add New Profile</string></property>
+   <property name="shortcut"><string>Ctrl+N</string></property>
   </action>
   <action name="actionRemoveProfile">
    <property name="text"><string>&amp;Remove Current Profile</string></property>
+   <property name="shortcut"><string>Ctrl+Shift+D</string></property>
   </action>
   <action name="actionSystemTheme">
    <property name="text"><string>&amp;System Default</string></property>
@@ -77,12 +81,14 @@
   </action>
   <action name="actionAbout">
    <property name="text"><string>&amp;About Us</string></property>
+   <property name="shortcut"><string>F1</string></property>
   </action>
   <action name="actionLicense">
    <property name="text"><string>View &amp;License</string></property>
   </action>
   <action name="actionReadme">
    <property name="text"><string>&amp;Readme</string></property>
+   <property name="shortcut"><string>Shift+F1</string></property>
   </action>
   <action name="actionMenuFile">
    <property name="text"><string>&amp;File</string></property>
@@ -98,12 +104,21 @@
   </action>
   <action name="actionMenuAdvancedOptions">
    <property name="text"><string>&amp;Advanced Options...</string></property>
+   <property name="shortcut"><string>Ctrl+Alt+A</string></property>
   </action>
   <action name="actionMenuPeerList">
    <property name="text"><string>&amp;Peer List...</string></property>
+   <property name="shortcut"><string>Ctrl+Shift+P</string></property>
   </action>
   <action name="actionMenuDiagnostics">
    <property name="text"><string>&amp;Network Diagnostics...</string></property>
+   <property name="shortcut"><string>Ctrl+Shift+N</string></property>
+  </action>
+  <action name="actionCheckScreenReader">
+   <property name="text"><string>Check &amp;Screen Reader Environment...</string></property>
+   <property name="shortcut"><string>Ctrl+Shift+S</string></property>
+   <property name="accessibleName"><string>Check Screen Reader Shortcut Action</string></property>
+   <property name="accessibleDescription"><string>Runs instant accessibility and screen reader diagnostics, verifying Orca, Speech Dispatcher, and Windows speech packages.</string></property>
   </action>
   <action name="actionMenuHelp">
    <property name="text"><string>&amp;Help</string></property>

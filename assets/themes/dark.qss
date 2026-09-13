@@ -50,7 +50,7 @@ QTabWidget#tabWidget {
 }
 
 #tabWidget QLineEdit:focus {
-    border: 1px solid #3b82f6;
+    border: 2px solid #60a5fa;
     background-color: #161b22;
 }
 
@@ -66,6 +66,11 @@ QTabWidget#tabWidget {
 #tabWidget QPushButton:hover {
     background-color: #2a324b;
     border-color: #3b82f6;
+}
+
+#tabWidget QPushButton:focus {
+    border: 2px solid #60a5fa;
+    outline: none;
 }
 
 #tabWidget QPushButton:pressed {
@@ -84,7 +89,14 @@ QTabWidget#tabWidget {
     font-weight: 500;
 }
 
-/* Explicitly allow colored buttons to keep their styles */
+#tabWidget QCheckBox:focus, #tabWidget QRadioButton:focus {
+    border: 1px dotted #60a5fa;
+}
+
+/* Explicitly allow colored buttons to keep their styles while maintaining focus visibility */
 #tabWidget QPushButton[colored="true"] {
     border: none;
+}
+#tabWidget QPushButton[colored="true"]:focus {
+    border: 2px solid #ffffff;
 }

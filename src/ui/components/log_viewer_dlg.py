@@ -42,6 +42,25 @@ class LogViewerDialog(QDialog):
         self.btnError    = self.ui.findChild(QPushButton, "errorBtn")
         self.btnDebug    = self.ui.findChild(QPushButton, "debugBtn")
 
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        log_a11y = [
+            (self.searchEntry, "Log Search Filter Input", "Enter query text to highlight occurrences in the log stream."),
+            (self.btnSearch, "Execute Log Search Button", "Searches and highlights matching terms in the active log viewer."),
+            (self.btnRefresh, "Refresh Logs Button", "Reloads the latest log file records from disk."),
+            (self.btnClear, "Clear Logs Button", "Flushes all buffered log entries from the display."),
+            (self.textBrowser, "Log Output Stream", "Console displaying colored diagnostic, connection, and error messages."),
+            (self.btnClose, "Close Log Viewer Button", "Dismisses the log viewer dialog."),
+            (self.btnExport, "Export Logs Button", "Saves the currently visible log output to a text file."),
+            (self.btnInfo, "Filter INFO Level Toggle", "Toggles visibility of INFO level log entries."),
+            (self.btnWarn, "Filter WARN Level Toggle", "Toggles visibility of WARNING level log entries."),
+            (self.btnError, "Filter ERROR Level Toggle", "Toggles visibility of ERROR level log entries."),
+            (self.btnDebug, "Filter DEBUG Level Toggle", "Toggles visibility of DEBUG level log entries."),
+        ]
+        for w, name, desc in log_a11y:
+            if w:
+                w.setAccessibleName(name)
+                w.setAccessibleDescription(desc)
+
         # Connections
         if self.btnSearch: self.btnSearch.clicked.connect(self._search_text)
         if self.searchEntry: self.searchEntry.returnPressed.connect(self._search_text)
@@ -158,3 +177,25 @@ class LogViewerDialog(QDialog):
             QMessageBox.information(self, "Export Successful", f"All logs have been successfully bundled and exported to:\n{save_path}")
         except Exception as e:
             QMessageBox.critical(self, "Export Failed", f"An error occurred while exporting logs:\n{e}")
+
+    def showEvent(self, event):
+        """Inherit theme styling from parent window upon display."""
+        win = self.window()
+        if win and hasattr(win, "_apply_theme_to_dialog"):
+            win._apply_theme_to_dialog(self)
+        else:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, "_apply_theme_to_dialog"):
+                    parent._apply_theme_to_dialog(self)
+                    break
+                parent = parent.parent() if hasattr(parent, "parent") else None
+        super().showEvent(event)
+
+    def keyPressEvent(self, event):
+        """Ensure Escape dismisses LogViewerDialog (EN 301 549 11.2.1.2 - No Keyboard Trap)."""
+        if event.key() == Qt.Key_Escape:
+            self.accept()
+            event.accept()
+            return
+        super().keyPressEvent(event)

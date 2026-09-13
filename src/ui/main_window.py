@@ -3,6 +3,7 @@
 from PySide6.QtWidgets import QSystemTrayIcon
 import sys
 import os
+from typing import Optional
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QTabWidget, QMenu, QMessageBox
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QTimer, Qt, QEvent
@@ -35,7 +36,12 @@ class MainWindow(QMainWindow):
         self._create_menu_bar()
             
         self.tabWidget = self.findChild(QTabWidget, "tabWidget")
+        if self.tabWidget:
+            self.tabWidget.setAccessibleName("VPN Profiles Navigation Tabs")
+            self.tabWidget.setAccessibleDescription("Switch between configured Headscale and Tailscale network profiles.")
         self.setWindowTitle("Tailscale Client Pro")
+        self.setAccessibleName("Tailscale Client Pro Main Window")
+        self.setAccessibleDescription("Main application window for managing Tailscale and Headscale VPN connections.")
         self.setFixedSize(420, 280)
 
         self.current_theme = "light" # Default is LIGHT
@@ -76,6 +82,10 @@ class MainWindow(QMainWindow):
         
         # 10. Asynchronous Service Check
         QTimer.singleShot(100, self.check_daemon_async)
+        
+        # 10b. Optional Screen Reader / AT Check on Startup (if enabled by operator)
+        if getattr(self.manager.settings, 'check_screen_reader', False):
+            QTimer.singleShot(1500, self._check_screen_reader_on_startup)
 
         # 11. Centralized Traffic Polling (Every 3 seconds, only active tab)
         self.central_polling_timer = QTimer(self)
@@ -378,50 +388,68 @@ class MainWindow(QMainWindow):
         # --- Theme Menu ---
         theme_menu = menubar.addMenu(self.tr("&Theme"))
 
-
-        self.theme_group = QActionGroup(self)
+        self.theme_mode_group = QActionGroup(self)
         
-        self.actionSystemTheme = QAction(self.tr("&System Default"), self)
-        self.actionSystemTheme.setCheckable(True)
-        self.actionSystemTheme.triggered.connect(lambda: self.change_theme("system"))
-        self.theme_group.addAction(self.actionSystemTheme)
-        theme_menu.addAction(self.actionSystemTheme)
-        
-        self.actionLightTheme = QAction(self.tr("&Light Theme"), self)
+        self.actionLightTheme = QAction(self.tr("&Light Theme (Default)"), self)
         self.actionLightTheme.setCheckable(True)
-        self.actionLightTheme.triggered.connect(lambda: self.change_theme("light"))
-        self.theme_group.addAction(self.actionLightTheme)
+        self.actionLightTheme.triggered.connect(lambda: self.set_theme_mode("light"))
+        self.theme_mode_group.addAction(self.actionLightTheme)
         theme_menu.addAction(self.actionLightTheme)
         
         self.actionDarkTheme = QAction(self.tr("&Dark Theme"), self)
         self.actionDarkTheme.setCheckable(True)
-        self.actionDarkTheme.triggered.connect(lambda: self.change_theme("dark"))
-        self.theme_group.addAction(self.actionDarkTheme)
+        self.actionDarkTheme.triggered.connect(lambda: self.set_theme_mode("dark"))
+        self.theme_mode_group.addAction(self.actionDarkTheme)
         theme_menu.addAction(self.actionDarkTheme)
         
-        self.actionVibrantTheme = QAction(self.tr("&Vibrant Pro Theme"), self)
-        self.actionVibrantTheme.setCheckable(True)
-        self.actionVibrantTheme.triggered.connect(lambda: self.change_theme("vibrant"))
-        self.theme_group.addAction(self.actionVibrantTheme)
-        theme_menu.addAction(self.actionVibrantTheme)
-        
-        # Add Material sub-menu
+        theme_menu.addSeparator()
+
+        # Add Material Accent sub-menu (accents only; automatically applies light/dark based on mode)
         material_menu = theme_menu.addMenu(self.tr("&Material"))
+        self.accent_group = QActionGroup(self)
+
+        # Standard accent (resets to native client QSS)
+        self.actionDefaultAccent = QAction(self.tr("Default Accent (Standard)"), self)
+        self.actionDefaultAccent.setCheckable(True)
+        self.actionDefaultAccent.setChecked(True)
+        self.actionDefaultAccent.triggered.connect(lambda: self.set_material_accent(None))
+        self.accent_group.addAction(self.actionDefaultAccent)
+        material_menu.addAction(self.actionDefaultAccent)
+        material_menu.addSeparator()
+
+        # Distinct clean accents
+        material_accents = [
+            ("Amber", "amber"),
+            ("Blue", "blue"),
+            ("Cyan", "cyan"),
+            ("Light Green", "lightgreen"),
+            ("Orange", "orange"),
+            ("Pink", "pink"),
+            ("Purple", "purple"),
+            ("Red", "red"),
+            ("Teal", "teal"),
+            ("Yellow", "yellow")
+        ]
+
+        self.accent_actions = {}
         try:
-            from qt_material import list_themes
-            for t in list_themes():
-                action = QAction(t.replace('.xml', '').replace('_', ' ').title(), self)
-                action.setCheckable(True)
-                action.triggered.connect(lambda checked=False, theme_name=f"material:{t}": self.change_theme(theme_name))
-                self.theme_group.addAction(action)
-                material_menu.addAction(action)
+            import qt_material
+            for label, key in material_accents:
+                act = QAction(self.tr(label), self)
+                act.setCheckable(True)
+                act.triggered.connect(lambda checked=False, accent=key: self.set_material_accent(accent))
+                self.accent_group.addAction(act)
+                material_menu.addAction(act)
+                self.accent_actions[key] = act
         except ImportError:
-            action = QAction(self.tr("qt-material not installed"), self)
-            action.setEnabled(False)
-            material_menu.addAction(action)
+            act_unavail = QAction(self.tr("qt-material not installed"), self)
+            act_unavail.setEnabled(False)
+            material_menu.addAction(act_unavail)
 
         # Set initial check
         self.actionLightTheme.setChecked(True)
+        self.current_theme_mode = "light"
+        self.current_material_accent = None
         
         # --- Logs Menu ---
         logs_menu = menubar.addMenu(self.tr("&Logs"))
@@ -465,6 +493,13 @@ class MainWindow(QMainWindow):
         self.actionReadme = QAction(self.tr("&Readme"), self)
         self.actionReadme.triggered.connect(self.show_readme)
         help_menu.addAction(self.actionReadme)
+
+        help_menu.addSeparator()
+
+        self.actionCheckA11y = QAction(self.tr("Check &Screen Reader Setup..."), self)
+        self.actionCheckA11y.setShortcut("Ctrl+Shift+S")
+        self.actionCheckA11y.triggered.connect(self.check_screen_reader_interactive)
+        help_menu.addAction(self.actionCheckA11y)
 
     def populate_logs_menu(self):
 
@@ -571,57 +606,69 @@ class MainWindow(QMainWindow):
                     for idx in range(self.tabWidget.count()):
                         self.tabWidget.setTabEnabled(idx, True)
 
+    def set_theme_mode(self, mode: str):
+        """Sets base theme mode ('light' or 'dark'). Automatically updates Material accent if one is active."""
+        self.current_theme_mode = mode
+        if mode == "light":
+            self.actionLightTheme.setChecked(True)
+        else:
+            self.actionDarkTheme.setChecked(True)
+
+        if self.current_material_accent:
+            self._apply_material_theme(self.current_theme_mode, self.current_material_accent)
+        else:
+            self.change_theme(mode)
+
+    def set_material_accent(self, accent: Optional[str]):
+        """Applies a material accent using the current mode ('light' or 'dark'), or restores native QSS if accent is None."""
+        self.current_material_accent = accent
+        if not accent:
+            self.actionDefaultAccent.setChecked(True)
+            self.change_theme(self.current_theme_mode)
+            return
+
+        if accent in self.accent_actions:
+            self.accent_actions[accent].setChecked(True)
+        self._apply_material_theme(self.current_theme_mode, accent)
+
+    def _apply_material_theme(self, mode: str, accent: str):
+        """Applies dynamic material theme based on base mode ('light' or 'dark') and selected accent."""
+        from PySide6.QtWidgets import QApplication
+        from qt_material import apply_stylesheet
+
+        xml_theme = f"{mode}_{accent}.xml"
+        app = QApplication.instance()
+        if app is not None and isinstance(app, QApplication):
+            apply_stylesheet(app, theme=xml_theme)
+            self.current_qss = app.styleSheet()
+        self.resolved_theme = mode
+
+        if self.tabWidget:
+            self.tabWidget.setStyleSheet("")
+            for i in range(self.tabWidget.count()):
+                widget = self.tabWidget.widget(i)
+                if widget and hasattr(widget, "update_status"):
+                    widget.update_status(*self.ts_manager.check_status())
+
     def change_theme(self, theme_name):
         from PySide6.QtWidgets import QApplication
-        from PySide6.QtGui import QGuiApplication, Qt, QColor
+        from PySide6.QtGui import Qt, QColor
         
         self.current_theme = theme_name
-        
-        target_theme = theme_name
-        if theme_name == "system":
-            hints = QGuiApplication.styleHints()
-            if hasattr(hints, "colorScheme"):
-                scheme = hints.colorScheme()
-                target_theme = "dark" if scheme == Qt.ColorScheme.Dark else "light"
-            else:
-                target_theme = "light"
-        
+        target_theme = "dark" if theme_name == "dark" else "light"
         self.resolved_theme = target_theme
         
-        # Handle qt_material themes
-        if theme_name.startswith("material:"):
-            from qt_material import apply_stylesheet
-            material_theme = theme_name.split(":")[1]
-            # Apply qt_material stylesheet to the entire app instance
-            apply_stylesheet(QApplication.instance(), theme=material_theme)
-            self.current_qss = QApplication.instance().styleSheet()
-            
-            # Reset tabWidget stylesheet since qt_material handles styles globally
-            if self.tabWidget:
-                self.tabWidget.setStyleSheet("")
-                
-            # Refresh tabs
-            if self.tabWidget:
-                for i in range(self.tabWidget.count()):
-                    widget = self.tabWidget.widget(i)
-                    if widget and hasattr(widget, "update_status"):
-                        widget.update_status(*self.ts_manager.check_status())
-            return
-            
         # Reset application-level stylesheet in case we are switching away from qt_material
         app = QApplication.instance()
         app.setStyleSheet("")
         
-        # qt_material overwrites the palette and style, we must restore them
+        # Restore native palette and style
         import sys
         if sys.platform == "win32":
             app.setStyle("WindowsVista")
         app.setPalette(app.style().standardPalette())
 
-        # 1. DO NOT touch QApplication stylesheet or MainWindow Palette
-        # This keeps the Menu Bar 100% Native.
-
-        # 2. Determine Local Styles dynamically from QSS files
+        # Determine Local Styles dynamically from QSS files
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         qss_path = os.path.join(base_dir, "assets", "themes", f"{target_theme}.qss")
         try:
@@ -630,14 +677,14 @@ class MainWindow(QMainWindow):
         except Exception:
             style = ""
             
-        # 3. Apply style ONLY to the TabWidget
+        # Apply style ONLY to the TabWidget
         if self.tabWidget:
             self.tabWidget.setObjectName("tabWidget")
             self.tabWidget.setStyleSheet(style)
         
         self.current_qss = style
         
-        # 4. Instantly refresh tab buttons to reflect the new theme
+        # Instantly refresh tab buttons to reflect the new theme
         if self.tabWidget:
             for i in range(self.tabWidget.count()):
                 widget = self.tabWidget.widget(i)
@@ -645,14 +692,20 @@ class MainWindow(QMainWindow):
                     widget.update_status(*self.ts_manager.check_status())
 
     def _apply_theme_to_dialog(self, dialog):
-        if hasattr(self, 'current_qss'):
+        if not dialog:
+            return
+        # If a material accent is active, qt_material styles dialogs globally, but ensure explicit palette/colors
+        if self.current_material_accent:
+            bg = "#121212" if self.resolved_theme == "dark" else "#fafafa"
+            text_color = "#ffffff" if self.resolved_theme == "dark" else "#212121"
+            dialog.setStyleSheet(f"QDialog {{ background-color: {bg}; color: {text_color}; }}")
+            return
+
+        if hasattr(self, 'current_qss') and self.current_qss:
             dialog_style = self.current_qss.replace("#tabWidget ", "")
             if self.resolved_theme == "dark":
                 bg = "#1a1e2e"
                 text_color = "#d1d5db"
-            elif self.resolved_theme == "vibrant":
-                bg = "#04060d"
-                text_color = "#f8fafc"
             else:
                 bg = "#f0f0f0"
                 text_color = "#1a1a1a"
@@ -811,6 +864,7 @@ class MainWindow(QMainWindow):
             
         from .components.node_dialog import NodeDialog
         dlg = NodeDialog(profile, self.manager, self)
+        self._apply_theme_to_dialog(dlg)
         dlg.exec()
 
     def toggle_tray_switcher(self, checked):
@@ -885,3 +939,47 @@ class MainWindow(QMainWindow):
             self.ts_manager.check_status(force=True)
         except Exception as e:
             print(f"[DEBUG Tray Switcher] Failed to set exit node: {e}")
+
+    def _check_screen_reader_on_startup(self):
+        from src.utils.a11y_checker import check_screen_reader_environment
+        res = check_screen_reader_environment()
+        if not res.is_healthy:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Information)
+            msg.setWindowTitle("Screen Reader Setup Recommendation")
+            msg.setText(f"<b>{res.title}</b><br><br>{res.summary}<br><br>{res.details}")
+            if res.remediation_cmd:
+                msg.setInformativeText(f"Run this command to install the required accessibility components:<br><br><code>{res.remediation_cmd}</code>")
+                btn_copy = msg.addButton("Copy Command", QMessageBox.ActionRole)
+                msg.addButton(QMessageBox.Close)
+                msg.exec()
+                if msg.clickedButton() == btn_copy:
+                    from PySide6.QtGui import QGuiApplication
+                    clipboard = QGuiApplication.clipboard()
+                    clipboard.setText(res.remediation_cmd)
+                    QMessageBox.information(self, "Copied", "Command copied to clipboard!")
+            else:
+                msg.setStandardButtons(QMessageBox.Close)
+                msg.exec()
+
+    def check_screen_reader_interactive(self):
+        from src.utils.a11y_checker import check_screen_reader_environment
+        res = check_screen_reader_environment()
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Information if res.is_healthy else QMessageBox.Warning)
+        msg.setWindowTitle("Screen Reader Environment Check")
+        msg.setText(f"<b>{res.title}</b><br><br>{res.summary}<br><br>{res.details}")
+        if res.remediation_cmd:
+            msg.setInformativeText(f"Run this command to install or activate the required accessibility components:<br><br><code>{res.remediation_cmd}</code>")
+            btn_copy = msg.addButton("Copy Command", QMessageBox.ActionRole)
+            msg.addButton(QMessageBox.Close)
+            msg.exec()
+            if msg.clickedButton() == btn_copy:
+                from PySide6.QtGui import QGuiApplication
+                clipboard = QGuiApplication.clipboard()
+                clipboard.setText(res.remediation_cmd)
+                QMessageBox.information(self, "Copied", "Command copied to clipboard!")
+        else:
+            msg.setStandardButtons(QMessageBox.Close)
+            msg.exec()
+

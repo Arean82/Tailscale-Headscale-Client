@@ -42,6 +42,14 @@ class PeerNameBadgeWidget(QWidget):
                 
         layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        badge_info = []
+        if username: badge_info.append(f"Owner: {username.split('@')[0]}")
+        if tags: badge_info.append(f"Tags: {', '.join([t.replace('tag:', '') for t in tags])}")
+        desc_suffix = f" ({'; '.join(badge_info)})" if badge_info else ""
+        self.setAccessibleName(f"Device: {host_name}{desc_suffix}")
+        self.setAccessibleDescription(f"Tailnet peer device {host_name} with assigned ownership and ACL tags.")
+
     def sizeHint(self):
         # Allow the table auto-resizer to reserve comfortable space
         return QSize(220, 28)
@@ -57,6 +65,11 @@ class LatencySparklineWidget(QWidget):
         # No baseline values — graph stays empty until real ping data arrives.
         # 0 means "no data yet" and is excluded from rendering.
         self.values = []
+
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        status_str = "Online" if is_online else "Offline"
+        self.setAccessibleName(f"Peer Latency Graph: {peer_ip or 'unknown'} ({status_str})")
+        self.setAccessibleDescription(f"Real-time ICMP round-trip latency sparkline telemetry for peer at {peer_ip or 'unknown'}.")
 
         if self.is_online and self.peer_ip:
             self.timer = QTimer(self)
@@ -82,9 +95,12 @@ class LatencySparklineWidget(QWidget):
         # Pick the first 'in <n>ms' we can find.
         match = re.search(r'in\s+(\d+)\s*ms', output)
         if match:
-            self.values.append(int(match.group(1)))
+            latency_ms = int(match.group(1))
+            self.values.append(latency_ms)
             if len(self.values) > 12:
                 self.values.pop(0)
+            self.setAccessibleName(f"Peer Latency: {latency_ms} ms (IP: {self.peer_ip})")
+            self.setAccessibleDescription(f"Latest measured round-trip time is {latency_ms} milliseconds.")
             self.update()
 
     def paintEvent(self, event):
@@ -166,6 +182,20 @@ class PeerListDialog(BaseUiDialog):
         self.btnRefresh = self.ui.findChild(QPushButton, "btnRefresh")
         self.tablePeers = self.ui.findChild(QTableWidget, "tablePeers")
         self.labelPeerCount = self.ui.findChild(QLabel, "labelPeerCount")
+
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        if self.lineEditSearch:
+            self.lineEditSearch.setAccessibleName("Filter Peers Input")
+            self.lineEditSearch.setAccessibleDescription("Search peers by machine hostname, user email, or IPv4 address.")
+        if self.btnRefresh:
+            self.btnRefresh.setAccessibleName("Refresh Peers List")
+            self.btnRefresh.setAccessibleDescription("Polls the active daemon for current connected peers and latency telemetry.")
+        if self.tablePeers:
+            self.tablePeers.setAccessibleName("Active Peers Table")
+            self.tablePeers.setAccessibleDescription("Table listing devices on the Tailnet with IP addresses, OS, status, and ping telemetry.")
+        if self.labelPeerCount:
+            self.labelPeerCount.setAccessibleName("Total Devices Count")
+            self.labelPeerCount.setAccessibleDescription("Total number of devices discovered in the Tailnet.")
         
         # Connect signals
         if self.lineEditSearch:

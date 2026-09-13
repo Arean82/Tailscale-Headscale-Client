@@ -53,6 +53,46 @@ class NodeDialog(BaseUiDialog):
         self.chkWebclientValue = self.ui.findChild(QCheckBox, "chkWebclientValue")
         self.chkAdvertiseConnectorValue = self.ui.findChild(QCheckBox, "chkAdvertiseConnectorValue")
 
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        accessible_configs = [
+            (self.comboBoxExitNode, "Exit Node Selector", "Select a remote peer device to route internet egress traffic through."),
+            (self.lineEditRoutes, "Subnet Routes Input", "Comma-separated RFC 1918 subnets to advertise to the Tailnet."),
+            (self.lineEditHostname, "Custom Hostname Override", "Overrides the machine name advertised to the coordination server."),
+            (self.lineEditTags, "ACL Tags Input", "Comma-separated ACL tags to assign to this node (e.g. tag:server)."),
+            (self.lineEditEmergencyIp, "Emergency Cached IP", "Displays the last known IPv4 address of the node for emergency fallback."),
+            (self.listNativeSwitch, "Instant Switch Profile List", "Select multiple compatible profiles for sub-second switching."),
+            (self.chkAutoPopulate, "Auto-Sync Daemon Toggle", "Enables pulling live configuration preferences from the Tailscale daemon."),
+            (self.btnSave, "Save Advanced Options", "Applies and saves the network and routing configuration."),
+            (self.btnCancel, "Cancel Changes", "Discards unsaved modifications and closes the dialog."),
+            (self.chkAllowLAN, "Allow LAN Access", "Retains local network access when routing through an exit node."),
+            (self.chkSSH, "Enable Tailscale SSH", "Enables secure inbound SSH handled by Tailnet ACL policies."),
+            (self.chkAcceptRoutes, "Accept Advertised Routes", "Accepts subnet routes exposed by other devices on the Tailnet."),
+            (self.chkAcceptDNS, "Accept Tailnet DNS", "Configures local resolver with Tailnet MagicDNS and upstream servers."),
+            (self.chkShieldsUp, "Shields Up Firewall", "Blocks all incoming peer connections for zero-trust endpoint isolation."),
+            (self.chkAdvertiseExitNode, "Advertise as Exit Node", "Enables this device to act as an exit gateway for the Tailnet."),
+            (self.chkDisableSNAT, "Disable Subnet SNAT", "Preserves original source client IP addresses for advertised subnets."),
+            (self.chkUnattended, "Unattended Background Mode", "Runs Tailscale persistently without requiring an active Windows user session."),
+            (self.chkWebclient, "Web Client Management", "Binds local browser interface for web-based daemon control."),
+            (self.chkAdvertiseConnector, "Advertise App Connector", "Designates machine as proxy node for corporate SaaS destinations."),
+            (self.chkForceReset, "Force Reset State", "Clears stuck routing tables and daemon state upon startup."),
+            (self.chkForceReauth, "Force Key Reauthentication", "Purges stored authentication tokens and forces fresh server key exchange."),
+            # Column 1 Status Badges
+            (self.chkAllowLANValue, "Allow LAN Status Badge", "Live status indicator showing whether LAN access is active."),
+            (self.chkSSHValue, "SSH Status Badge", "Live status indicator showing whether Tailscale SSH is active."),
+            (self.chkAcceptRoutesValue, "Accept Routes Status Badge", "Live status indicator showing whether subnet route acceptance is active."),
+            (self.chkAcceptDNSValue, "Accept DNS Status Badge", "Live status indicator showing whether MagicDNS acceptance is active."),
+            (self.chkShieldsUpValue, "Shields Up Status Badge", "Live status indicator showing whether Shields Up firewalling is active."),
+            (self.chkAdvertiseExitNodeValue, "Exit Node Advertised Status Badge", "Live status indicator showing whether exit node egress is active."),
+            (self.chkDisableSNATValue, "Disable SNAT Status Badge", "Live status indicator showing whether SNAT bypass is active."),
+            (self.chkUnattendedValue, "Unattended Mode Status Badge", "Live status indicator showing whether unattended mode is active."),
+            (self.chkWebclientValue, "Web Client Status Badge", "Live status indicator showing whether web client is active."),
+            (self.chkAdvertiseConnectorValue, "App Connector Status Badge", "Live status indicator showing whether app connector is active."),
+        ]
+        for widget, name, desc in accessible_configs:
+            if widget:
+                widget.setAccessibleName(name)
+                widget.setAccessibleDescription(desc)
+
         # Dynamic live updates: clicking either checkbox updates badge to bold green True / bold red False
         pairs = [
             (self.chkAllowLAN, self.chkAllowLANValue),
@@ -216,10 +256,10 @@ class NodeDialog(BaseUiDialog):
     def _update_bool_badge(self, chk, checked):
         if chk:
             if checked:
-                chk.setText("True")
+                chk.setText("✓ Active")
                 chk.setStyleSheet("color: #22c55e; font-weight: bold; font-size: 10pt;")
             else:
-                chk.setText("False")
+                chk.setText("✗ Inactive")
                 chk.setStyleSheet("color: #ef4444; font-weight: bold; font-size: 10pt;")
 
     def _on_auto_populate_changed(self, state):

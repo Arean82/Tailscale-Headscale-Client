@@ -10,7 +10,7 @@ class CacheManager:
     def __init__(self, cache_file: str, expiry_seconds: int = 60):
         self.cache_file = cache_file
         self.expiry_seconds = expiry_seconds
-        self.data = {}
+        self.data: dict[str, Any] = {}
         self.load_cache()
 
     def load_cache(self):

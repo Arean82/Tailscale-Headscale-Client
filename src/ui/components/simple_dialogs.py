@@ -32,11 +32,23 @@ class BaseUiDialog(QDialog):
             self.btnClose = self.ui.findChild(QPushButton, "btnClose")
             if self.btnClose:
                 self.btnClose.clicked.connect(self.accept)
-                self.btnClose.setStyleSheet("background-color: #a0a0a0; color: black; font-weight: bold;")
 
     def showEvent(self, event):
-        """Play a smooth fade-in animation when the dialog opens."""
+        """Play a smooth fade-in animation and ensure parent theme is inherited."""
         from PySide6.QtCore import QPropertyAnimation
+        
+        # Inherit theme from parent window if available
+        win = self.window()
+        if win and hasattr(win, "_apply_theme_to_dialog"):
+            win._apply_theme_to_dialog(self)
+        else:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, "_apply_theme_to_dialog"):
+                    parent._apply_theme_to_dialog(self)
+                    break
+                parent = parent.parent() if hasattr(parent, "parent") else None
+
         self.setWindowOpacity(0)
         self.fade_anim = QPropertyAnimation(self, b"windowOpacity")
         self.fade_anim.setDuration(300)
@@ -61,6 +73,24 @@ class BaseUiDialog(QDialog):
     def reject(self):
         self._fade_out_and_close(QDialog.Rejected)
 
+    def keyPressEvent(self, event):
+        """Ensure standard keyboard navigation parity (EN 301 549 11.2.1.2 - No Keyboard Trap)."""
+        if event.key() == Qt.Key_Escape:
+            self.reject()
+            event.accept()
+            return
+        elif event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            focus_widget = self.focusWidget()
+            if isinstance(focus_widget, QPushButton):
+                focus_widget.click()
+                event.accept()
+                return
+            elif hasattr(self, 'btnClose') and self.btnClose and self.btnClose.isEnabled():
+                self.btnClose.click()
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
 class AboutDialog(BaseUiDialog):
     def __init__(self, parent=None):
         super().__init__("about.ui", parent)
@@ -73,9 +103,18 @@ class AboutDialog(BaseUiDialog):
         lbl_version = self.ui.findChild(QLabel, "labelVersion")
         lbl_copyright = self.ui.findChild(QLabel, "labelCopyright")
         
-        if lbl_name: lbl_name.setText(APP_NAME)
-        if lbl_version: lbl_version.setText(f"Version {APP_VERSION}")
-        if lbl_copyright: lbl_copyright.setText(APP_COPYRIGHT)
+        if lbl_name: 
+            lbl_name.setText(APP_NAME)
+            lbl_name.setAccessibleName("Application Name")
+            lbl_name.setAccessibleDescription("The name of the desktop VPN client software.")
+        if lbl_version: 
+            lbl_version.setText(f"Version {APP_VERSION}")
+            lbl_version.setAccessibleName("Application Version")
+            lbl_version.setAccessibleDescription("Software release version.")
+        if lbl_copyright: 
+            lbl_copyright.setText(APP_COPYRIGHT)
+            lbl_copyright.setAccessibleName("Copyright and Authorship")
+            lbl_copyright.setAccessibleDescription("Author attributions and license ownership.")
 
 def get_logical_filename(url):
     import urllib.parse
@@ -129,9 +168,13 @@ class ReadmeDialog(BaseUiDialog):
         
         if self.btnClose:
             self.btnClose.clicked.connect(self.accept)
+            self.btnClose.setAccessibleName("Close README Viewer Button")
+            self.btnClose.setAccessibleDescription("Dismisses the README documentation window.")
             
         if self.viewer:
             self.viewer.setOpenExternalLinks(True)
+            self.viewer.setAccessibleName("README Documentation Viewer")
+            self.viewer.setAccessibleDescription("Interactive viewer displaying rendered markdown documentation.")
             
         # For background downloads
         self.download_thread = None
@@ -335,55 +378,76 @@ class TrafficDialog(BaseUiDialog):
         super().__init__("traffic.ui", parent)
         self.setFixedSize(460, 560)
         
-        # Access managers from parent (DashboardView)
-        self.manager = parent.manager if parent else None
-        self.ts_manager = parent.ts_manager if parent else None
-        
-        # Resolve UI elements
+        # Find UI widgets from loaded form
         self.labelStatus = self.ui.findChild(QLabel, "labelStatus")
         self.labelActiveProfile = self.ui.findChild(QLabel, "labelActiveProfile")
         self.labelActiveIP = self.ui.findChild(QLabel, "labelActiveIP")
         self.labelLoginServer = self.ui.findChild(QLabel, "labelLoginServer")
+        self.labelStats = self.ui.findChild(QLabel, "labelStats")
+        self.labelDailyStats = self.ui.findChild(QLabel, "labelDailyStats")
+        self.tableHistory = self.ui.findChild(QTableWidget, "tableHistory")
         
-        label_stats = self.ui.findChild(QLabel, "labelStats")
-        label_daily = self.ui.findChild(QLabel, "labelDailyStats")
-        table_history = self.ui.findChild(QTableWidget, "tableHistory")
+        # Access managers from parent (DashboardView)
+        self.manager = parent.manager if parent else None
+        self.ts_manager = parent.ts_manager if parent else None
         
-        if label_stats:
-            clean_session = session_text.replace("Traffic: ", "") if session_text else "Sent 0.00 B / Received 0.00 B"
-            label_stats.setText(clean_session)
-            
-        if label_daily:
-            label_daily.setText(daily_text)
-            
+        # Populate session and daily stats text
+        if self.labelStats and session_text:
+            self.labelStats.setText(session_text)
+        if self.labelDailyStats and daily_text:
+            self.labelDailyStats.setText(daily_text)
+
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        if self.labelStatus:
+            self.labelStatus.setAccessibleName("Connection Status Indicator")
+            self.labelStatus.setAccessibleDescription("Live operational state of the connection.")
+        if self.labelActiveProfile:
+            self.labelActiveProfile.setAccessibleName("Active Environment Profile")
+            self.labelActiveProfile.setAccessibleDescription("The currently selected network configuration profile.")
+        if self.labelActiveIP:
+            self.labelActiveIP.setAccessibleName("Node Virtual IP Address")
+            self.labelActiveIP.setAccessibleDescription("The assigned 100.x.y.z Tailscale IPv4 or IPv6 address.")
+        if self.labelLoginServer:
+            self.labelLoginServer.setAccessibleName("Coordination Server URL")
+            self.labelLoginServer.setAccessibleDescription("The control plane endpoint URL for this profile.")
+        if self.labelStats:
+            self.labelStats.setAccessibleName("Current Session Transfer Totals")
+            self.labelStats.setAccessibleDescription("Total bytes transmitted and received during the active tunnel session.")
+        if self.labelDailyStats:
+            self.labelDailyStats.setAccessibleName("Daily Aggregated Transfer")
+            self.labelDailyStats.setAccessibleDescription("Total network data transferred today.")
+        if self.tableHistory:
+            self.tableHistory.setAccessibleName("10-Day Historical Traffic Table")
+            self.tableHistory.setAccessibleDescription("Table of historical data usage by date, bytes sent, and bytes received.")
+
         # Connect status updates if we have the ts_manager
         if self.ts_manager:
             self.ts_manager.connection_status_changed.connect(self._on_status_changed)
             self._on_status_changed(*self.ts_manager.check_status())
             
         # Populate History Section
-        if table_history and history:
+        if self.tableHistory and history:
             def format_b(b):
                 for unit in ['B', 'KB', 'MB', 'GB']:
                     if b < 1024: return f"{b:.2f} {unit}"
                     b /= 1024
                 return f"{b:.2f} TB"
 
-            table_history.setRowCount(len(history))
-            table_history.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            self.tableHistory.setRowCount(len(history))
+            self.tableHistory.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
             
             for i, (ts, sent, recv) in enumerate(history):
-                table_history.setItem(i, 0, QTableWidgetItem(ts))
-                table_history.setItem(i, 1, QTableWidgetItem(format_b(sent)))
-                table_history.setItem(i, 2, QTableWidgetItem(format_b(recv)))
+                self.tableHistory.setItem(i, 0, QTableWidgetItem(ts))
+                self.tableHistory.setItem(i, 1, QTableWidgetItem(format_b(sent)))
+                self.tableHistory.setItem(i, 2, QTableWidgetItem(format_b(recv)))
                 
                 # Make items non-editable (redundant due to UI property but good practice)
                 for col in range(3):
-                    table_history.item(i, col).setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-        elif table_history:
-            table_history.setRowCount(1)
-            table_history.setColumnCount(3)
-            table_history.setItem(0, 0, QTableWidgetItem("No history available"))
+                    self.tableHistory.item(i, col).setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        elif self.tableHistory:
+            self.tableHistory.setRowCount(1)
+            self.tableHistory.setColumnCount(3)
+            self.tableHistory.setItem(0, 0, QTableWidgetItem("No history available"))
 
     def _on_status_changed(self, is_connected, status_text):
         if not self.labelStatus:
@@ -435,38 +499,50 @@ class TrafficDialog(BaseUiDialog):
             pass
         super().closeEvent(event)
 
-class LicenseDialog(QDialog):
+class LicenseDialog(BaseUiDialog):
     def __init__(self, theme="dark", parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("License")
-        self.setFixedSize(600, 450)
-        layout = QVBoxLayout(self)
+        super().__init__("license.ui", parent)
+        self.setWindowTitle("Software License Agreement")
+        self.setFixedSize(700, 500)
         
-        self.text_browser = QTextBrowser()
-        self.text_browser.setReadOnly(True)
-        
-        bg_color = "#1e1e1e" if theme == "dark" else "#ffffff"
-        text_color = "#d4d4d4" if theme == "dark" else "#1a1a1a"
-        self.text_browser.setStyleSheet(f"background-color: {bg_color}; color: {text_color}; font-family: monospace;")
-        
-        content = "LICENSE file not found."
-        import sys
-        if hasattr(sys, '_MEIPASS'):
-            license_path = os.path.join(sys._MEIPASS, "LICENSE")
-        else:
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-            license_path = os.path.join(base_dir, "LICENSE")
+        # Access UI elements directly from the loaded license.ui
+        self.text_browser = self.ui.findChild(QTextBrowser, "textBrowser")
+        if self.text_browser:
+            self.text_browser.setReadOnly(True)
+            self.text_browser.setAccessibleName("Software License Terms")
+            self.text_browser.setAccessibleDescription("The full GNU General Public License v3.0 legal text.")
             
-        if not os.path.exists(license_path):
-            license_path = os.path.join(os.getcwd(), "LICENSE")
-            
-        if os.path.exists(license_path):
-            with open(license_path, "r", encoding="utf-8") as f:
-                content = f.read()
-        self.text_browser.setPlainText(content)
-        layout.addWidget(self.text_browser)
+            content = "LICENSE file not found."
+            import sys
+            if hasattr(sys, '_MEIPASS'):
+                license_path = os.path.join(sys._MEIPASS, "LICENSE")
+            else:
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                license_path = os.path.join(base_dir, "LICENSE")
+                
+            if not os.path.exists(license_path):
+                license_path = os.path.join(os.getcwd(), "LICENSE")
+                
+            if os.path.exists(license_path):
+                try:
+                    with open(license_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                except Exception:
+                    pass
+            self.text_browser.setPlainText(content)
         
-        self.btnClose = QPushButton("Close")
-        self.btnClose.clicked.connect(self.accept)
-        self.btnClose.setFixedWidth(100)
-        layout.addWidget(self.btnClose, alignment=Qt.AlignCenter)
+        # Ensure single Close button from license.ui is connected and configured
+        if self.btnClose:
+            self.btnClose.setDefault(True)
+            self.btnClose.setAutoDefault(True)
+            self.btnClose.setAccessibleName("Close License Dialog Button")
+            self.btnClose.setAccessibleDescription("Dismisses the license agreement viewer.")
+
+
+    def keyPressEvent(self, event):
+        """Ensure Escape and Enter dismiss LicenseDialog without trapping keyboard focus."""
+        if event.key() in (Qt.Key_Escape, Qt.Key_Return, Qt.Key_Enter):
+            self.accept()
+            event.accept()
+            return
+        super().keyPressEvent(event)

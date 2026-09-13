@@ -52,10 +52,9 @@ graph TB
         API["Local API Pipe / Domain Socket"]:::daemonNode
     end
 
-    subgraph Storage ["💾 Persistence & Security Layer"]
-        KR["OS Credential Vault (Keyring)"]:::storageNode
-        SQL["SQLite Database (Traffic History)"]:::storageNode
-        FS["Profile Store (JSON)"]:::storageNode
+    subgraph Storage ["💾 Persistence & Option C Hybrid Vault"]
+        KR["OS Credential Vault (Keyring by UUIDv4)"]:::storageNode
+        SQL["SQLite Database (profiles, app_settings, traffic)"]:::storageNode
     end
 
     %% Flow Connections
@@ -68,7 +67,7 @@ graph TB
     TSM -->|Local Named Pipe| TD
     TSM -->|Socket Stream| API
     WM -->|Process Health| TD
-    SC -->|Persist Config| FS
+    SC -->|Persist Config & Topology| SQL
     TSM -->|Retrieve Keys| KR
     SC -->|Commit Stats| SQL
 ```
@@ -124,6 +123,38 @@ Le dialogue de configuration avancée `NodeDialog` applique un contrat strict à
 | **Nom d'Hôte Personnalisé** | `--hostname=<NOM>` | *Champ de Saisie* | Remplace le nom de machine enregistré dans le DNS Headscale/Tailscale. |
 | **Réinitialisation Forcée** | `--reset` | *Drapeau d'Exécution* | Efface l'état des routes antérieures dans le démon avant de démarrer le profil. |
 | **Réauthentification Forcée** | `--force-reauth` | *Drapeau d'Exécution* | Force un échange de clés complet avec le serveur de contrôle en purgeant les sessions. |
+
+---
+
+## ⌨️ 100% Fonctionnement au Clavier Seul et Raccourcis Globaux
+
+Le client offre une navigation complète et sans contrainte exclusivement au clavier, conçue conformément aux normes d'accessibilité d'entreprise (**EN 301 549 Clauses 11.2.1.8 et 11.2.1.2** / **WCAG 2.1 Niveau AA SC 2.1.1, 2.1.2 et 2.4.7**). Tous les composants interactifs disposent d'un liseré de focus visuel à haut contraste de 2px (ratio $\ge$ 3.0:1) sans piège de navigation :
+
+### Raccourcis Clavier Globaux de l'Application
+
+| Combinaison de Touches | Portée / Cible | Action Opérationnelle |
+| :--- | :--- | :--- |
+| <kbd>Ctrl</kbd> + <kbd>Return</kbd> | Fenêtre Principale / Onglet Actif | Basculer **Connexion / Déconnexion VPN** |
+| <kbd>Ctrl</kbd> + <kbd>,</kbd> | Application Globale | Ouvrir le **Dialogue Paramètres** |
+| <kbd>Ctrl</kbd> + <kbd>Q</kbd> | Application Globale | **Quitter l'Application** |
+| <kbd>Ctrl</kbd> + <kbd>N</kbd> | Application Globale | Modal **Ajouter un Nouveau Profil** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Application Globale | **Supprimer le Profil Sélectionné** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Application Globale | Ouvrir la **Liste des Pairs (Peers)** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> | Application Globale | Ouvrir le **Dialogue de Diagnostic** |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>A</kbd> | Application Globale | Ouvrir les **Options Avancées du Nœud** |
+| <kbd>F1</kbd> | Application Globale | Ouvrir la fenêtre **À Propos** |
+| <kbd>Shift</kbd> + <kbd>F1</kbd> | Application Globale | Ouvrir le **Lecteur de Documentation & Readme** |
+
+### Navigation du Focus et Contrôle des Dialogues
+
+| Touche | Contexte | Comportement |
+| :--- | :--- | :--- |
+| <kbd>Tab</kbd> | Toutes Fenêtres et Dialogues | Avancer le focus selon la chaîne stricte `<tabstops>` |
+| <kbd>Shift</kbd> + <kbd>Tab</kbd> | Toutes Fenêtres et Dialogues | Reculer le focus selon la chaîne `<tabstops>` |
+| <kbd>Enter</kbd> / <kbd>Return</kbd> | Boîtes de Dialogue Modales | Exécuter l'action principale par défaut (`default="true"`) |
+| <kbd>Escape</kbd> | Boîtes de Dialogue Modales | Fermer instantanément le dialogue et restituer le focus sans piège |
+| <kbd>Espace</kbd> | Case ou Bouton avec Focus | Basculer l'état ou déclencher l'action |
+| Flèches <kbd>Haut</kbd> / <kbd>Bas</kbd> | Menus Déroulants et Tables | Changer de profil, sélectionner un nœud de sortie ou parcourir les pairs |
 
 ---
 
