@@ -1,3 +1,4 @@
+import uuid
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional, List
@@ -13,6 +14,7 @@ class AppState(Enum):
 @dataclass
 class Profile:
     name: str
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     login_server: str = "https://controlplane.tailscale.com"
     auth_key: str = ""
     auth_mode: str = "auth_key"  # "auth_key" or "sso"
@@ -55,6 +57,7 @@ class AppSettings:
     enable_tray_switcher: bool = False
     insecure_ssl: bool = False
     startup_delay: int = 10
+    check_screen_reader: bool = False
 
 
 class LoginState(Enum):

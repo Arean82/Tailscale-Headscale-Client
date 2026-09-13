@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>TabWidget</class>
  <widget class="QWidget" name="TabWidget">
@@ -57,6 +57,12 @@
      <property name="text">
       <string>🔴 Disconnected</string>
      </property>
+     <property name="accessibleName">
+      <string>VPN Status: Disconnected</string>
+     </property>
+     <property name="accessibleDescription">
+      <string>Current VPN connection status is Disconnected. Both textual and visual indicators are present.</string>
+     </property>
     </widget>
    </item>
    <item row="1" column="1">
@@ -74,6 +80,10 @@
                     }
                     QPushButton:hover { 
                         background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #818cf8, stop:1 #4f46e5);
+                    }
+                    QPushButton:focus {
+                        border: 2px solid #ffffff;
+                        outline: none;
                     }</string>
      </property>
      <property name="text">
@@ -104,7 +114,20 @@
                     }
                     QPushButton:hover { 
                         background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ade80, stop:1 #16a34a);
+                    }
+                    QPushButton:focus {
+                        border: 2px solid #ffffff;
+                        outline: none;
                     }</string>
+       </property>
+       <property name="shortcut">
+        <string>Ctrl+Return</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+       <property name="autoDefault">
+        <bool>true</bool>
        </property>
        <property name="text">
         <string>Connect</string>
@@ -142,6 +165,10 @@
                     }
                     QPushButton:hover { 
                         background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f59e0b, stop:1 #d97706);
+                    }
+                    QPushButton:focus {
+                        border: 2px solid #ffffff;
+                        outline: none;
                     }</string>
        </property>
        <property name="text">
@@ -180,6 +207,11 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>btn_connect</tabstop>
+  <tabstop>btnChangeCredentials</tabstop>
+  <tabstop>btnShowStats</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

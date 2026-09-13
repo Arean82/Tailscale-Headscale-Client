@@ -52,10 +52,9 @@ graph TB
         API["Local API Pipe / Domain Socket"]:::daemonNode
     end
 
-    subgraph Storage ["💾 Persistence & Security Layer"]
-        KR["OS Credential Vault (Keyring)"]:::storageNode
-        SQL["SQLite Database (Traffic History)"]:::storageNode
-        FS["Profile Store (JSON)"]:::storageNode
+    subgraph Storage ["💾 Persistence & Option C Hybrid Vault"]
+        KR["OS Credential Vault (Keyring by UUIDv4)"]:::storageNode
+        SQL["SQLite Database (profiles, app_settings, traffic)"]:::storageNode
     end
 
     %% Flow Connections
@@ -68,7 +67,7 @@ graph TB
     TSM -->|Local Named Pipe| TD
     TSM -->|Socket Stream| API
     WM -->|Process Health| TD
-    SC -->|Persist Config| FS
+    SC -->|Persist Config & Topology| SQL
     TSM -->|Retrieve Keys| KR
     SC -->|Commit Stats| SQL
 ```
@@ -124,6 +123,38 @@ El diálogo de configuración avanzada `NodeDialog` impone un contrato estricto 
 | **Nombre de Host Personalizado** | `--hostname=<NOMBRE>` | *Campo de Entrada* | Anula el nombre de la máquina en los registros DNS de Headscale/Tailscale. |
 | **Reinicio Forzado** | `--reset` | *Flag de Ejecución* | Limpia el estado previo de rutas en el demonio antes de activar el perfil. |
 | **Reautenticación Forzada** | `--force-reauth` | *Flag de Ejecución* | Obliga al intercambio completo de claves con el servidor de control. |
+
+---
+
+## ⌨️ 100% Operabilidad Exclusiva por Teclado y Atajos Globales
+
+El cliente proporciona navegación completa sin restricciones mediante teclado, diseñada conforme a los estándares de accesibilidad corporativa (**EN 301 549 Cláusula 11.2.1.8 y 11.2.1.2** / **WCAG 2.1 Nivel AA SC 2.1.1, 2.1.2 y 2.4.7**). Todos los controles cuentan con indicadores de foco visual de 2px de alto contraste (relación $\ge$ 3.0:1) sin trampas de teclado:
+
+### Aceleradores y Atajos Globales de la Aplicación
+
+| Combinación de Teclas | Alcance / Destino | Acción Operativa |
+| :--- | :--- | :--- |
+| <kbd>Ctrl</kbd> + <kbd>Return</kbd> | Ventana Principal / Pestaña Activa | Conmutar **Conectar / Desconectar VPN** |
+| <kbd>Ctrl</kbd> + <kbd>,</kbd> | Aplicación Global | Abrir **Diálogo de Configuración** |
+| <kbd>Ctrl</kbd> + <kbd>Q</kbd> | Aplicación Global | **Salir / Cerrar la Aplicación** |
+| <kbd>Ctrl</kbd> + <kbd>N</kbd> | Aplicación Global | Modal **Agregar Nuevo Perfil** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Aplicación Global | **Eliminar Perfil Seleccionado** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Aplicación Global | Abrir **Lista de Dispositivos (Peers)** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> | Aplicación Global | Abrir **Diálogo de Diagnósticos** |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>A</kbd> | Aplicación Global | Abrir **Opciones Avanzadas del Nodo** |
+| <kbd>F1</kbd> | Aplicación Global | Abrir **Acerca de la Aplicación** |
+| <kbd>Shift</kbd> + <kbd>F1</kbd> | Aplicación Global | Abrir **Visor de Documentación y Readme** |
+
+### Navegación de Foco y Control de Diálogos
+
+| Tecla | Contexto | Comportamiento |
+| :--- | :--- | :--- |
+| <kbd>Tab</kbd> | Todas las Ventanas y Diálogos | Avanzar foco según la secuencia estricta `<tabstops>` |
+| <kbd>Shift</kbd> + <kbd>Tab</kbd> | Todas las Ventanas y Diálogos | Retroceder foco según la secuencia `<tabstops>` |
+| <kbd>Enter</kbd> / <kbd>Return</kbd> | Diálogos Modales | Ejecutar la acción primaria predeterminada (`default="true"`) |
+| <kbd>Escape</kbd> | Diálogos Modales | Cerrar diálogo inmediatamente y devolver el foco sin trampas |
+| <kbd>Espacio</kbd> | Casilla / Botón enfocado | Alternar selección o activar control |
+| Flechas <kbd>Arriba</kbd> / <kbd>Abajo</kbd> | Desplegables y Tablas | Cambiar perfiles, seleccionar nodo de salida o examinar datos |
 
 ---
 

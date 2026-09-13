@@ -12,6 +12,7 @@ class DiagnosticsDialog(BaseUiDialog):
         # Resolve UI elements
         self.textDiagnostics = self.ui.findChild(QTextBrowser, "textDiagnostics")
         self.btnRunDiagnostics = self.ui.findChild(QPushButton, "btnRunDiagnostics")
+        self.btnCheckA11y = self.ui.findChild(QPushButton, "btnCheckA11y")
         self.btnClose = self.ui.findChild(QPushButton, "btnClose")
         
         # Setup QProcess
@@ -23,8 +24,26 @@ class DiagnosticsDialog(BaseUiDialog):
         # Connect signals
         if self.btnRunDiagnostics:
             self.btnRunDiagnostics.clicked.connect(self._run_netcheck)
+        if self.btnCheckA11y:
+            self.btnCheckA11y.clicked.connect(self._check_a11y)
         if self.btnClose:
             self.btnClose.clicked.connect(self.accept)
+
+    def _check_a11y(self):
+        from ...utils.a11y_checker import check_screen_reader_environment
+        res = check_screen_reader_environment()
+        
+        if self.textDiagnostics:
+            self.textDiagnostics.clear()
+            self.textDiagnostics.append(f"=== {res.title} ===\n")
+            self.textDiagnostics.append(f"Status: {res.summary}\n")
+            self.textDiagnostics.append(f"Details: {res.details}\n")
+            if res.remediation_cmd:
+                self.textDiagnostics.append("--------------------------------------------------")
+                self.textDiagnostics.append("Terminal Installation / Activation Command:")
+                self.textDiagnostics.append(f"  {res.remediation_cmd}\n")
+                self.textDiagnostics.append("--------------------------------------------------")
+                self.textDiagnostics.append("(You can copy and run the command above in your terminal.)")
 
     def _run_netcheck(self):
         if self.btnRunDiagnostics:

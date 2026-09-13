@@ -5,6 +5,7 @@ import sys
 import os
 import re
 import shutil
+from typing import Optional, Any
 from PySide6.QtCore import QObject, Signal, QProcess
 
 def get_tailscale_path():
@@ -182,7 +183,7 @@ class TailscaleManager(QObject):
     connection_status_changed = Signal(bool, str) # (is_connected, status_text)
     state_changed = Signal(object) # AppState transition signal
     
-    def __init__(self, cache_dir: str = None, parent=None):
+    def __init__(self, cache_dir: Optional[str] = None, parent=None):
         super().__init__(parent)
         from .models import AppState
         self.current_state = AppState.DISCONNECTED

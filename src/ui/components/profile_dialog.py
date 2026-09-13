@@ -43,6 +43,23 @@ class ProfileDialog(BaseUiDialog):
         self.btnToggleKey = self.ui.findChild(QPushButton, "btnToggleKey")
         if self.btnToggleKey:
             self.btnToggleKey.clicked.connect(self._toggle_key_visibility)
+
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        profile_a11y = [
+            (self.chkUseSSO, "Use Web Browser SSO Toggle", "Switch between pre-shared auth key and browser-based SSO authentication."),
+            (self.url_auth, "Control Server URL Input", "Address of the Tailscale or Headscale control plane."),
+            (self.url_sso, "SSO Control Server URL Input", "Address of the control plane for browser SSO authentication."),
+            (self.key_entry, "Pre-Auth Key Input", "Enter node authentication key or token."),
+            (self.btnToggleKey, "Toggle Key Masking Button", "Toggles visibility between masked password bullets and plain text."),
+            (self.chkEnableFallback, "Emergency Fallback IP Toggle", "Enables direct IP routing if DNS resolution fails."),
+            (self.lineEditFallbackIP, "Emergency Server IP Input", "Fallback IPv4 address for control server."),
+            (self.btnSave, "Save Credentials Button", "Saves the authentication settings for this profile."),
+            (self.btnCancel, "Cancel Credentials Button", "Discards changes and closes the credentials dialog."),
+        ]
+        for w, name, desc in profile_a11y:
+            if w:
+                w.setAccessibleName(name)
+                w.setAccessibleDescription(desc)
             
         # 6b. Fallback Toggle logic
         if self.chkEnableFallback and self.lineEditFallbackIP:

@@ -198,6 +198,15 @@ QPushButton:hover { background-color: #059669; }</string>
    </item>
    <item>
     <widget class="QPushButton" name="closeBtn">
+     <property name="text">
+      <string>Close</string>
+     </property>
+     <property name="default">
+      <bool>true</bool>
+     </property>
+     <property name="autoDefault">
+      <bool>true</bool>
+     </property>
      <property name="styleSheet">
       <string>QPushButton {
     background-color: #2b2b2b;
@@ -210,9 +219,6 @@ QPushButton:hover { background-color: #059669; }</string>
 QPushButton:hover {
     background-color: #3a3a3a;
 }</string>
-     </property>
-     <property name="text">
-      <string>Close</string>
      </property>
     </widget>
    </item>

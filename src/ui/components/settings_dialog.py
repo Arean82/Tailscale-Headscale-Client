@@ -27,6 +27,7 @@ class SettingsDialog(BaseUiDialog):
         self.chkUseLocalAPI = self.ui.findChild(QCheckBox, "chkUseLocalAPI")
         self.chkInsecureSSL = self.ui.findChild(QCheckBox, "chkInsecureSSL")
         self.chkGlobalDnsFallback = self.ui.findChild(QCheckBox, "chkGlobalDnsFallback")
+        self.chkCheckScreenReader = self.ui.findChild(QCheckBox, "chkCheckScreenReader")
         self.lineEditLogPath = self.ui.findChild(QLineEdit, "lineEdit")
         self.btnOpenLogFolder = self.ui.findChild(QPushButton, "btnOpenLogFolder")
         self.btnClose = self.ui.findChild(QPushButton, "btnClose")
@@ -53,6 +54,9 @@ class SettingsDialog(BaseUiDialog):
             
         if self.chkGlobalDnsFallback:
             self.chkGlobalDnsFallback.setChecked(self.manager.settings.global_dns_fallback)
+            
+        if self.chkCheckScreenReader:
+            self.chkCheckScreenReader.setChecked(getattr(self.manager.settings, 'check_screen_reader', False))
             
         if self.lineEditLogPath:
             self.lineEditLogPath.setReadOnly(True)
@@ -88,6 +92,28 @@ class SettingsDialog(BaseUiDialog):
         if self.spinStartupDelay:
             self.spinStartupDelay.setValue(self.manager.settings.startup_delay)
             self.spinStartupDelay.valueChanged.connect(self._save_settings)
+
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        settings_a11y = [
+            (self.chkAutoConnect, "Auto-Connect at Launch Toggle", "Enables automatic VPN tunnel connection upon application start."),
+            (self.chkInsecureSSL, "Self-Signed SSL Toggle", "Permits connections to Headscale control servers with untrusted or self-signed certificates."),
+            (self.chkAdvanced, "Advanced Features Mode Toggle", "Enables granular routing, subnet advertisement, and exit node settings."),
+            (self.chkRunAtStartup, "Launch on OS Startup Toggle", "Configures the client application to run automatically on system boot."),
+            (self.chkUseLocalAPI, "Experimental Local API Toggle", "Enables direct communication with tailscaled daemon via local Unix sockets or named pipes."),
+            (self.chkEnableLogs, "Global Logging Toggle", "Enables writing debug and operational logs to disk."),
+            (self.chkGlobalDnsFallback, "Global DNS Fallback Toggle", "Emergency DNS fallback option."),
+            (self.lineEditLogPath, "Application Directory Path", "Displays the local base path where logs and configurations are stored."),
+            (self.btnOpenLogFolder, "Open Log Folder Button", "Opens the local log file directory in the system file explorer."),
+            (self.comboLanguage, "Application Language Selector", "Select interface language: English, Arabic, French, or Spanish."),
+            (self.spinMaxTabs, "Maximum Profile Limit SpinBox", "Sets the maximum number of network profiles allowed in the tab bar."),
+            (self.spinStartupDelay, "Startup Daemon Wait Timeout SpinBox", "Sets delay in seconds to wait for daemon readiness upon boot."),
+            (self.spinSsoTimeout, "SSO Login Timeout SpinBox", "Sets timeout duration in seconds for web browser single sign-on authentication."),
+            (self.btnClose, "Save and Close Settings Button", "Saves all configuration changes and dismisses the dialog."),
+        ]
+        for w, name, desc in settings_a11y:
+            if w:
+                w.setAccessibleName(name)
+                w.setAccessibleDescription(desc)
             
         # Connections
         if self.chkAutoConnect:
@@ -104,6 +130,8 @@ class SettingsDialog(BaseUiDialog):
             self.chkInsecureSSL.toggled.connect(self._save_settings)
         if self.chkGlobalDnsFallback:
             self.chkGlobalDnsFallback.toggled.connect(self._save_settings)
+        if self.chkCheckScreenReader:
+            self.chkCheckScreenReader.toggled.connect(self._save_settings)
         if self.btnOpenLogFolder:
             self.btnOpenLogFolder.clicked.connect(self._open_log_folder)
         if self.btnClose:
@@ -160,6 +188,7 @@ class SettingsDialog(BaseUiDialog):
         self.manager.settings.use_local_api = self.chkUseLocalAPI.isChecked() if self.chkUseLocalAPI else False
         self.manager.settings.insecure_ssl = self.chkInsecureSSL.isChecked() if self.chkInsecureSSL else False
         self.manager.settings.global_dns_fallback = self.chkGlobalDnsFallback.isChecked() if self.chkGlobalDnsFallback else False
+        self.manager.settings.check_screen_reader = self.chkCheckScreenReader.isChecked() if self.chkCheckScreenReader else False
         self.manager.settings.startup_delay = self.spinStartupDelay.value() if self.spinStartupDelay else 10
         if self.comboLanguage:
             self.manager.settings.language = self.comboLanguage.currentData()

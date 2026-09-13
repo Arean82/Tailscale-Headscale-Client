@@ -46,7 +46,7 @@ All window bounds are strictly managed in Python controller constructors or dedi
 | **Readme Studio** | `src/ui/components/simple_dialogs.py` | `1000 × 800` | High-fidelity Markdown documentation viewer |
 | **Log Viewer** | `src/ui/components/log_viewer_dlg.py` | `900 × 650` | Real-time streaming subprocess & daemon logs |
 | **Peers Dialog** | `src/ui/components/peer_dialog.py` | `850 × 480` | Mesh node telemetry table & latency sparklines |
-| **License Dialog**| `src/ui/components/simple_dialogs.py` | `600 × 450` | GPLv3 legal disclaimer and attributions |
+| **License Dialog**| `src/ui/components/simple_dialogs.py` (`pygui/dialogs/license.ui`) | `700 × 500` | GPLv3 legal disclaimer and attributions |
 | **Traffic Dialog**| `src/ui/components/simple_dialogs.py` | `450 × 500` | Historical throughput and packet statistics |
 | **About Dialog**  | `src/ui/components/simple_dialogs.py` | `360 × 280` | Dynamic build metadata & upstream links |
 | **Settings Dialog**| `src/ui/components/settings_dialog.py` | `340 × 340` | Preferences, theme, language, and startup options |

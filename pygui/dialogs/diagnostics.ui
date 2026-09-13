@@ -69,12 +69,31 @@ p, li { white-space: pre-wrap; }
       <widget class="QPushButton" name="btnRunDiagnostics">
        <property name="minimumSize">
         <size>
-         <width>140</width>
+         <width>130</width>
          <height>0</height>
         </size>
        </property>
        <property name="text">
         <string>Run Netcheck</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnCheckA11y">
+       <property name="accessibleName">
+        <string>Test Screen Reader and Accessibility Health Button</string>
+       </property>
+       <property name="accessibleDescription">
+        <string>Verifies if Orca, AT-SPI2, or Windows speech media packs are installed and provides remediation commands if missing.</string>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>160</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Check Screen Reader</string>
        </property>
       </widget>
      </item>
@@ -101,6 +120,12 @@ p, li { white-space: pre-wrap; }
        </property>
        <property name="text">
         <string>Close</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+       <property name="autoDefault">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

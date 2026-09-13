@@ -3,8 +3,11 @@
 
 import sqlite3
 import os
+import json
 import logging
 from datetime import datetime
+from typing import List, Dict, Optional, Any
+from .models import Profile, AppSettings
 
 class DatabaseManager:
     def __init__(self, base_dir):
@@ -55,6 +58,46 @@ class DatabaseManager:
                         profile TEXT PRIMARY KEY,
                         last_sent INTEGER,
                         last_recv INTEGER
+                    );
+                """)
+                # Table for profiles (Option C: Hybrid Vault topology store)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS profiles (
+                        id TEXT PRIMARY KEY,
+                        tab_order INTEGER DEFAULT 0,
+                        name TEXT NOT NULL,
+                        login_server TEXT,
+                        auth_mode TEXT,
+                        auto_connect BOOLEAN,
+                        exit_node TEXT,
+                        routes TEXT,
+                        native_profile TEXT,
+                        is_native_switch BOOLEAN,
+                        enable_ssh BOOLEAN,
+                        accept_dns BOOLEAN,
+                        allow_lan BOOLEAN,
+                        disable_snat BOOLEAN,
+                        hostname TEXT,
+                        last_known_ip TEXT,
+                        enable_dns_fallback BOOLEAN,
+                        force_reset BOOLEAN,
+                        advertise_exit_node BOOLEAN,
+                        shields_up BOOLEAN,
+                        force_reauth BOOLEAN,
+                        advertise_tags TEXT,
+                        accept_routes BOOLEAN,
+                        unattended BOOLEAN,
+                        webclient BOOLEAN,
+                        advertise_connector BOOLEAN,
+                        accept_risk TEXT,
+                        extra_args TEXT
+                    );
+                """)
+                # Table for application settings
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS app_settings (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
                     );
                 """)
                 conn.commit()
@@ -191,3 +234,210 @@ class DatabaseManager:
         finally:
             conn.close()
         return []
+
+    # ==========================================
+    # Option C: Hybrid Vault Storage Engine
+    # ==========================================
+
+    def save_profile(self, profile: Profile, tab_order: int = 0) -> bool:
+        """Persists profile topology and configuration to SQLite (excluding auth_key)."""
+        conn = self._create_connection()
+        if not conn:
+            return False
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT OR REPLACE INTO profiles (
+                    id, tab_order, name, login_server, auth_mode,
+                    auto_connect, exit_node, routes, native_profile,
+                    is_native_switch, enable_ssh, accept_dns, allow_lan,
+                    disable_snat, hostname, last_known_ip, enable_dns_fallback,
+                    force_reset, advertise_exit_node, shields_up, force_reauth,
+                    advertise_tags, accept_routes, unattended, webclient,
+                    advertise_connector, accept_risk, extra_args
+                ) VALUES (
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?
+                );
+            """, (
+                profile.id,
+                tab_order,
+                profile.name,
+                profile.login_server,
+                profile.auth_mode,
+                1 if profile.auto_connect else 0,
+                profile.exit_node,
+                profile.routes,
+                profile.native_profile,
+                1 if profile.is_native_switch else 0,
+                1 if profile.enable_ssh else 0,
+                1 if profile.accept_dns else 0,
+                1 if profile.allow_lan else 0,
+                1 if profile.disable_snat else 0,
+                profile.hostname,
+                profile.last_known_ip,
+                1 if profile.enable_dns_fallback else 0,
+                1 if profile.force_reset else 0,
+                1 if profile.advertise_exit_node else 0,
+                1 if profile.shields_up else 0,
+                1 if profile.force_reauth else 0,
+                profile.advertise_tags,
+                1 if getattr(profile, 'accept_routes', True) else 0,
+                1 if getattr(profile, 'unattended', False) else 0,
+                1 if getattr(profile, 'webclient', False) else 0,
+                1 if getattr(profile, 'advertise_connector', False) else 0,
+                getattr(profile, 'accept_risk', ""),
+                getattr(profile, 'extra_args', "")
+            ))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            self.logger.error(f"Error saving profile '{profile.name}' ({profile.id}): {e}")
+            return False
+        finally:
+            conn.close()
+
+    def load_all_profiles(self) -> List[Profile]:
+        """Loads all profiles ordered by tab_order without auth_key (auth_key retrieved via Keyring)."""
+        conn = self._create_connection()
+        if not conn:
+            return []
+        profiles = []
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT
+                    id, name, login_server, auth_mode, auto_connect,
+                    exit_node, routes, native_profile, is_native_switch,
+                    enable_ssh, accept_dns, allow_lan, disable_snat,
+                    hostname, last_known_ip, enable_dns_fallback, force_reset,
+                    advertise_exit_node, shields_up, force_reauth, advertise_tags,
+                    accept_routes, unattended, webclient, advertise_connector,
+                    accept_risk, extra_args
+                FROM profiles
+                ORDER BY tab_order ASC, rowid ASC;
+            """)
+            rows = cursor.fetchall()
+            for row in rows:
+                prof = Profile(
+                    id=row[0],
+                    name=row[1],
+                    login_server=row[2] or "https://controlplane.tailscale.com",
+                    auth_key="",  # Kept empty in DB; populated from native Keyring
+                    auth_mode=row[3] or "auth_key",
+                    auto_connect=bool(row[4]),
+                    exit_node=row[5] or "",
+                    routes=row[6] or "",
+                    native_profile=row[7] or "",
+                    is_native_switch=bool(row[8]),
+                    enable_ssh=bool(row[9]),
+                    accept_dns=bool(row[10]),
+                    allow_lan=bool(row[11]),
+                    disable_snat=bool(row[12]),
+                    hostname=row[13] or "",
+                    last_known_ip=row[14] or "",
+                    enable_dns_fallback=bool(row[15]),
+                    force_reset=bool(row[16]),
+                    advertise_exit_node=bool(row[17]),
+                    shields_up=bool(row[18]),
+                    force_reauth=bool(row[19]),
+                    advertise_tags=row[20] or "",
+                    accept_routes=bool(row[21]),
+                    unattended=bool(row[22]),
+                    webclient=bool(row[23]),
+                    advertise_connector=bool(row[24]),
+                    accept_risk=row[25] or "",
+                    extra_args=row[26] or ""
+                )
+                profiles.append(prof)
+        except sqlite3.Error as e:
+            self.logger.error(f"Error loading profiles: {e}")
+        finally:
+            conn.close()
+        return profiles
+
+    def delete_profile(self, profile_id: str) -> bool:
+        """Deletes a profile from the profiles table."""
+        conn = self._create_connection()
+        if not conn:
+            return False
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM profiles WHERE id = ?;", (profile_id,))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            self.logger.error(f"Error deleting profile {profile_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def count_profiles(self) -> int:
+        """Returns total count of stored profiles."""
+        conn = self._create_connection()
+        if not conn:
+            return 0
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM profiles;")
+            row = cursor.fetchone()
+            return row[0] if row else 0
+        except sqlite3.Error:
+            return 0
+        finally:
+            conn.close()
+
+    def save_app_settings(self, settings: AppSettings) -> bool:
+        """Persists application settings key-value pairs into app_settings table."""
+        conn = self._create_connection()
+        if not conn:
+            return False
+        try:
+            cursor = conn.cursor()
+            settings_dict = settings.__dict__
+            for k, v in settings_dict.items():
+                cursor.execute("""
+                    INSERT OR REPLACE INTO app_settings (key, value)
+                    VALUES (?, ?);
+                """, (k, json.dumps(v)))
+            conn.commit()
+            return True
+        except sqlite3.Error as e:
+            self.logger.error(f"Error saving app settings: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def load_app_settings(self) -> AppSettings:
+        """Loads application settings from app_settings table."""
+        conn = self._create_connection()
+        if not conn:
+            return AppSettings()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT key, value FROM app_settings;")
+            rows = cursor.fetchall()
+            if not rows:
+                return AppSettings()
+            
+            from dataclasses import fields
+            valid_fields = {f.name for f in fields(AppSettings)}
+            data: Dict[str, Any] = {}
+            for key, val_str in rows:
+                if key in valid_fields:
+                    try:
+                        data[key] = json.loads(val_str)
+                    except Exception:
+                        data[key] = val_str
+            return AppSettings(**data)
+        except sqlite3.Error as e:
+            self.logger.error(f"Error loading app settings: {e}")
+            return AppSettings()
+        finally:
+            conn.close()
+

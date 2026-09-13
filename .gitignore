@@ -198,8 +198,12 @@ __marimo__/
 # =========================
 assets_cache/
 data/
+data_migrated_legacy/
 GlobalLogs/
 traffic_stats.db
+traffic_stats.db-journal
+traffic_stats.db-wal
+traffic_stats.db-shm
 master.key
 settings.json
 app.log
@@ -207,3 +211,4 @@ temp_data/
 scratch/
 .system_generated/
 *.log
+

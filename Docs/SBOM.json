@@ -1,0 +1,212 @@
+{
+  "$schema": "https://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-13T07:45:00Z",
+    "tools": [
+      {
+        "vendor": "Tailscale-Headscale-Client Engineering",
+        "name": "AuditCompliancePackager",
+        "version": "2026.1.0"
+      }
+    ],
+    "component": {
+      "name": "Tailscale-Headscale-Client",
+      "version": "2026.1.0",
+      "type": "application",
+      "bom-ref": "pkg:generic/tailscale-headscale-client@2026.1.0",
+      "description": "Enterprise PySide6 GUI Client for Tailscale & Headscale Mesh Networks with Zero-Trust Isolation, Full Keyboard Operability, and VPAT / Section 508 / EN 301 549 Compliance",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-3.0-or-later"
+          }
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "PySide6",
+      "version": "6.8.0",
+      "type": "library",
+      "bom-ref": "pkg:pypi/pyside6@6.8.0",
+      "description": "Official Python bindings for Qt 6 graphical user interface framework",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-3.0-only"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pyside6@6.8.0"
+    },
+    {
+      "name": "cryptography",
+      "version": "43.0.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/cryptography@43.0.1",
+      "description": "Cryptographic recipes and primitives for secure memory manipulation and token handling",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        },
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/cryptography@43.0.1"
+    },
+    {
+      "name": "keyring",
+      "version": "24.3.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/keyring@24.3.1",
+      "description": "Platform-native credential storage service (Windows Credential Locker, macOS Keychain, Linux SecretService)",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/keyring@24.3.1"
+    },
+    {
+      "name": "psutil",
+      "version": "6.0.0",
+      "type": "library",
+      "bom-ref": "pkg:pypi/psutil@6.0.0",
+      "description": "Cross-platform process supervisor and system utilization monitoring",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/psutil@6.0.0"
+    },
+    {
+      "name": "requests",
+      "version": "2.32.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/requests@2.32.3",
+      "description": "Python HTTP library for secure REST LocalAPI and Headscale communication",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/requests@2.32.3"
+    },
+    {
+      "name": "markdown",
+      "version": "3.7",
+      "type": "library",
+      "bom-ref": "pkg:pypi/markdown@3.7",
+      "description": "Python implementation of Markdown for structured documentation and dialog parsing",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/markdown@3.7"
+    },
+    {
+      "name": "pygments",
+      "version": "2.18.0",
+      "type": "library",
+      "bom-ref": "pkg:pypi/pygments@2.18.0",
+      "description": "Generic syntax highlighter for logs and configuration previews",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pygments@2.18.0"
+    },
+    {
+      "name": "beautifulsoup4",
+      "version": "4.12.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/beautifulsoup4@4.12.3",
+      "description": "Screen reader accessible DOM and rich text HTML parser",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/beautifulsoup4@4.12.3"
+    },
+    {
+      "name": "deep-translator",
+      "version": "1.11.4",
+      "type": "library",
+      "bom-ref": "pkg:pypi/deep-translator@1.11.4",
+      "description": "Flexible multilingual translation engine for enterprise localization pipelines",
+      "scope": "optional",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/deep-translator@1.11.4"
+    },
+    {
+      "name": "PyInstaller",
+      "version": "6.10.0",
+      "type": "library",
+      "bom-ref": "pkg:pypi/pyinstaller@6.10.0",
+      "description": "Enterprise binary packager bundles Python applications into standalone executables",
+      "scope": "optional",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-2.0-or-later"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pyinstaller@6.10.0"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:generic/tailscale-headscale-client@2026.1.0",
+      "dependsOn": [
+        "pkg:pypi/pyside6@6.8.0",
+        "pkg:pypi/cryptography@43.0.1",
+        "pkg:pypi/keyring@24.3.1",
+        "pkg:pypi/psutil@6.0.0",
+        "pkg:pypi/requests@2.32.3",
+        "pkg:pypi/markdown@3.7",
+        "pkg:pypi/pygments@2.18.0",
+        "pkg:pypi/beautifulsoup4@4.12.3"
+      ]
+    }
+  ]
+}

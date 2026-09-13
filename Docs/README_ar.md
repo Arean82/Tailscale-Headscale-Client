@@ -52,10 +52,9 @@ graph TB
         API["Local API Pipe / Domain Socket"]:::daemonNode
     end
 
-    subgraph Storage ["💾 Persistence & Security Layer"]
-        KR["OS Credential Vault (Keyring)"]:::storageNode
-        SQL["SQLite Database (Traffic History)"]:::storageNode
-        FS["Profile Store (JSON)"]:::storageNode
+    subgraph Storage ["💾 Persistence & Option C Hybrid Vault"]
+        KR["OS Credential Vault (Keyring by UUIDv4)"]:::storageNode
+        SQL["SQLite Database (profiles, app_settings, traffic)"]:::storageNode
     end
 
     %% Flow Connections
@@ -68,7 +67,7 @@ graph TB
     TSM -->|Local Named Pipe| TD
     TSM -->|Socket Stream| API
     WM -->|Process Health| TD
-    SC -->|Persist Config| FS
+    SC -->|Persist Config & Topology| SQL
     TSM -->|Retrieve Keys| KR
     SC -->|Commit Stats| SQL
 ```
@@ -124,6 +123,38 @@ stateDiagram-v2
 | **اسم الجهاز المخصص** | `--hostname=<NAME>` | *حقل إدخال* | يعيد تعيين اسم الجهاز الظاهر في سجلات DNS لـ Headscale/Tailscale. |
 | **إعادة الضبط الإجبارية** | `--reset` | *خيار تنفيذ* | يمسح المسارات والإعدادات السابقة من البرنامج الخفي قبل تشغيل الملف. |
 | **إعادة المصادقة الإجبارية** | `--force-reauth` | *خيار تنفيذ* | يجبر الجهاز على تبادل مفاتيح جديد بالكامل مع خادم التحكم. |
+
+---
+
+## ⌨️ قابلية التشغيل الكاملة عبر لوحة المفاتيح بنسبة 100% والاختصارات العامة
+
+يوفر البرنامج إمكانية تنقل وتشغيل كاملة عبر لوحة المفاتيح حصراً، مصممة وفقاً لأعلى معايير الوصول الرقمي المؤسسي (**معيار EN 301 549 البند 11.2.1.8 و 11.2.1.2** / **معيار WCAG 2.1 المستوى AA المعايير 2.1.1 و 2.1.2 و 2.4.7**). تتميز كافة عناصر التحكم بإطار تركيز مرئي واضح بسماكة 2 بكسل وتناقض عالي (نسبة $\ge$ 3.0:1) مع مناعة تامة ضد احتجاز التركيز:
+
+### اختصارات لوحة المفاتيح العامة للتطبيق
+
+| تركيبة المفاتيح | النطاق / الهدف | الإجراء التشغيلي |
+| :--- | :--- | :--- |
+| <kbd>Ctrl</kbd> + <kbd>Return</kbd> | النافذة الرئيسية / التبويب النشط | تبديل **الاتصال / قطع اتصال VPN** |
+| <kbd>Ctrl</kbd> + <kbd>,</kbd> | التطبيق بالكامل | فتح **نافذة الإعدادات** |
+| <kbd>Ctrl</kbd> + <kbd>Q</kbd> | التطبيق بالكامل | **الخروج من التطبيق** |
+| <kbd>Ctrl</kbd> + <kbd>N</kbd> | التطبيق بالكامل | نافذة **إضافة ملف تعريف جديد** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | التطبيق بالكامل | **حذف ملف التعريف المحدد** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | التطبيق بالكامل | فتح **قائمة الأجهزة المقترنة (Peers)** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> | التطبيق بالكامل | فتح **نافذة التشخيصات** |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>A</kbd> | التطبيق بالكامل | فتح **خيارات العقدة المتقدمة** |
+| <kbd>F1</kbd> | التطبيق بالكامل | فتح نافذة **حول البرنامج** |
+| <kbd>Shift</kbd> + <kbd>F1</kbd> | التطبيق بالكامل | فتح **عارض التوثيق وملف التعليمات** |
+
+### التنقل والتحكم في النوافذ المنبثقة
+
+| المفتاح | السياق | السلوك الوظيفي |
+| :--- | :--- | :--- |
+| <kbd>Tab</kbd> | جميع النوافذ ومربعات الحوار | الانتقال للأمام وفق تسلسل التركيز المحدد `<tabstops>` |
+| <kbd>Shift</kbd> + <kbd>Tab</kbd> | جميع النوافذ ومربعات الحوار | الانتقال للخلف وفق تسلسل التركيز المحدد `<tabstops>` |
+| <kbd>Enter</kbd> / <kbd>Return</kbd> | مربعات الحوار المنبثقة | تنفيذ الإجراء الافتراضي الأساسي (`default="true"`) |
+| <kbd>Escape</kbd> | مربعات الحوار المنبثقة | إغلاق المربع فوراً وإعادة التركيز للنافذة الأصلية دون احتجاز |
+| <kbd>مسافة</kbd> | الزر أو مربع التحديد النشط | تبديل حالة التحديد أو تفعيل الإجراء |
+| أسهم <kbd>أعلى</kbd> / <kbd>أسفل</kbd> | القوائم المنسدلة والجداول | التنقل بين ملفات التعريف أو عقد الخروج أو مراجعة بيانات الأجهزة |
 
 ---
 

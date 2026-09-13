@@ -52,10 +52,9 @@ graph TB
         API["Local API Pipe / Domain Socket"]:::daemonNode
     end
 
-    subgraph Storage ["💾 Persistence & Security Layer"]
-        KR["OS Credential Vault (Keyring)"]:::storageNode
-        SQL["SQLite Database (Traffic History)"]:::storageNode
-        FS["Profile Store (JSON)"]:::storageNode
+    subgraph Storage ["💾 Persistence & Option C Hybrid Vault"]
+        KR["OS Credential Vault (Keyring by UUIDv4)"]:::storageNode
+        SQL["SQLite Database (profiles, app_settings, traffic)"]:::storageNode
     end
 
     %% Flow Connections
@@ -68,7 +67,7 @@ graph TB
     TSM -->|Local Named Pipe| TD
     TSM -->|Socket Stream| API
     WM -->|Process Health| TD
-    SC -->|Persist Config| FS
+    SC -->|Persist Config & Topology| SQL
     TSM -->|Retrieve Keys| KR
     SC -->|Commit Stats| SQL
 ```
@@ -124,6 +123,49 @@ The `NodeDialog` advanced configuration panel enforces an exact two-column contr
 | **Custom Hostname** | `--hostname=<NAME>` | *Input Field* | Overrides the local machine name registered within Headscale/Tailscale DNS tables. |
 | **Force Reset** | `--reset` | *Execution Flag* | Flushes lingering runtime route state prior to bringing profile up. |
 | **Force Reauth** | `--force-reauth` | *Execution Flag* | Enforces complete key exchange with control server, purging cached session tokens. |
+
+---
+
+## ⌨️ 100% Keyboard-Only Operability & Global Accelerators
+
+The client provides full, unconstrained keyboard-only navigation engineered to satisfy enterprise accessibility compliance (**EN 301 549 Clause 11.2.1.8 & 11.2.1.2** / **WCAG 2.1 Level AA SC 2.1.1, 2.1.2 & 2.4.7**). All controls feature high-contrast 2px visual focus outlines ($\ge$ 3.0:1 contrast ratio) with zero keyboard traps:
+
+### Application Global Accelerators
+
+| Shortcut Combination | Target Scope | Operational Action |
+| :--- | :--- | :--- |
+| <kbd>Ctrl</kbd> + <kbd>Return</kbd> | Main Window / Active Tab | **Connect / Disconnect VPN** toggle |
+| <kbd>Ctrl</kbd> + <kbd>,</kbd> | Global Application | Open **Settings Dialog** |
+| <kbd>Ctrl</kbd> + <kbd>Q</kbd> | Global Application | **Quit / Exit Application** |
+| <kbd>Ctrl</kbd> + <kbd>N</kbd> | Global Application | **Add New Profile** modal |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Global Application | **Remove Selected Profile** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Global Application | Open **Peer List Dialog** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> | Global Application | Open **Diagnostics Dialog** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Global Application | **Check Screen Reader & AT Setup** |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>A</kbd> | Global Application | Open **Advanced Node Options** |
+| <kbd>F1</kbd> | Global Application | Open **About Dialog** |
+| <kbd>Shift</kbd> + <kbd>F1</kbd> | Global Application | Open **Documentation & Readme Viewer** |
+
+### Focus Traversal & Dialog Controls
+
+| Key | Context | Behavior |
+| :--- | :--- | :--- |
+| <kbd>Tab</kbd> | All Windows & Dialogs | Step forward along strictly defined `<tabstops>` focus chain |
+| <kbd>Shift</kbd> + <kbd>Tab</kbd> | All Windows & Dialogs | Step backward along `<tabstops>` focus chain |
+| <kbd>Enter</kbd> / <kbd>Return</kbd> | Modal Dialogs | Execute default primary action (`default="true"`) |
+| <kbd>Escape</kbd> | Modal Dialogs | Instantly dismiss dialog and return focus to parent window without trap |
+| <kbd>Space</kbd> | Focused Checkbox / Button | Toggle selection or trigger action |
+| <kbd>Up</kbd> / <kbd>Down</kbd> Arrows | Dropdowns & Tables | Cycle profiles, select exit nodes, or inspect peer data |
+
+### Screen Reader & Assistive Technology Environment (Linux & Windows N)
+
+The application communicates natively with platform accessibility trees without background daemon dependencies. For Linux distributions and Windows N editions that do not have speech components installed by default:
+
+* **Ubuntu / Debian / Mint**: `sudo apt update && sudo apt install -y orca at-spi2-core speech-dispatcher`
+* **Fedora / RHEL**: `sudo dnf install -y orca at-spi2-core speech-dispatcher`
+* **Arch Linux**: `sudo pacman -S --noconfirm orca at-spi2-core speech-dispatcher`
+* **Windows N Edition**: In Admin PowerShell: `DISM /Online /Add-Capability /CapabilityName:Media.MediaFeaturePack~~~~0.0.1.0`
+* **Diagnostics Health Check**: Run an instant accessibility check anytime via **Diagnostics** (<kbd>Ctrl+Shift+N</kbd>) $\to$ **Check Screen Reader**.
 
 ---
 

@@ -28,3 +28,11 @@ class ProgressDialog(QDialog):
         if self.labelProgress:
             self.labelProgress.setText(text)
             self.labelProgress.update()
+
+    def keyPressEvent(self, event):
+        """Ensure Escape can dismiss the progress popup (EN 301 549 11.2.1.2 - No Keyboard Trap)."""
+        if event.key() == Qt.Key_Escape:
+            self.reject()
+            event.accept()
+            return
+        super().keyPressEvent(event)

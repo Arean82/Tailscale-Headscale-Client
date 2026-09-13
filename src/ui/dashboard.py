@@ -2,6 +2,7 @@ import os
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QTimer
+from PySide6.QtGui import QAccessible, QAccessibleEvent
 
 class DashboardView(QWidget):
     def __init__(self, manager, ts_manager, profile=None):
@@ -38,6 +39,29 @@ class DashboardView(QWidget):
         if profile and self.lineEditUrl:
             self.lineEditUrl.setText(profile.login_server)
         
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        if self.lineEditUrl:
+            self.lineEditUrl.setAccessibleName("Control Server URL")
+            self.lineEditUrl.setAccessibleDescription("The Headscale or Tailscale login coordination server endpoint URL.")
+        if self.btnVpnAction:
+            self.btnVpnAction.setAccessibleName("VPN Connection Action")
+            self.btnVpnAction.setAccessibleDescription("Connects or disconnects the local VPN session with the active profile.")
+        if self.labelStatus:
+            self.labelStatus.setAccessibleName("VPN Connection Status")
+            self.labelStatus.setAccessibleDescription("Displays live operational connectivity state to the Tailscale daemon.")
+        if self.btnChangeCredentials:
+            self.btnChangeCredentials.setAccessibleName("Configure Credentials")
+            self.btnChangeCredentials.setAccessibleDescription("Opens the dialog to edit the control server URL, authentication key, and login mode.")
+        if self.btnShowStats:
+            self.btnShowStats.setAccessibleName("View Traffic Statistics")
+            self.btnShowStats.setAccessibleDescription("Opens the traffic metrics dialog displaying sent and received byte counts.")
+        if self.labelTraffic:
+            self.labelTraffic.setAccessibleName("Live Network Traffic Counters")
+            self.labelTraffic.setAccessibleDescription("Real-time counter showing cumulative sent and received network transfer.")
+        if self.labelExpiry:
+            self.labelExpiry.setAccessibleName("Key Expiry Indicator")
+            self.labelExpiry.setAccessibleDescription("Displays the expiration date and time of the current node authentication key.")
+
         # 5. Connect signals
         if self.btnVpnAction:
             self.btnVpnAction.setProperty("colored", "true")
@@ -126,6 +150,9 @@ class DashboardView(QWidget):
         if not is_connected and status_text == "Pending Admin Approval":
             self.labelStatus.setText("🟡 Pending Admin Approval")
             self.labelStatus.setStyleSheet("color: #f59e0b; font-weight: bold;")
+            self.labelStatus.setAccessibleName("VPN Status: Pending Admin Approval")
+            self.labelStatus.setAccessibleDescription("Connection awaiting operator machine approval on the Headscale controller.")
+            QAccessible.updateAccessibility(QAccessibleEvent(self.labelStatus, QAccessible.Event.NameChanged))
             self.prev_stats = None
             if self.btnVpnAction:
                 self.btnVpnAction.setEnabled(False)
@@ -141,6 +168,9 @@ class DashboardView(QWidget):
         if is_connected:
             self.labelStatus.setText("🟢 Connected")
             self.labelStatus.setStyleSheet("color: #22c55e; font-weight: bold;")
+            self.labelStatus.setAccessibleName("VPN Status: Connected")
+            self.labelStatus.setAccessibleDescription("Connected to mesh network. Tailscale IP and overlay routes active.")
+            QAccessible.updateAccessibility(QAccessibleEvent(self.labelStatus, QAccessible.Event.NameChanged))
             if self.btnVpnAction:
                 self.btnVpnAction.setEnabled(True)
             
@@ -153,71 +183,41 @@ class DashboardView(QWidget):
             
             if self.btnVpnAction:
                 self.btnVpnAction.setText("Logout")
-                if getattr(self.window(), "resolved_theme", "light") == "vibrant":
-                    self.btnVpnAction.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(239, 68, 68, 0.25), stop:1 rgba(153, 27, 27, 0.15));
-                            color: #ef4444; 
-                            font-weight: bold; 
-                            border-radius: 8px;
-                            border: 1px solid #ef4444;
-                        }
-                        QPushButton:hover { 
-                            background-color: rgba(239, 68, 68, 0.4);
-                            color: white;
-                        }
-                    """)
-                else:
-                    self.btnVpnAction.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ef4444, stop:1 #b91c1c);
-                            color: white; 
-                            font-weight: bold; 
-                            border-radius: 6px;
-                            border: 1px solid #991b1b;
-                        }
-                        QPushButton:hover { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f87171, stop:1 #dc2626);
-                        }
-                    """)
+                self.btnVpnAction.setStyleSheet("""
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ef4444, stop:1 #b91c1c);
+                        color: white; 
+                        font-weight: bold; 
+                        border-radius: 6px;
+                        border: 1px solid #991b1b;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f87171, stop:1 #dc2626);
+                    }
+                """)
             if self.btnChangeCredentials:
                 self.btnChangeCredentials.setEnabled(False)
-                if getattr(self.window(), "resolved_theme", "light") == "vibrant":
-                    self.btnChangeCredentials.setStyleSheet("""
-                        QPushButton { 
-                            background-color: rgba(31, 41, 55, 0.4); color: #4b5563; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
-                        }
-                    """)
-                else:
-                    self.btnChangeCredentials.setStyleSheet("""
-                        QPushButton { 
-                            background-color: #374151; color: #9ca3af; font-weight: bold; border-radius: 6px; 
-                        }
-                    """)
+                self.btnChangeCredentials.setStyleSheet("""
+                    QPushButton { 
+                        background-color: #374151; color: #9ca3af; font-weight: bold; border-radius: 6px; 
+                    }
+                """)
             if self.btnShowStats:
-                if getattr(self.window(), "resolved_theme", "light") == "vibrant":
-                    self.btnShowStats.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 119, 6, 0.25), stop:1 rgba(146, 64, 14, 0.15));
-                            color: #d97706; font-weight: bold; border-radius: 8px; border: 1px solid #d97706;
-                        }
-                        QPushButton:hover { 
-                            background-color: rgba(217, 119, 6, 0.4); color: white;
-                        }
-                    """)
-                else:
-                    self.btnShowStats.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #d97706, stop:1 #92400e);
-                            color: white; font-weight: bold; border-radius: 6px; border: 1px solid #b45309;
-                        }
-                        QPushButton:hover { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f59e0b, stop:1 #d97706);
-                        }
-                    """)
+                self.btnShowStats.setStyleSheet("""
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #d97706, stop:1 #92400e);
+                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #b45309;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f59e0b, stop:1 #d97706);
+                    }
+                """)
         else:
             self.labelStatus.setText("🔴 Disconnected")
             self.labelStatus.setStyleSheet("color: #ef4444; font-weight: bold;")
+            self.labelStatus.setAccessibleName("VPN Status: Disconnected")
+            self.labelStatus.setAccessibleDescription("VPN disconnected. Mesh traffic is currently inactive.")
+            QAccessible.updateAccessibility(QAccessibleEvent(self.labelStatus, QAccessible.Event.NameChanged))
             
             # Reset baseline when disconnected
             self.prev_stats = None
@@ -225,76 +225,39 @@ class DashboardView(QWidget):
             if self.btnVpnAction:
                 self.btnVpnAction.setEnabled(True)
                 self.btnVpnAction.setText("Connect")
-                if getattr(self.window(), "resolved_theme", "light") == "vibrant":
-                    self.btnVpnAction.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(16, 185, 129, 0.25), stop:1 rgba(6, 78, 59, 0.15));
-                            color: #10b981; 
-                            font-weight: bold; 
-                            border-radius: 8px;
-                            border: 1px solid #10b981;
-                        }
-                        QPushButton:hover { 
-                            background-color: rgba(16, 185, 129, 0.4);
-                            color: white;
-                        }
-                    """)
-                else:
-                    self.btnVpnAction.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #15803d);
-                            color: white; 
-                            font-weight: bold; 
-                            border-radius: 6px;
-                            border: 1px solid #166534;
-                        }
-                        QPushButton:hover { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ade80, stop:1 #16a34a);
-                        }
-                    """)
+                self.btnVpnAction.setStyleSheet("""
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #15803d);
+                        color: white; 
+                        font-weight: bold; 
+                        border-radius: 6px;
+                        border: 1px solid #166534;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ade80, stop:1 #16a34a);
+                    }
+                """)
             if self.btnChangeCredentials:
                 self.btnChangeCredentials.setEnabled(True)
-                if getattr(self.window(), "resolved_theme", "light") == "vibrant":
-                    self.btnChangeCredentials.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(99, 102, 241, 0.25), stop:1 rgba(67, 56, 202, 0.15));
-                            color: #6366f1; font-weight: bold; border-radius: 8px; border: 1px solid #6366f1;
-                        }
-                        QPushButton:hover { 
-                            background-color: rgba(99, 102, 241, 0.4); color: white;
-                        }
-                    """)
-                else:
-                    self.btnChangeCredentials.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6366f1, stop:1 #4338ca);
-                            color: white; font-weight: bold; border-radius: 6px; border: 1px solid #4f46e5;
-                        }
-                        QPushButton:hover { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #818cf8, stop:1 #4f46e5);
-                        }
-                    """)
+                self.btnChangeCredentials.setStyleSheet("""
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6366f1, stop:1 #4338ca);
+                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #4f46e5;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #818cf8, stop:1 #4f46e5);
+                    }
+                """)
             if self.btnShowStats:
-                if getattr(self.window(), "resolved_theme", "light") == "vibrant":
-                    self.btnShowStats.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(217, 119, 6, 0.25), stop:1 rgba(146, 64, 14, 0.15));
-                            color: #d97706; font-weight: bold; border-radius: 8px; border: 1px solid #d97706;
-                        }
-                        QPushButton:hover { 
-                            background-color: rgba(217, 119, 6, 0.4); color: white;
-                        }
-                    """)
-                else:
-                    self.btnShowStats.setStyleSheet("""
-                        QPushButton { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #d97706, stop:1 #92400e);
-                            color: white; font-weight: bold; border-radius: 6px; border: 1px solid #b45309;
-                        }
-                        QPushButton:hover { 
-                            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f59e0b, stop:1 #d97706);
-                        }
-                    """)
+                self.btnShowStats.setStyleSheet("""
+                    QPushButton { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #d97706, stop:1 #92400e);
+                        color: white; font-weight: bold; border-radius: 6px; border: 1px solid #b45309;
+                    }
+                    QPushButton:hover { 
+                        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f59e0b, stop:1 #d97706);
+                    }
+                """)
 
         # Render Node Key Expiration Badges
         if is_connected and self.labelExpiry:
