@@ -7,6 +7,46 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-14 (CodeQL Comprehensive Static Analysis & Code Quality Remediation)
+
+### 1. Scope & Objective
+- Remediated 100% of reported GitHub CodeQL alerts across all modules (`security-and-quality` suite).
+- Scope included: Imprecise test assertions, unused module & object imports, repeated nested imports, unused local variables, and bare/empty exception handlers.
+
+### 2. Implementation Deliverables
+- **Imprecise Assertions (#87, #88, #89)**:
+  - [`tests/test_core_client.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/tests/test_core_client.py): Replaced `self.assertTrue(len(...) > 0)` with `self.assertGreater(len(...), 0)` to guarantee descriptive failure diagnostics.
+- **Unused & Repeated Imports (#49–#85)**:
+  - Eliminated dead imports (`platform`, `time`, `psutil`, `typing.List`, `typing.Optional`, unused Qt widgets/helpers) across [`main.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/main.py), [`src/core/db_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/db_manager.py), [`src/core/manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py), [`src/core/models.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/models.py), [`src/core/tailscale.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/tailscale.py), [`src/ui/dashboard.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/dashboard.py), [`src/ui/main_window.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/main_window.py), and dialog components (`node_dialog.py`, `peer_dialog.py`, `profile_dialog.py`, `settings_dialog.py`, `simple_dialogs.py`, `progress_dialog.py`, `diagnostics_dialog.py`, `log_viewer_dlg.py`, `a11y_checker.py`, `logger.py`).
+  - Replaced runtime import inspection in `main_window.py` for `qt_material` with `importlib.util.find_spec()`.
+  - Removed redundant nested imports in `node_dialog.py` and `simple_dialogs.py`.
+- **Unused Local Variables (#45, #46)**:
+  - Removed unreferenced local variables `cancel_btn` in `main_window.py` and `max_val` in `peer_dialog.py`.
+- **Bare & BaseException Handlers (#1–#43)**:
+  - Converted bare `except:` statements to explicit `except Exception:` across [`src/core/tailscale.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/tailscale.py), [`src/ui/main_window.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/main_window.py), [`src/utils/dns_fallback.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/dns_fallback.py), and [`scripts/translate_readme.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/scripts/translate_readme.py), guaranteeing that OS interrupts (`KeyboardInterrupt`, `SystemExit`) are never suppressed.
+
+### 3. Verification & Quality Assurance
+- **Flake8 Static Linter**: `python -m flake8 --select=F401,F841,E722` returned 0 violations.
+- **Unit & Integration Suite**: `python tests/test_core_client.py` passed with **12/12 OK** (100% pass rate).
+
+---
+
+## 📅 Audit Entry: 2026-09-14 (CodeQL Static Analysis Remediation: Potentially Uninitialized Local Variable)
+
+### 1. Root Cause Analysis
+- **CodeQL Rule**: `py/uninitialized-local-variable` (Alert #44, CWE-456).
+- **Location**: [`src/ui/main_window.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/main_window.py) in `_poll_daemon_status().on_poll_finished()`.
+- **Explanation**: The variable `is_running` was defined and assigned inside an inner block conditionally executing `self.poll_proc.readAllStandardError()`. If an exception occurred or `self.poll_proc` was evaluated in an unexpected state, `is_running` remained unbound. Evaluating `if is_running or ...` subsequently raised a potential `UnboundLocalError`.
+
+### 2. Implementation Deliverables
+- [**`src/ui/main_window.py`**](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/main_window.py):
+  - Pre-initialized `is_running = False` at the top of the closure.
+  - Wrapped `readAllStandardError()`, decoding, and process output evaluation inside a robust `try ... except Exception: is_running = False` block.
+  - Placed cleanup (`deleteLater()`, setting reference to `None`) inside a `finally` clause to prevent memory or handler leaks.
+  - Guaranteed `is_running` is strictly bound to a boolean across all execution paths.
+
+---
+
 ## 📅 Audit Entry: 2026-09-14 (CodeQL Static Analysis Remediation: exit() to sys.exit())
 
 ### 1. Root Cause Analysis

@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import json
 from logging.handlers import RotatingFileHandler
 
 # This will be set during initialization in main.py

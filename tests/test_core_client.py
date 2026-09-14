@@ -63,9 +63,9 @@ class TestClientCore(unittest.TestCase):
         result = check_screen_reader_environment()
         self.assertIsInstance(result, A11yCheckResult)
         self.assertIsInstance(result.is_healthy, bool)
-        self.assertTrue(len(result.title) > 0)
-        self.assertTrue(len(result.summary) > 0)
-        self.assertTrue(len(result.details) > 0)
+        self.assertGreater(len(result.title), 0)
+        self.assertGreater(len(result.summary), 0)
+        self.assertGreater(len(result.details), 0)
 
     def test_credential_scrubbing(self):
         from src.utils.logger import scrub_credentials

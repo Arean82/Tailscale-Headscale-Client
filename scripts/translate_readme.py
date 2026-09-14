@@ -60,7 +60,7 @@ def translate_markdown(file_path, target_lang):
                 if translated is None:
                     translated = text_to_translate
                 translated_lines.append(f"{prefix} {translated}")
-            except:
+            except Exception:
                 translated_lines.append(line)
             continue
             
@@ -70,7 +70,7 @@ def translate_markdown(file_path, target_lang):
             if translated is None:
                 translated = line
             translated_lines.append(translated)
-        except:
+        except Exception:
             translated_lines.append(line)
             
     out_file = file_path.replace('.md', f'_{target_lang}.md')

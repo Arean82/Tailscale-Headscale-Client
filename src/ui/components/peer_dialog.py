@@ -1,5 +1,3 @@
-import os
-import sys
 import re
 from PySide6.QtWidgets import QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QLabel, QMenu, QWidget, QHBoxLayout, QSpacerItem, QSizePolicy
 from PySide6.QtCore import Qt, QTimer, QSize, QProcess
@@ -132,7 +130,6 @@ class LatencySparklineWidget(QWidget):
             return
 
         # Scaling bounds
-        max_val = max(self.values) if max(self.values) > 0 else 1
         avg_val = sum(self.values) / len(self.values)
 
         if avg_val < 32:

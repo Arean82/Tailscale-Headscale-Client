@@ -1,7 +1,7 @@
 import os
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, QTimer
+from PySide6.QtCore import QFile
 from PySide6.QtGui import QAccessible, QAccessibleEvent
 
 class DashboardView(QWidget):
@@ -83,7 +83,7 @@ class DashboardView(QWidget):
 
         # 7. Setup Pulse Animation (for "Connecting..." state)
         from PySide6.QtWidgets import QGraphicsOpacityEffect
-        from PySide6.QtCore import QPropertyAnimation, Qt, QEasingCurve
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
         self.opacity_effect = QGraphicsOpacityEffect(self.btnVpnAction)
         self.btnVpnAction.setGraphicsEffect(self.opacity_effect)
         

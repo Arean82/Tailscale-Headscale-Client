@@ -1,9 +1,7 @@
 # src/ui/components/settings_dialog.py
 
 import os
-from PySide6.QtWidgets import QDialog, QCheckBox, QPushButton, QLabel, QMessageBox, QSlider, QVBoxLayout, QHBoxLayout, QSpinBox, QLineEdit, QComboBox
-from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, Qt
+from PySide6.QtWidgets import QCheckBox, QPushButton, QMessageBox, QSpinBox, QLineEdit, QComboBox
 
 from .simple_dialogs import BaseUiDialog
 

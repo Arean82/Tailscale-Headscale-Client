@@ -6,7 +6,7 @@ import os
 import json
 import logging
 from datetime import datetime
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Any
 from .models import Profile, AppSettings
 
 class DatabaseManager:

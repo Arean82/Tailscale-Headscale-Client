@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 import logging
-from typing import Dict, List, Optional
+from typing import Dict
 from .models import Profile, AppSettings
 from ..utils.crypto import (
     CryptoManager,

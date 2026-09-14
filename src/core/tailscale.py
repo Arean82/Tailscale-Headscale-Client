@@ -3,9 +3,8 @@
 
 import sys
 import os
-import re
 import shutil
-from typing import Optional, Any
+from typing import Optional
 from PySide6.QtCore import QObject, Signal, QProcess
 
 def get_tailscale_path():
@@ -251,7 +250,6 @@ class TailscaleManager(QObject):
 
     def _trigger_reconnect(self):
         """Triggers automatic reconnect attempts with exponential backoff."""
-        from .models import AppState
         if self.last_connect_args and self.reconnect_attempts < self.max_reconnect_attempts:
             self.reconnect_attempts += 1
             delay = self.reconnect_attempts * 3000  # 3s, 6s, 9s backoff
@@ -543,7 +541,7 @@ class TailscaleManager(QObject):
                 creationflags = subprocess.CREATE_NO_WINDOW
             
             subprocess.run([get_tailscale_path(), "logout"], capture_output=True, startupinfo=startupinfo, creationflags=creationflags)
-        except:
+        except Exception:
             pass
 
     def get_stats(self):
@@ -596,7 +594,7 @@ class TailscaleManager(QObject):
             # Legacy logic: only block if NOT NeedsLogin/Stopped
             is_connected = (state != "NeedsLogin" and state != "Stopped" and state != "NoState")
             return is_connected, state
-        except:
+        except Exception:
             return False, "Error"
 
     def get_version(self):

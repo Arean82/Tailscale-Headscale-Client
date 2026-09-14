@@ -1,9 +1,6 @@
 # main.py
 # This is the main entry point for the application.
 
-import platform
-import time
-import psutil
 import sys
 import os
 import multiprocessing
@@ -113,8 +110,8 @@ if __name__ == "__main__":
         
     app.setWindowIcon(QIcon(get_asset_path("assets/icon.png")))
 
-    from PySide6.QtCore import QLockFile, Qt, QTimer, QEventLoop
-    from PySide6.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QLabel, QProgressBar
+    from PySide6.QtCore import QLockFile
+    from PySide6.QtWidgets import QMessageBox
     
     # 3. Initialize Manager to load settings and translation (so early popups are translated)
     manager = Manager(app_dir)

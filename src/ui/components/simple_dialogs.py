@@ -1,11 +1,9 @@
 import os
-from PySide6.QtWidgets import (QDialog, QWidget, QVBoxLayout, QTextEdit, 
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, 
                              QPushButton, QLabel, QTextBrowser, 
                              QTableWidget, QTableWidgetItem, QHeaderView)
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, Qt, QUrl, QThread, Signal, QObject
-from PySide6.QtGui import QTextOption
-import hashlib
 import requests
 import re
 
@@ -118,7 +116,6 @@ class AboutDialog(BaseUiDialog):
 
 def get_logical_filename(url):
     import urllib.parse
-    import re
     unquoted = urllib.parse.unquote(url)
     ext = unquoted.split('.')[-1].split('?')[0]
     if len(ext) > 4 or not ext or '/' in ext:

@@ -1,6 +1,5 @@
-import os
-from PySide6.QtWidgets import QDialog, QPushButton, QTextBrowser, QMessageBox
-from PySide6.QtCore import QProcess, Qt
+from PySide6.QtWidgets import QPushButton, QTextBrowser
+from PySide6.QtCore import QProcess
 from .simple_dialogs import BaseUiDialog
 from ...core.tailscale import get_tailscale_path
 

@@ -1,7 +1,7 @@
 import uuid
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional
 
 class AppState(Enum):
     DISCONNECTED = "Disconnected"

@@ -1,6 +1,5 @@
 import os
-import sys
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QMessageBox, QPushButton, QLineEdit, QTextBrowser, QCheckBox, QProgressBar, QWidget
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QMessageBox, QPushButton, QLineEdit, QTextBrowser
 from PySide6.QtGui import QTextCharFormat, QColor, QTextCursor
 from PySide6.QtCore import Qt
 from PySide6.QtUiTools import QUiLoader

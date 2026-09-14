@@ -8,7 +8,6 @@ and VoiceOver (macOS), providing copy-pasteable terminal remediation commands.
 import sys
 import os
 import shutil
-import subprocess
 
 class A11yCheckResult:
     def __init__(self, is_healthy: bool, title: str, summary: str, details: str, remediation_cmd: str = "", package_manager: str = ""):

@@ -7,7 +7,7 @@ HOSTS_FILE = r"C:\Windows\System32\drivers\etc\hosts"
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
+    except Exception:
         return False
 
 def _edit_hosts(domain, ip=None):
@@ -34,7 +34,7 @@ def _edit_hosts(domain, ip=None):
             f.writelines(new_lines)
             
         return True
-    except Exception as e:
+    except Exception:
         return False
 
 def apply_fallback(domain, ip):
@@ -52,7 +52,7 @@ def apply_fallback(domain, ip):
 
     # Try silent edit first
     try:
-        with open(HOSTS_FILE, 'a') as f:
+        with open(HOSTS_FILE, 'a'):
             pass # just checking write access
         if _edit_hosts(domain, ip):
             return True
@@ -71,7 +71,7 @@ def remove_fallback(domain):
     """
     # Try silent first
     try:
-        with open(HOSTS_FILE, 'a') as f:
+        with open(HOSTS_FILE, 'a'):
             pass
         if _edit_hosts(domain, None):
             return True

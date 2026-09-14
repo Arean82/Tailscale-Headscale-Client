@@ -1,8 +1,7 @@
 # src/ui/components/node_dialog.py
 
-import os
 import json
-from PySide6.QtWidgets import QPushButton, QHBoxLayout, QMessageBox, QLineEdit, QComboBox, QListWidget, QListWidgetItem
+from PySide6.QtWidgets import QPushButton, QLineEdit, QComboBox, QListWidget, QListWidgetItem
 from PySide6.QtCore import QProcess, Qt
 from .simple_dialogs import BaseUiDialog
 
@@ -286,7 +285,6 @@ class NodeDialog(BaseUiDialog):
                 return
                 
             try:
-                import json
                 prefs = json.loads(output)
                 
                 # Auto-populate UI from live daemon config (preferring live config over profile config if active)

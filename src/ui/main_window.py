@@ -4,9 +4,9 @@ from PySide6.QtWidgets import QSystemTrayIcon
 import sys
 import os
 from typing import Optional
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QTabWidget, QMenu, QMessageBox
+from PySide6.QtWidgets import QMainWindow, QWidget, QTabWidget, QMenu, QMessageBox
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, QTimer, Qt, QEvent
+from PySide6.QtCore import QFile, QTimer, QEvent
 from PySide6.QtGui import QAction, QActionGroup
 from .components.log_viewer_dlg import LogViewerDialog
 from .dashboard import DashboardView
@@ -295,8 +295,10 @@ class MainWindow(QMainWindow):
         for name in self.manager.profiles.keys():
             profile_dir = self.manager._get_tab_dir(name)
             if os.path.exists(profile_dir) and not os.listdir(profile_dir):
-                try: os.rmdir(profile_dir)
-                except: pass
+                try:
+                    os.rmdir(profile_dir)
+                except OSError:
+                    pass
                 
         # Final flush of traffic data before exit to prevent data loss
         if hasattr(self.manager, 'db'):
@@ -438,8 +440,8 @@ class MainWindow(QMainWindow):
         ]
 
         self.accent_actions = {}
-        try:
-            import qt_material
+        import importlib.util
+        if importlib.util.find_spec("qt_material") is not None:
             for label, key in material_accents:
                 act = QAction(self.tr(label), self)
                 act.setCheckable(True)
@@ -447,7 +449,7 @@ class MainWindow(QMainWindow):
                 self.accent_group.addAction(act)
                 material_menu.addAction(act)
                 self.accent_actions[key] = act
-        except ImportError:
+        else:
             act_unavail = QAction(self.tr("qt-material not installed"), self)
             act_unavail.setEnabled(False)
             material_menu.addAction(act_unavail)
@@ -565,7 +567,7 @@ class MainWindow(QMainWindow):
             msg_box.setInformativeText("Would you like to open the official Tailscale download page now?")
             
             download_btn = msg_box.addButton("Download Tailscale", QMessageBox.AcceptRole)
-            cancel_btn = msg_box.addButton("Cancel", QMessageBox.RejectRole)
+            msg_box.addButton("Cancel", QMessageBox.RejectRole)
             
             msg_box.exec()
             
@@ -658,7 +660,6 @@ class MainWindow(QMainWindow):
 
     def change_theme(self, theme_name):
         from PySide6.QtWidgets import QApplication
-        from PySide6.QtGui import Qt, QColor
         
         self.current_theme = theme_name
         target_theme = "dark" if theme_name == "dark" else "light"
@@ -845,7 +846,7 @@ class MainWindow(QMainWindow):
             warnings.simplefilter("ignore", category=RuntimeWarning)
             try:
                 self.tabWidget.currentChanged.disconnect(self._on_tab_changed)
-            except:
+            except (RuntimeError, TypeError):
                 pass
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
