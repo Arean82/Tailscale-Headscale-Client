@@ -171,8 +171,8 @@ class Manager:
                 if not os.path.exists(legacy_backup):
                     try:
                         shutil.move(self.data_dir, legacy_backup)
-                    except Exception:
-                        pass
+                    except OSError as err:
+                        logger.debug(f"Legacy backup folder move: {err}")
                 logger.info(f"Successfully migrated {order} legacy profiles to Option C Hybrid Vault.")
             except Exception as e:
                 logger.error(f"Error executing legacy profiles migration: {e}")
@@ -205,8 +205,8 @@ class Manager:
         try:
             with open(self.settings_file, "w", encoding="utf-8") as f:
                 json.dump(self.settings.__dict__, f, indent=4)
-        except Exception:
-            pass
+        except OSError as err:
+            logger.debug(f"Mirroring settings to legacy JSON: {err}")
 
     def add_profile(self, profile: Profile):
         """Adds or updates a profile in the hybrid vault."""

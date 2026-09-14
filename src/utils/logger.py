@@ -115,8 +115,9 @@ def write_profile_log(profile_name, data):
         
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(data + "\n")
-    except Exception:
-        pass
+    except OSError:
+        # Logging failure should not disrupt main process execution
+        return
 
 # Global instance for easy access
 app_logger = None

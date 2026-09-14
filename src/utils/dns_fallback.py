@@ -47,8 +47,9 @@ def apply_fallback(domain, ip):
         import socket
         if socket.gethostbyname(domain) == ip:
             return True # Already resolving correctly, no need to touch hosts
-    except Exception:
-        pass
+    except (socket.gaierror, socket.herror, OSError):
+        # Domain cannot be resolved normally; proceed with fallback mapping
+        return False
 
     # Try silent edit first
     try:
@@ -56,7 +57,8 @@ def apply_fallback(domain, ip):
             pass # just checking write access
         if _edit_hosts(domain, ip):
             return True
-    except PermissionError:
+    except (PermissionError, OSError):
+        # Requires Administrator elevation; fall through to UAC invocation
         pass
         
     # Needs elevation
@@ -75,7 +77,8 @@ def remove_fallback(domain):
             pass
         if _edit_hosts(domain, None):
             return True
-    except PermissionError:
+    except (PermissionError, OSError):
+        # Requires Administrator elevation; fall through to UAC invocation
         pass
         
     script_path = os.path.abspath(__file__)

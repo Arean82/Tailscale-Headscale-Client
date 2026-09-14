@@ -94,12 +94,14 @@ class TailscaleProcess(QObject):
                 parent = psutil.Process(os.getpid())
                 for child in parent.children(recursive=True):
                     if "tailscale" in child.name().lower():
-                        child.kill()
-            except Exception:
-                pass
+                        try:
+                            child.kill()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            continue
+            except (psutil.Error, OSError):
+                return
         except (RuntimeError, AttributeError):
-            pass
-
+            return
 
     def run_command(self, cmd_args, profile_name=None):
         """Starts a tailscale command, ensuring any previous command is cleaned up."""
@@ -110,7 +112,7 @@ class TailscaleProcess(QObject):
                     self.process.kill()
         except (RuntimeError, AttributeError):
             # Process object might be in a weird state during shutdown
-            pass
+            return
 
         self.current_command = " ".join(cmd_args)
         self.profile_name = profile_name
@@ -366,7 +368,7 @@ class TailscaleManager(QObject):
                     if not self.status_proc.waitForFinished(500):
                         self.status_proc.kill()
         except (RuntimeError, AttributeError):
-            pass
+            return
         
     def check_status(self, force=False):
         """Asynchronously check tailscale status using JSON or instantly via Local API."""
@@ -380,8 +382,6 @@ class TailscaleManager(QObject):
             try:
                 from src.utils.local_api import query_local_api
                 data = query_local_api()
-                is_connected = False
-                status_text = "Disconnected"
                 ips = data.get("TailscaleIPs", [])
                 state = data.get("BackendState", "")
                 
@@ -395,6 +395,7 @@ class TailscaleManager(QObject):
                     is_connected = False
                     status_text = "Pending Admin Approval"
                 else:
+                    is_connected = False
                     status_text = state or "Disconnected"
                     
                 self.cache.set("status", {"connected": is_connected, "text": status_text, "ips": ips, "raw_data": data})
@@ -416,8 +417,6 @@ class TailscaleManager(QObject):
     def _on_status_finished(self):
         output = self.status_proc.readAllStandardOutput().data().decode()
         
-        is_connected = False
-        status_text = "Disconnected"
         ips = []
         raw_data = {}
         
@@ -438,6 +437,7 @@ class TailscaleManager(QObject):
                 is_connected = False
                 status_text = "Pending Admin Approval"
             else:
+                is_connected = False
                 status_text = state or "Disconnected"
         except Exception:
             if "logged out" in output.lower():
@@ -446,6 +446,9 @@ class TailscaleManager(QObject):
             elif "running" in output.lower() or "connected" in output.lower():
                 is_connected = True
                 status_text = "Connected"
+            else:
+                is_connected = False
+                status_text = "Disconnected"
             
         self.cache.set("status", {"connected": is_connected, "text": status_text, "ips": ips, "raw_data": raw_data})
         self._update_state(status_text)
@@ -541,8 +544,9 @@ class TailscaleManager(QObject):
                 creationflags = subprocess.CREATE_NO_WINDOW
             
             subprocess.run([get_tailscale_path(), "logout"], capture_output=True, startupinfo=startupinfo, creationflags=creationflags)
-        except Exception:
-            pass
+        except (subprocess.SubprocessError, OSError):
+            # Service may already be logged out or stopped
+            return
 
     def get_stats(self):
         """Get psutil stats for the Tailscale interface."""
@@ -571,8 +575,8 @@ class TailscaleManager(QObject):
             for iface, data in stats.items():
                 if "tailscale" in iface.lower():
                     return data
-        except Exception:
-            pass
+        except (KeyError, OSError, psutil.Error):
+            return None
         return None
 
     def check_status_sync(self):

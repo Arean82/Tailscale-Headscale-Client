@@ -386,6 +386,6 @@ class PeerListDialog(BaseUiDialog):
     def closeEvent(self, event):
         try:
             self.ts_manager.connection_status_changed.disconnect(self._on_status_updated)
-        except Exception:
-            pass
+        except (RuntimeError, TypeError):
+            return
         super().closeEvent(event)

@@ -25,8 +25,9 @@ class CacheManager:
         try:
             with open(self.cache_file, "w") as f:
                 json.dump(self.data, f)
-        except Exception:
-            pass
+        except OSError:
+            # Ephemeral filesystem or read-only volume; ignore cache write failure
+            return
 
     def get(self, key: str) -> Optional[Any]:
         if key in self.data:

@@ -492,8 +492,8 @@ class TrafficDialog(BaseUiDialog):
         try:
             if self.ts_manager:
                 self.ts_manager.connection_status_changed.disconnect(self._on_status_changed)
-        except Exception:
-            pass
+        except (RuntimeError, TypeError):
+            return
         super().closeEvent(event)
 
 class LicenseDialog(BaseUiDialog):
@@ -524,8 +524,8 @@ class LicenseDialog(BaseUiDialog):
                 try:
                     with open(license_path, "r", encoding="utf-8") as f:
                         content = f.read()
-                except Exception:
-                    pass
+                except OSError:
+                    content = "Error loading LICENSE file content."
             self.text_browser.setPlainText(content)
         
         # Ensure single Close button from license.ui is connected and configured

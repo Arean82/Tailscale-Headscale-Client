@@ -277,8 +277,9 @@ class StateCoordinator(QObject):
                 # Network adapter changed! Clear cache to force clean state refresh
                 self._cached_status = None
             self._last_adapters = current_adapters
-        except Exception:
-            pass
+        except (psutil.Error, OSError):
+            # Adapter inspection failed
+            self._last_adapters = []
             
         if self._cached_status is not None and (now - self._last_status_query_time) < self._query_cooldown_seconds:
             return self._cached_status
@@ -320,7 +321,8 @@ class StateCoordinator(QObject):
                                         self.fallback_applied_signal.emit()
                                     else:
                                         self.ts_manager.worker.error_received.emit("Domain Unreachable: Connecting via Emergency Cached IP...")
-            except Exception:
+            except (OSError, ValueError):
+                # Malformed login server URL or network socket resolution issue
                 pass
 
         # Pull exact persisted flags from profile if available to guarantee zero dropped flags
@@ -441,7 +443,8 @@ class StateCoordinator(QObject):
                                 if ip and getattr(profile, 'last_known_ip', None) != ip:
                                     profile.last_known_ip = ip
                                     self.manager.save_profiles()
-                        except Exception:
+                        except (socket.gaierror, socket.herror, ValueError, OSError):
+                            # Non-resolvable domain or URL parse issue
                             pass
                             
         self.state_changed.emit(state)
