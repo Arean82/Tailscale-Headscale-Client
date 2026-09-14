@@ -103,12 +103,12 @@ class MainWindow(QMainWindow):
         
         # 2. If not found, fallback to PyInstaller runtime temp or development folder
         if not os.path.exists(icon_path):
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             if hasattr(sys, '_MEIPASS'):
                 icon_path = os.path.join(sys._MEIPASS, "assets", "icon.png")
             else:
-                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                 icon_path = os.path.join(base_dir, "assets", "icon.png")
-                
+
             if not os.path.exists(icon_path):
                 icon_path = os.path.join(base_dir, "icon.png")
                 
@@ -293,7 +293,11 @@ class MainWindow(QMainWindow):
 
         # Cleanup empty profile directories
         for name in self.manager.profiles.keys():
-            profile_dir = self.manager._get_tab_dir(name)
+            try:
+                profile_dir = self.manager._get_tab_dir(name)
+            except (PermissionError, ValueError):
+                # Unsafe legacy profile name; skip cleanup for it
+                continue
             if os.path.exists(profile_dir) and not os.listdir(profile_dir):
                 try:
                     os.rmdir(profile_dir)

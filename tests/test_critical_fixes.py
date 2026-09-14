@@ -108,6 +108,28 @@ class TestCriticalBugFixes(unittest.TestCase):
             with open(os.path.join(root, spec), encoding="utf-8") as f:
                 self.assertIn("'qt_material'", f.read(), msg=spec)
 
+    def test_dns_fallback_cli_routing(self):
+        """Frozen elevated relaunch: --dns-fallback args must dispatch to the
+        hosts editor and return an exit code; anything else returns None."""
+        from src.utils import dns_fallback as df
+        calls = []
+
+        def fake_edit(domain, ip):
+            calls.append((domain, ip))
+            return True
+
+        with patch.object(df, "_edit_hosts", fake_edit):
+            self.assertIsNone(df.run_cli_if_requested(["prog.exe", "--gui"]))
+            self.assertIsNone(df.run_cli_if_requested(["prog.exe"]))
+            self.assertEqual(
+                df.run_cli_if_requested(["prog.exe", "--dns-fallback", "apply", "hs.example.com", "1.2.3.4"]), 0
+            )
+            self.assertEqual(
+                df.run_cli_if_requested(["prog.exe", "--dns-fallback", "remove", "hs.example.com"]), 0
+            )
+            self.assertEqual(df.run_cli_if_requested(["prog.exe", "--dns-fallback", "bogus"]), 2)
+        self.assertEqual(calls, [("hs.example.com", "1.2.3.4"), ("hs.example.com", None)])
+
 
 if __name__ == "__main__":
     unittest.main()

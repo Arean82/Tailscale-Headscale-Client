@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication
 from src.core.manager import Manager
 from src.core.tailscale import TailscaleManager, get_tailscale_path
 from src.ui.main_window import MainWindow
+from src.utils.dns_fallback import run_cli_if_requested
 from src.utils.logger import setup_logger, manage_sys_streams
 
 def is_daemon_running(logger):
@@ -54,6 +55,13 @@ def start_daemon_service(logger):
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+
+    # Elevated hosts-file helper: dns_fallback relaunches this executable with
+    # --dns-fallback args when UAC is needed; handle it and exit before the GUI
+    # or the single-instance lock are touched.
+    fallback_exit_code = run_cli_if_requested()
+    if fallback_exit_code is not None:
+        sys.exit(fallback_exit_code)
 
     # 1. Setup App Data & Logger
     if sys.platform == "win32":

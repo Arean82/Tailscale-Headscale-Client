@@ -75,9 +75,18 @@ class TestClientCore(unittest.TestCase):
         raw = f"Connecting with {sample_token} and --authkey=secretpass999"
         scrubbed = scrub_credentials(raw)
         self.assertNotIn(sample_token, scrubbed)
-        self.assertIn("tskey-auth-[REDACTED]", scrubbed)
+        self.assertIn("tskey-[REDACTED]", scrubbed)
         self.assertNotIn("secretpass999", scrubbed)
         self.assertIn("--authkey=[REDACTED]", scrubbed)
+
+        # All tskey variants and Headscale machine/node key material are masked
+        api_token = "tskey" + "-api-" + "mockapi987654321"
+        machine_key = "mkey:" + "MockMachineKey1234567890"
+        node_key = "nodekey:" + "MockNodeKey0987654321"
+        scrubbed2 = scrub_credentials(f"{api_token} {machine_key} {node_key}")
+        self.assertNotIn("mockapi987654321", scrubbed2)
+        self.assertNotIn("MockMachineKey1234567890", scrubbed2)
+        self.assertNotIn("MockNodeKey0987654321", scrubbed2)
 
     def test_directory_traversal_prevention(self):
         from src.core.manager import Manager

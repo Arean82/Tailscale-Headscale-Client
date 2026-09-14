@@ -50,8 +50,10 @@ import re
 def scrub_credentials(text):
     if not text or not isinstance(text, str):
         return text
-    # Mask Tailscale auth keys (e.g. tskey-auth-...)
-    text = re.sub(r'tskey-auth-\S+', 'tskey-auth-[REDACTED]', text)
+    # Mask Tailscale key variants (tskey-auth-..., tskey-api-..., tskey-client-...)
+    text = re.sub(r'tskey-[A-Za-z]+-\S+', 'tskey-[REDACTED]', text)
+    # Mask Headscale machine/node key material that can appear in CLI output
+    text = re.sub(r'\b(?:mkey|nodekey):[A-Za-z0-9+/=_-]+', '[REDACTED-KEY]', text)
     # Mask any potential API keys/passwords in connection arguments
     text = re.sub(r'--authkey=\S+', '--authkey=[REDACTED]', text)
     text = re.sub(r'--auth-key=\S+', '--auth-key=[REDACTED]', text)

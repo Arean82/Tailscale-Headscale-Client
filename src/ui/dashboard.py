@@ -129,6 +129,8 @@ class DashboardView(QWidget):
                 self.profile.auth_key = data["auth_key"]
                 # Match original 'google' mode naming
                 self.profile.auth_mode = "google" if data["auth_mode"] == "sso" else data["auth_mode"]
+                self.profile.enable_dns_fallback = data["enable_dns_fallback"]
+                self.profile.last_known_ip = data["last_known_ip"]
                 self.manager.save_profiles()
                 if self.lineEditUrl:
                     self.lineEditUrl.setText(self.profile.login_server)

@@ -11,7 +11,8 @@ from ..utils.crypto import (
     delete_profile_secret
 )
 
-logger = logging.getLogger("Manager")
+# Child of the app logger configured in main.py so records reach app.log
+logger = logging.getLogger("TailscaleClient.Manager")
 
 class Manager:
     """Option C Hybrid Vault Manager:
