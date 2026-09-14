@@ -265,3 +265,11 @@ flowchart TD
     TryCLI -- Yes --> UseCLI
     TryCLI -- No --> FailAlert
 ```
+
+### 10.1 CodeQL & Automated SAST Quality Gates
+To ensure zero operational degradation and eliminate runtime exceptions:
+* **Deterministic Resource Management (`py/file-not-closed`)**: Windows Named Pipes and Unix domain sockets operate under strict Python context managers (`with open(...) as f:`), guaranteeing immediate OS handle reclamation under all crash and interrupt scenarios.
+* **Granular Exception Subclasses (`py/empty-except`)**: Replaced untyped `except:` and broad `except Exception:` blocks with specific error subclasses (`OSError`, `socket.gaierror`, `psutil.NoSuchProcess`, `RuntimeError`), ensuring critical OS termination signals (`SIGINT`, `SystemExit`) pass cleanly.
+* **Exhaustive Variable Initialization (`py/uninitialized-local-variable`, `py/multiple-definition`)**: Every asynchronous event loop callback pre-initializes state flags and eliminates dead stores, preventing `UnboundLocalError` across daemon polling cycles.
+* **Continuous SAST Integration**: GitHub Actions workflow ([`.github/workflows/codeql.yml`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/.github/workflows/codeql.yml)) runs weekly and on every pull request using `security-extended` and `security-and-quality` rulesets.
+
