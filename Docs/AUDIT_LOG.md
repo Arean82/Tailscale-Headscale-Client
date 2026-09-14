@@ -7,6 +7,20 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-14 (CodeQL Static Analysis Remediation: exit() to sys.exit())
+
+### 1. Root Cause Analysis
+- **CodeQL Rule**: `py/use-of-exit-or-quit` (CWE-398 / Code Quality & Reliability).
+- **Explanation**: The built-in functions `exit()` and `quit()` are added by the `site` module intended solely for interactive REPL environments. In production scripts, standalone packages, or environments executed with Python's `-S` flag (disable site-packages initialization), `exit()` may be undefined and raise `NameError`.
+
+### 2. Implementation Deliverables
+- [**`scripts/auto_translate.py`**](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/scripts/auto_translate.py):
+  - Added `import sys`.
+  - Replaced `exit(1)` with standard `sys.exit(1)`.
+- Scanned entire repository for other occurrences: verified that all remaining termination points (`main.py`, `src/ui/main_window.py`, `scripts/translate_readme.py`) already strictly use `sys.exit()`. Zero unhandled `exit()` or `quit()` calls remain in the repository.
+
+---
+
 ## 📅 Audit Entry: 2026-09-14 (GitHub CodeQL Code Scanning Workflow Implementation)
 
 ### 1. Scope & Objective

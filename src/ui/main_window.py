@@ -198,12 +198,17 @@ class MainWindow(QMainWindow):
         self.poll_proc = QProcess(self)
         
         def on_poll_finished():
-            output = self.poll_proc.readAllStandardError().data().decode().lower() + \
-                     self.poll_proc.readAllStandardOutput().data().decode().lower()
-            is_running = not ("failed to connect" in output or "tailscaled may not be running" in output or self.poll_proc.exitCode() != 0)
-            
-            self.poll_proc.deleteLater()
-            self.poll_proc = None
+            is_running = False
+            if self.poll_proc:
+                try:
+                    output = self.poll_proc.readAllStandardError().data().decode(errors="ignore").lower() + \
+                             self.poll_proc.readAllStandardOutput().data().decode(errors="ignore").lower()
+                    is_running = not ("failed to connect" in output or "tailscaled may not be running" in output or self.poll_proc.exitCode() != 0)
+                except Exception:
+                    is_running = False
+                finally:
+                    self.poll_proc.deleteLater()
+                    self.poll_proc = None
             
             if is_running or (time.time() - self.wait_start_time > 60):
                 self.wait_timer.stop()
@@ -213,6 +218,7 @@ class MainWindow(QMainWindow):
                 
         self.poll_proc.finished.connect(on_poll_finished)
         self.poll_proc.start(get_tailscale_path(), ["status", "--json"])
+
 
     def _tray_icon_activated(self, reason):
         from PySide6.QtWidgets import QSystemTrayIcon
