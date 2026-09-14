@@ -8,3 +8,4 @@ beautifulsoup4
 PyInstaller
 deep-translator
 keyring
+qt-material

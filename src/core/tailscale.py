@@ -1,11 +1,15 @@
 # src/core/tailscale.py
 # This is the core Tailscale utility for the application.
 
+import logging
 import sys
 import os
 import shutil
 from typing import Optional
 from PySide6.QtCore import QObject, Signal, QProcess
+
+# Child of the app logger configured in main.py so records reach app.log
+logger = logging.getLogger("TailscaleClient.Tailscale")
 
 def get_tailscale_path():
     """Dynamically resolve the absolute path to the Tailscale executable on macOS, Windows, and Linux."""
@@ -332,8 +336,8 @@ class TailscaleManager(QObject):
         if extra_args:
             try:
                 args.extend(shlex.split(extra_args))
-            except Exception as e:
-                self.logger.error(f"Error parsing extra flags '{extra_args}': {e}")
+            except ValueError as e:
+                logger.error(f"Error parsing extra flags '{extra_args}': {e}")
 
         return args
 

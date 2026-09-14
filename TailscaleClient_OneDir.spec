@@ -35,6 +35,7 @@ a = Analysis(
         'markdown',
         'pygments',
         'bs4',
+        'qt_material',
     ],
     hookspath=[],
     hooksconfig={},
