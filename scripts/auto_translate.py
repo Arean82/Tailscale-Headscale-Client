@@ -1,4 +1,5 @@
 import os
+import sys
 import xml.etree.ElementTree as ET
 
 try:
@@ -6,7 +7,7 @@ try:
 except ImportError:
     print("ERROR: Missing translation library.")
     print("Please run: pip install deep-translator")
-    exit(1)
+    sys.exit(1)
 
 def translate_ts(file_path, target_lang):
     print(f"[*] Translating {os.path.basename(file_path)} to '{target_lang}'...")
