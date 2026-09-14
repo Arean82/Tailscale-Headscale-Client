@@ -2,13 +2,13 @@ import json
 import os
 import shutil
 import logging
-from typing import Dict
+from typing import Dict, Optional
 from .models import Profile, AppSettings
 from ..utils.crypto import (
-    CryptoManager,
     store_profile_secret,
     get_profile_secret,
-    delete_profile_secret
+    delete_profile_secret,
+    decrypt_legacy_key
 )
 
 # Child of the app logger configured in main.py so records reach app.log
@@ -27,7 +27,6 @@ class Manager:
         self.data_dir = os.path.join(base_dir, "data")
         self.tab_names_file = os.path.join(self.data_dir, "tab_names.json")
         self.settings_file = os.path.join(self.base_dir, "settings.json")
-        self.crypto = CryptoManager(os.path.join(base_dir, "master.key"))
         
         from .db_manager import DatabaseManager
         self.db = DatabaseManager(base_dir)
@@ -130,7 +129,8 @@ class Manager:
                     accept_risk = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_accept_risk"))
                     extra_args = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_extra_args"))
 
-                    key = self.crypto.decrypt(enc_key)
+                    legacy_master_key = os.path.join(self.base_dir, "master.key")
+                    key = decrypt_legacy_key(enc_key, legacy_master_key)
 
                     migrated_prof = Profile(
                         name=name,
@@ -209,6 +209,30 @@ class Manager:
         except OSError as err:
             logger.debug(f"Mirroring settings to legacy JSON: {err}")
 
+    def get_profile(self, identifier: str) -> Optional[Profile]:
+        """Looks up a profile by name or by its immutable UUIDv4."""
+        if not identifier:
+            return None
+        if identifier in self.profiles:
+            return self.profiles[identifier]
+        for prof in self.profiles.values():
+            if prof.id == identifier:
+                return prof
+        return None
+
+    def rename_profile(self, old_name: str, new_name: str) -> bool:
+        """Renames an existing profile while preserving its immutable UUIDv4 and Keyring credentials."""
+        if old_name not in self.profiles:
+            return False
+        if not new_name or (new_name != old_name and new_name in self.profiles):
+            return False
+
+        profile = self.profiles.pop(old_name)
+        profile.name = new_name
+        self.profiles[new_name] = profile
+        self.save_profiles()
+        return True
+
     def add_profile(self, profile: Profile):
         """Adds or updates a profile in the hybrid vault."""
         self.profiles[profile.name] = profile
@@ -219,7 +243,7 @@ class Manager:
         if name in self.profiles:
             prof = self.profiles[name]
             delete_profile_secret(prof.id)
-            self.db.delete_profile(prof.id)
+            self.db.delete_profile(prof.id, profile_name=prof.name)
             del self.profiles[name]
             self.save_profiles()
 

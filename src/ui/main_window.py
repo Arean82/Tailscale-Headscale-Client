@@ -1,16 +1,23 @@
 # src/ui/main_window.py
 
-from PySide6.QtWidgets import QSystemTrayIcon
-import sys
 import os
-from typing import Optional
-from PySide6.QtWidgets import QMainWindow, QWidget, QTabWidget, QMenu, QMessageBox
-from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, QTimer, QEvent
+import sys
+
+from PySide6.QtCore import QEvent, QFile, QTimer
 from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtWidgets import (
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QSystemTrayIcon,
+    QTabWidget,
+    QWidget,
+)
+
+from ..core.tailscale import get_tailscale_path
 from .components.log_viewer_dlg import LogViewerDialog
 from .dashboard import DashboardView
-from ..core.tailscale import get_tailscale_path
 
 
 class MainWindow(QMainWindow):
@@ -93,8 +100,8 @@ class MainWindow(QMainWindow):
         self.central_polling_timer.start(3000)
 
     def _setup_tray(self):
-        from PySide6.QtWidgets import QSystemTrayIcon
         from PySide6.QtGui import QIcon
+        from PySide6.QtWidgets import QSystemTrayIcon
         
         self.tray_icon = QSystemTrayIcon(self)
         
@@ -140,8 +147,9 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(5000, safe_retry_show)
 
     def check_daemon_async(self, retry_count=0):
-        from src.utils.local_api import is_local_api_available
         from PySide6.QtCore import QTimer
+
+        from src.utils.local_api import is_local_api_available
         
         is_running = is_local_api_available()
         if is_running:
@@ -158,8 +166,8 @@ class MainWindow(QMainWindow):
             self.show_service_wait_dialog()
 
     def show_service_wait_dialog(self):
-        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
         from PySide6.QtCore import Qt, QTimer
+        from PySide6.QtWidgets import QDialog, QLabel, QProgressBar, QVBoxLayout
         
         self.ts_manager.start_service()
         
@@ -193,8 +201,9 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'poll_proc') and self.poll_proc is not None:
             return
 
-        from PySide6.QtCore import QProcess
         import time
+
+        from PySide6.QtCore import QProcess
         self.poll_proc = QProcess(self)
         
         def on_poll_finished():
@@ -253,9 +262,10 @@ class MainWindow(QMainWindow):
         """Soft-restart the GUI to apply translations without killing the VPN daemon."""
         self.is_restarting = True
         import sys
+
         from PySide6.QtCore import QProcess
         from PySide6.QtWidgets import QApplication
-        
+
         # Manually release the single-instance lock right now so the new instance spawns instantly (0ms delay)
         import __main__
         if hasattr(__main__, 'lock_file'):
@@ -560,8 +570,8 @@ class MainWindow(QMainWindow):
 
     def _show_worker_error(self, message):
         """Displays an interactive premium Dependency Wizard if Tailscale is missing."""
-        from PySide6.QtGui import QDesktopServices
         from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
         
         # Only show the dependency download prompt if Tailscale is actually missing from the system!
         if "not installed" in message.lower() or "not found" in message.lower():
@@ -632,7 +642,7 @@ class MainWindow(QMainWindow):
         else:
             self.change_theme(mode)
 
-    def set_material_accent(self, accent: Optional[str]):
+    def set_material_accent(self, accent: str | None):
         """Applies a material accent using the current mode ('light' or 'dark'), or restores native QSS if accent is None."""
         self.current_material_accent = accent
         if not accent:
@@ -940,14 +950,8 @@ class MainWindow(QMainWindow):
         quit_action.triggered.connect(self._force_quit)
 
     def set_tray_exit_node(self, ip):
-        import subprocess
-        import sys
         try:
-            from src.core.tailscale import get_tailscale_path
-            path = get_tailscale_path()
-            cmd = [path, "up", f"--exit-node={ip}"] if ip else [path, "up", "--exit-node="]
-            creation_flags = 0x08000000 if sys.platform == "win32" else 0  # CREATE_NO_WINDOW
-            subprocess.Popen(cmd, creationflags=creation_flags)
+            self.ts_manager.worker.run_command(["up", f"--exit-node={ip}"])
             self.ts_manager.check_status(force=True)
         except Exception as e:
             print(f"[DEBUG Tray Switcher] Failed to set exit node: {e}")

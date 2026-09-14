@@ -44,27 +44,28 @@ flowchart TD
     classDef external fill:#022c22,stroke:#059669,stroke-width:2px,color:#ecfdf5;
 
     subgraph UI_Presentation_Layer ["🖥️ Presentation & Event Layer (PySide6 / Qt6)"]
-        WIN["MainWindow (pygui/main_window.py)"]:::ui
-        DASH["DashboardView (pygui/views/dashboard.py)"]:::ui
-        DIALOGS["Modal Controllers (Node, Peer, Settings, Profiles)"]:::ui
+        WIN["MainWindow (src/ui/main_window.py)"]:::ui
+        DASH["DashboardView (src/ui/dashboard.py)"]:::ui
+        DIALOGS["Modal Controllers (src/ui/components/)"]:::ui
         A11Y["Accessibility Layer (QAccessible & Names/Descriptions)"]:::ui
     end
 
-    subgraph Bridge_Thread_Pool ["⚡ Asynchronous Worker Layer (Qt QThread)"]
-        WORKER["Worker Thread & QRunnable Pool"]:::worker
-        TASK["Command & IPC Dispatcher"]:::worker
+    subgraph Bridge_Thread_Pool ["⚡ Asynchronous Worker Layer (Qt QThread & QProcess)"]
+        EXECUTOR["TailscaleExecutor (src/core/executor.py)"]:::worker
+        WORKER["Worker Thread (_BlockingWorker on QThread)"]:::worker
         SIGNAL["PySide6 Signal/Slot Bus (Thread-Safe)"]:::worker
     end
 
-    subgraph Core_Backend_Engine ["⚙️ Core Backend Services (src/ & pygui/backend.py)"]
-        SVC["TailscaleService (pygui/backend.py)"]:::os
-        PROFMGR["ProfileManager & Config Store"]:::os
-        KEYSTORE["Keyring Adapter (Windows DPAPI / Keychain)"]:::os
-        PARSER["JSON Status & DERP Telemetry Parser"]:::os
+    subgraph Core_Backend_Engine ["⚙️ Core Backend Services (src/core/)"]
+        MGR["Manager (src/core/manager.py)"]:::os
+        TSMGR["TailscaleManager (src/core/tailscale.py)"]:::os
+        SM["ConnectionStateMachine (src/core/state_coordinator.py)"]:::os
+        DB["DatabaseManager (src/core/db_manager.py)"]:::os
+        KEYSTORE["Keyring Adapter (src/utils/crypto.py)"]:::os
     end
 
     subgraph Operating_System_Layer ["🛡️ Host Operating System Boundaries"]
-        LOCALAPI["Tailscale LocalAPI (HTTP over Unix Socket / Named Pipe)"]:::daemon
+        LOCALAPI["Tailscale LocalAPI (Named Pipe / Unix Socket)"]:::daemon
         DAEMON["tailscaled Core Process (Service / Daemon)"]:::daemon
         NETDEV["TUN Virtual Adapter (tailscale0 / WireGuard)"]:::daemon
     end
@@ -76,16 +77,15 @@ flowchart TD
     end
 
     WIN --> DASH & DIALOGS & A11Y
-    DASH ==>|Dispatches Action| WORKER
-    WORKER --> TASK
-    TASK ==>|Invokes Service| SVC
-    SVC --> PROFMGR
-    PROFMGR --> KEYSTORE
-    SVC ==>|HTTP / CLI subprocess| LOCALAPI & DAEMON
+    DASH ==>|Dispatches Action| SM
+    SM --> TSMGR
+    TSMGR ==>|Asynchronous Request| EXECUTOR
+    EXECUTOR --> WORKER
+    MGR --> DB & KEYSTORE
+    EXECUTOR ==>|CLI QProcess / LocalAPI| LOCALAPI & DAEMON
     LOCALAPI --> DAEMON
     DAEMON --> NETDEV
-    SVC --> PARSER
-    PARSER ==>|Emits Qt Signal| SIGNAL
+    EXECUTOR ==>|Emits Qt Signal| SIGNAL
     SIGNAL ==>|Updates UI Main Thread| DASH & WIN
 
     DAEMON <==>|TLS / Noise Protocol| HEADSCALE & TAIL_SAAS
@@ -96,29 +96,35 @@ flowchart TD
 
 ## 3. Component Decomposition & Process Isolation Model
 
-The codebase is split into modular layers ensuring separation of presentation, domain business logic, and low-level system execution:
+The codebase is split into modular layers ensuring clear separation of presentation, domain business logic, and low-level system execution:
 
 ```
 Tailscale-Headscale-Client/
-├── main.py                     # High-DPI bootstrapping, single-instance lock, crash handler
-├── pygui/                      # Qt Presentation Layer
-│   ├── main_window.py          # Top-level window, status bar, tray icon, hotkey binds
-│   ├── backend.py              # Qt-aware backend facade bridging QThreads with Core Services
-│   ├── views/
-│   │   └── dashboard.py        # Main connection card, telemetry gauges, dynamic peer grid
-│   └── dialogs/
-│       ├── node_dialog.py      # Local node routing, advertised routes & exit configuration
-│       ├── peer_dialog.py      # Detailed peer diagnostics, packet stats, Ping/DERP check
-│       ├── profile_dialog.py   # Multi-profile manager, URL & server configuration
-│       ├── settings_dialog.py  # Startup, system tray, notifications, UI theme controls
-│       └── log_viewer_dlg.py   # Real-time tailscaled diagnostic stream viewer
-├── src/                        # Platform Agnostic Business & System Logic
-│   ├── service.py              # Low-level tailscaled CLI execution and LocalAPI HTTP client
-│   ├── profile_manager.py      # Profile serialization, config schema migration, JSON store
-│   ├── keyring_manager.py      # OS Keyring hardware cryptographic storage abstraction
-│   ├── platform_helper.py      # Platform detector (Windows service vs systemd vs launchd)
-│   └── updater.py              # Secure binary update checker & hash validator
-└── docs/                       # Platinum-Grade Documentation Suite
+├── main.py                     # Entry point: elevated CLI routing, high-DPI bootstrapping, single-instance mutex
+├── src/                        # Platform-Agnostic Core & Presentation Engine
+│   ├── core/
+│   │   ├── executor.py         # TailscaleExecutor: unified async seam, QProcess & QThread worker with timeouts
+│   │   ├── state_coordinator.py# ConnectionStateMachine: single source of truth, exponential backoff, SSO timers
+│   │   ├── tailscale.py        # TailscaleManager: pure execution facade delegating to executor & state machine
+│   │   ├── manager.py          # Manager: Option C Hybrid Vault orchestrator (SQLite + OS Keyring)
+│   │   ├── db_manager.py       # DatabaseManager: SQLite stats, profile topology & PRAGMA user_version migrations
+│   │   ├── cache_manager.py    # Local JSON cache for status debouncing and rapid GUI startup
+│   │   └── models.py           # Core dataclasses (Profile, AppSettings, AppState enums)
+│   ├── ui/
+│   │   ├── main_window.py      # Top-level QMainWindow, tab controllers, system tray, theme switcher
+│   │   ├── dashboard.py        # DashboardView: profile cards, status indicators, and control buttons
+│   │   └── components/
+│   │       ├── peer_dialog.py  # Peer table, packet stats, Ping & Netcheck via TailscaleExecutor
+│   │       ├── node_dialog.py  # Exit node picker, advertised routes configuration
+│   │       └── simple_dialogs.py # Modal dialogs (Settings, License, About, Log Viewer)
+│   └── utils/
+│       ├── crypto.py           # OS Keyring SecretStore adapter (with test mock backend)
+│       ├── dns_fallback.py     # Emergency hosts-file pinning with elevated UAC CLI routing
+│       ├── local_api.py        # Tailscale daemon REST LocalAPI client with timeouts
+│       ├── logger.py           # Structured logging & NullWriter console fallback
+│       ├── a11y_checker.py     # Screen reader assistive technology detector
+│       └── autostart.py        # Platform-specific OS autostart helpers (Registry, launchd)
+└── Docs/                       # System Architecture, Security, and Compliance Specifications
 ```
 
 ---

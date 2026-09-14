@@ -1,73 +1,55 @@
-import os
-from cryptography.fernet import Fernet
+# src/utils/crypto.py
+"""Secret Store & Credential Vault Adapter.
 
-class CryptoManager:
-    def __init__(self, key_file):
-        self.key_file = key_file
-        self.key = self._get_or_create_key()
-        self.fernet = Fernet(self.key)
+Provides an explicit adapter for hardware-backed OS Keyring credential storage
+(Option C Hybrid Vault). Eliminates vestigial master.key generation and silent
+credential dropping (Candidate 3).
+"""
 
-    def _get_or_create_key(self):
-        # 1. Try resolving key from OS Keyring
-        try:
-            import keyring
-            stored_key = keyring.get_password("TailscaleClientPro", "MasterEncryptionKey")
-            if stored_key:
-                return stored_key.encode('utf-8')
-        except Exception:
-            # Keyring service unavailable on headless/container environments
-            pass
+import logging
+from typing import Optional
 
-        # 2. Fallback to local key file check
-        if os.path.exists(self.key_file):
-            try:
-                with open(self.key_file, "rb") as f:
-                    return f.read()
-            except OSError:
-                # Key file unreadable; fall through to generation
-                return self._generate_and_store_new_key()
-
-        return self._generate_and_store_new_key()
-
-    def _generate_and_store_new_key(self):
-        """Generates a fresh Fernet encryption key and persists to Keyring and local file."""
-        new_key = Fernet.generate_key()
-        try:
-            import keyring
-            keyring.set_password("TailscaleClientPro", "MasterEncryptionKey", new_key.decode('utf-8'))
-        except Exception as e:
-            # Keyring not available; local file fallback will serve as the store
-            _ = str(e)
-            
-        try:
-            os.makedirs(os.path.dirname(self.key_file), exist_ok=True)
-            with open(self.key_file, "wb") as f:
-                f.write(new_key)
-        except OSError as err:
-            # Filesystem read-only; return in-memory key
-            _ = str(err)
-            
-        return new_key
-
-    def encrypt(self, text):
-        if not text:
-            return ""
-        return self.fernet.encrypt(text.encode()).decode()
-
-    def decrypt(self, encrypted_text):
-        if not encrypted_text:
-            return ""
-        try:
-            return self.fernet.decrypt(encrypted_text.encode()).decode()
-        except Exception:
-            return ""
+logger = logging.getLogger("TailscaleClient.Crypto")
 
 KEYRING_SERVICE = "TailscaleClientPro"
 
-def store_profile_secret(profile_id: str, secret: str) -> None:
-    """Stores sensitive profile authentication key in OS Keyring."""
+# Pluggable backend override (used for hermetic unit testing without touching OS Credential Store)
+_custom_backend = None
+
+
+def set_secret_backend(backend):
+    """Overrides the active secret store backend (e.g. dict-based mock for testing)."""
+    global _custom_backend
+    _custom_backend = backend
+
+
+def get_secret_backend():
+    """Returns the current backend or None (native OS keyring)."""
+    return _custom_backend
+
+
+def store_profile_secret(profile_id: str, secret: str) -> bool:
+    """Stores sensitive profile authentication key in the secret store.
+
+    Returns:
+        True if successfully saved or removed.
+        False if backend was unavailable or operation failed.
+    """
     if not profile_id:
-        return
+        return False
+
+    if _custom_backend is not None:
+        try:
+            username = f"auth_key_{profile_id}"
+            if secret:
+                _custom_backend[username] = secret
+            else:
+                _custom_backend.pop(username, None)
+            return True
+        except Exception as e:
+            logger.error(f"Custom secret backend store failed for {profile_id}: {e}")
+            return False
+
     try:
         import keyring
         username = f"auth_key_{profile_id}"
@@ -77,33 +59,94 @@ def store_profile_secret(profile_id: str, secret: str) -> None:
             try:
                 keyring.delete_password(KEYRING_SERVICE, username)
             except Exception:
-                return
-    except Exception:
-        return
+                pass
+        return True
+    except Exception as e:
+        logger.warning(
+            f"OS Keyring unavailable; failed to store credentials for profile {profile_id}: {e}"
+        )
+        return False
+
 
 def get_profile_secret(profile_id: str) -> str:
-    """Retrieves sensitive profile authentication key from OS Keyring."""
+    """Retrieves sensitive profile authentication key from the secret store.
+
+    Returns empty string if missing or if backend is unavailable.
+    """
     if not profile_id:
         return ""
+
+    if _custom_backend is not None:
+        try:
+            username = f"auth_key_{profile_id}"
+            return _custom_backend.get(username, "")
+        except Exception as e:
+            logger.error(f"Custom secret backend get failed for {profile_id}: {e}")
+            return ""
+
     try:
         import keyring
         username = f"auth_key_{profile_id}"
         secret = keyring.get_password(KEYRING_SERVICE, username)
         return secret or ""
-    except Exception:
+    except Exception as e:
+        logger.warning(
+            f"OS Keyring unavailable; failed to retrieve credentials for profile {profile_id}: {e}"
+        )
         return ""
 
-def delete_profile_secret(profile_id: str) -> None:
-    """Deletes sensitive profile authentication key from OS Keyring."""
+
+def delete_profile_secret(profile_id: str) -> bool:
+    """Deletes sensitive profile authentication key from the secret store.
+
+    Returns True if successfully deleted or already absent, False on error.
+    """
     if not profile_id:
-        return
+        return False
+
+    if _custom_backend is not None:
+        try:
+            username = f"auth_key_{profile_id}"
+            _custom_backend.pop(username, None)
+            return True
+        except Exception as e:
+            logger.error(f"Custom secret backend delete failed for {profile_id}: {e}")
+            return False
+
     try:
         import keyring
         username = f"auth_key_{profile_id}"
         try:
             keyring.delete_password(KEYRING_SERVICE, username)
         except Exception:
-            return
-    except Exception:
-        return
+            pass
+        return True
+    except Exception as e:
+        logger.warning(
+            f"OS Keyring unavailable; failed to delete credentials for profile {profile_id}: {e}"
+        )
+        return False
+
+
+def decrypt_legacy_key(encrypted_text: str, key_file_path: Optional[str] = None) -> str:
+    """One-time helper for legacy migration: decrypts a key using an existing master.key file."""
+    if not encrypted_text:
+        return ""
+    if not key_file_path:
+        return encrypted_text
+
+    import os
+    if not os.path.exists(key_file_path):
+        return encrypted_text
+
+    try:
+        from cryptography.fernet import Fernet
+        with open(key_file_path, "rb") as f:
+            key = f.read()
+        fernet = Fernet(key)
+        return fernet.decrypt(encrypted_text.encode()).decode()
+    except Exception as e:
+        logger.warning(f"Legacy key decryption fallback failed: {e}")
+        return ""
+
 

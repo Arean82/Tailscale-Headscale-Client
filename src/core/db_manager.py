@@ -5,9 +5,13 @@ import sqlite3
 import os
 import json
 import logging
+import threading
 from datetime import datetime
 from typing import List, Dict, Any
 from .models import Profile, AppSettings
+
+CURRENT_DB_VERSION = 1
+
 
 class DatabaseManager:
     def __init__(self, base_dir):
@@ -15,10 +19,12 @@ class DatabaseManager:
         self.log_dir = os.path.join(base_dir, "log")
         os.makedirs(self.log_dir, exist_ok=True)
         
-        self.traffic_buffer = {} # profile -> {'sent': 0, 'recv': 0}
+        self.traffic_buffer = {}  # profile -> {'sent': 0, 'recv': 0}
+        self._buffer_lock = threading.Lock()
         
         self._setup_logging()
         self._create_table()
+        self._run_migrations()
 
     def _setup_logging(self):
         log_file = os.path.join(self.log_dir, "db_log.txt")
@@ -107,6 +113,66 @@ class DatabaseManager:
             finally:
                 conn.close()
 
+    def _run_migrations(self):
+        """Runs incremental PRAGMA user_version schema migrations to protect existing databases."""
+        conn = self._create_connection()
+        if not conn:
+            return
+        try:
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA user_version;")
+            row = cursor.fetchone()
+            current_version = row[0] if row else 0
+
+            if current_version < 1:
+                # Migration 1: Ensure all 13 profile columns exist on existing pre-1.2 schemas
+                cursor.execute("PRAGMA table_info(profiles);")
+                existing_cols = {col[1] for col in cursor.fetchall()}
+
+                expected_columns = {
+                    "tab_order": "INTEGER DEFAULT 0",
+                    "login_server": "TEXT",
+                    "auth_mode": "TEXT",
+                    "auto_connect": "BOOLEAN DEFAULT 0",
+                    "exit_node": "TEXT",
+                    "routes": "TEXT",
+                    "native_profile": "TEXT",
+                    "is_native_switch": "BOOLEAN DEFAULT 0",
+                    "enable_ssh": "BOOLEAN DEFAULT 0",
+                    "accept_dns": "BOOLEAN DEFAULT 0",
+                    "allow_lan": "BOOLEAN DEFAULT 0",
+                    "disable_snat": "BOOLEAN DEFAULT 0",
+                    "hostname": "TEXT",
+                    "last_known_ip": "TEXT",
+                    "enable_dns_fallback": "BOOLEAN DEFAULT 0",
+                    "force_reset": "BOOLEAN DEFAULT 0",
+                    "advertise_exit_node": "BOOLEAN DEFAULT 0",
+                    "shields_up": "BOOLEAN DEFAULT 0",
+                    "force_reauth": "BOOLEAN DEFAULT 0",
+                    "advertise_tags": "TEXT",
+                    "accept_routes": "BOOLEAN DEFAULT 1",
+                    "unattended": "BOOLEAN DEFAULT 0",
+                    "webclient": "BOOLEAN DEFAULT 0",
+                    "advertise_connector": "BOOLEAN DEFAULT 0",
+                    "accept_risk": "TEXT",
+                    "extra_args": "TEXT"
+                }
+
+                for col_name, col_type in expected_columns.items():
+                    if col_name not in existing_cols:
+                        try:
+                            cursor.execute(f"ALTER TABLE profiles ADD COLUMN {col_name} {col_type};")
+                        except sqlite3.OperationalError as alter_err:
+                            self.logger.debug(f"Migration column {col_name} alter: {alter_err}")
+
+                cursor.execute("PRAGMA user_version = 1;")
+                conn.commit()
+                self.logger.info("Database schema migration to user_version 1 completed.")
+        except sqlite3.Error as e:
+            self.logger.error(f"Migration failed: {e}")
+        finally:
+            conn.close()
+
     def insert_traffic_data(self, profile, raw_sent, raw_recv):
         """Calculates delta and adds it to the in-memory buffer."""
         conn = self._create_connection()
@@ -126,12 +192,12 @@ class DatabaseManager:
                 sent_delta = raw_sent - last_s if raw_sent >= last_s else raw_sent
                 recv_delta = raw_recv - last_r if raw_recv >= last_r else raw_recv
             
-            # 2. Add to buffer instead of DB
-            if profile not in self.traffic_buffer:
-                self.traffic_buffer[profile] = {'sent': 0, 'recv': 0}
-            
-            self.traffic_buffer[profile]['sent'] += sent_delta
-            self.traffic_buffer[profile]['recv'] += recv_delta
+            # 2. Add to buffer instead of DB (thread-safe)
+            with self._buffer_lock:
+                if profile not in self.traffic_buffer:
+                    self.traffic_buffer[profile] = {'sent': 0, 'recv': 0}
+                self.traffic_buffer[profile]['sent'] += sent_delta
+                self.traffic_buffer[profile]['recv'] += recv_delta
             
             # 3. Update raw state (we still do this to keep baseline accurate)
             cursor.execute("""
@@ -146,12 +212,24 @@ class DatabaseManager:
             conn.close()
 
     def flush_buffer(self):
-        """Writes all buffered traffic deltas to the database in one batch."""
-        if not self.traffic_buffer:
-            return
+        """Writes all buffered traffic deltas to the database in one batch (thread-safe)."""
+        with self._buffer_lock:
+            if not self.traffic_buffer:
+                return
+            items_to_flush = dict(self.traffic_buffer)
+            self.traffic_buffer.clear()
             
         conn = self._create_connection()
-        if not conn: return
+        if not conn:
+            # Restore buffer if connection failed
+            with self._buffer_lock:
+                for prof, vals in items_to_flush.items():
+                    if prof not in self.traffic_buffer:
+                        self.traffic_buffer[prof] = vals
+                    else:
+                        self.traffic_buffer[prof]['sent'] += vals['sent']
+                        self.traffic_buffer[prof]['recv'] += vals['recv']
+            return
         
         try:
             cursor = conn.cursor()
@@ -159,7 +237,8 @@ class DatabaseManager:
             date_str = now.strftime("%Y-%m-%d")
             timestamp_str = now.strftime("%Y-%m-%d %H:%M:%S")
             
-            for profile, data in self.traffic_buffer.items():
+            flushed_count = 0
+            for profile, data in items_to_flush.items():
                 if data['sent'] == 0 and data['recv'] == 0:
                     continue
                     
@@ -167,10 +246,10 @@ class DatabaseManager:
                     INSERT INTO traffic_data (profile, date, timestamp, sent_delta, recv_delta)
                     VALUES (?, ?, ?, ?, ?);
                 """, (profile, date_str, timestamp_str, data['sent'], data['recv']))
+                flushed_count += 1
             
             conn.commit()
-            self.logger.info(f"Flushed traffic buffer for {len(self.traffic_buffer)} profiles.")
-            self.traffic_buffer.clear() # Reset buffer after successful flush
+            self.logger.info(f"Flushed traffic buffer for {flushed_count} profiles.")
         except sqlite3.Error as e:
             self.logger.error(f"Error flushing traffic buffer: {e}")
         finally:
@@ -361,14 +440,17 @@ class DatabaseManager:
             conn.close()
         return profiles
 
-    def delete_profile(self, profile_id: str) -> bool:
-        """Deletes a profile from the profiles table."""
+    def delete_profile(self, profile_id: str, profile_name: str = None) -> bool:
+        """Deletes a profile from profiles, and cascades cleanup to raw_state and traffic_data."""
         conn = self._create_connection()
         if not conn:
             return False
         try:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM profiles WHERE id = ?;", (profile_id,))
+            if profile_name:
+                cursor.execute("DELETE FROM raw_state WHERE profile = ?;", (profile_name,))
+                cursor.execute("DELETE FROM traffic_data WHERE profile = ?;", (profile_name,))
             conn.commit()
             return True
         except sqlite3.Error as e:

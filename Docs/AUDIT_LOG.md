@@ -7,6 +7,52 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-14 (Architecture Review Delivery: Candidates 5 & 6 Complete)
+
+### 1. Scope & Implementation Deliverables
+- **Candidate 5 (Database Migration Ladder & Buffer Synchronization)**:
+  - Added `PRAGMA user_version` automated migration ladder in [`src/core/db_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/db_manager.py), ensuring existing pre-1.2 schemas gracefully upgrade to support all 13 profile topology columns without data loss or SQLite errors.
+  - Implemented `threading.Lock` synchronization (`_buffer_lock`) on `DatabaseManager.traffic_buffer` and atomic flush batching (`flush_buffer`) to prevent race conditions during concurrent stats polling and flush timer invocations.
+  - Added unit regression tests `test_database_migration_ladder` and `test_traffic_buffer_thread_safety` in [`tests/test_core_client.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/tests/test_core_client.py).
+- **Candidate 6 (Reconciliation of Architecture Documentation)**:
+  - Completely reconciled [`Docs/ARCHITECTURE_MASTER.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/ARCHITECTURE_MASTER.md) against the ground-truth codebase structure:
+    - Updated component decomposition tree to match real packages (`src/core/`, `src/ui/`, `src/utils/`).
+    - Replaced obsolete/non-existent references (`pygui/backend.py`, `src/service.py`, `src/updater.py`) with `TailscaleExecutor`, `ConnectionStateMachine`, `DatabaseManager`, and `SecretStore`.
+    - Updated Mermaid architectural diagrams to depict the real runtime event bus and worker thread execution pipeline.
+
+### 2. Verification & Quality Assurance
+- **Full Test Suite Execution**: `pytest tests/ -v`
+- **Result**: **33 / 33 passed in 13.71s (100% pass rate)**.
+- **Defects / Stale Backend Processes**: 0 unresolved, 0 active stale tasks.
+
+---
+
+## 📅 Audit Entry: 2026-09-14 (Architecture Review Delivery: Candidates 1, 2, 3, & 4 Complete)
+
+### 1. Scope & Implementation Deliverables
+- **Candidate 1 (Single Execution Seam)**:
+  - Created [`src/core/executor.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/executor.py) (`TailscaleExecutor`) with a dedicated background worker thread (`_BlockingWorker` on `QThread`) and asynchronous streaming `QProcess`.
+  - All status queries, ping requests, and prelogouts enforce strict bounded timeouts (`timeout=2.0` / `timeout=6`), eliminating main GUI event loop freezing.
+  - Replaced private `QProcess` dialog calls in [`src/ui/components/peer_dialog.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/components/peer_dialog.py) with executor signal-driven requests.
+- **Candidate 2 (Single State Machine & Unified Retry Policy)**:
+  - Collapsed duplicate reconnect timers, SSO timers, and retry counters from `TailscaleManager`.
+  - [`src/core/state_coordinator.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/state_coordinator.py) (`ConnectionStateMachine`) is the single source of truth for all connection transitions and backoff retry logic (`3s -> 6s -> 12s`, max 3 attempts). Prevents duplicate `tailscale up` invocations and Headscale machine registration spam.
+- **Candidate 3 (Secret Store Adapter & Retirement of `master.key`)**:
+  - Refactored [`src/utils/crypto.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/crypto.py) to eliminate automatic generation of unreferenced plaintext `%APPDATA%/master.key` and retired `CryptoManager`.
+  - Introduced explicit `SecretStore` status returns and warning logging for unavailable OS Keyring scenarios.
+  - Added hermetic `set_secret_backend()` mock injection to prevent unit test leakage into host OS Credential Manager.
+- **Candidate 4 (Immutable UUID Keying & Cascade Deletions)**:
+  - Enhanced [`src/core/manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) with `rename_profile(old_name, new_name)` preserving immutable UUIDv4 and Keyring secrets during renames.
+  - Added `get_profile(identifier)` supporting polymorphic UUIDv4 and profile name lookups.
+  - Updated [`src/core/db_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/db_manager.py) `delete_profile` to cascade delete orphaned rows from `raw_state` and `traffic_data`.
+
+### 2. Verification & Quality Assurance
+- **Full Test Suite Execution**: `pytest tests/ -v`
+- **Result**: **31 / 31 passed in 3.63s (100% pass rate)**.
+- **Defects / Stale Backend Processes**: 0 unresolved, 0 active stale tasks.
+
+---
+
 ## 📅 Audit Entry: 2026-09-14 (GitHub Security Advisory GHSA-g394-pp59-p72c Publication)
 
 ### 1. Published Advisory Details
