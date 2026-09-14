@@ -401,6 +401,10 @@ class MainWindow(QMainWindow):
         self.actionAddProfile = QAction(self.tr("&Add New Profile"), self)
         self.actionAddProfile.triggered.connect(self.add_profile_clicked)
         profile_menu.addAction(self.actionAddProfile)
+
+        self.actionRenameProfile = QAction(self.tr("Re&name Current Profile..."), self)
+        self.actionRenameProfile.triggered.connect(self.rename_profile_clicked)
+        profile_menu.addAction(self.actionRenameProfile)
         
         self.actionRemoveProfile = QAction(self.tr("&Remove Current Profile"), self)
         self.actionRemoveProfile.triggered.connect(self.remove_profile_clicked)
@@ -822,6 +826,40 @@ class MainWindow(QMainWindow):
             if reply == QMessageBox.Yes:
                 self.manager.remove_profile(name)
                 self.refresh_tabs()
+
+    def rename_profile_clicked(self):
+        if not self.tabWidget:
+            return
+        index = self.tabWidget.currentIndex()
+        if index < 0:
+            return
+        old_name = self.tabWidget.tabText(index)
+        from PySide6.QtWidgets import QInputDialog
+        new_name, ok = QInputDialog.getText(
+            self,
+            self.tr("Rename Profile"),
+            self.tr("Enter new profile name:"),
+            text=old_name
+        )
+        if ok and new_name:
+            new_name = new_name.strip()
+            if not new_name:
+                QMessageBox.warning(self, self.tr("Error"), self.tr("Profile name cannot be empty."))
+                return
+            if new_name == old_name:
+                return
+            if new_name in self.manager.profiles:
+                QMessageBox.warning(self, self.tr("Error"), self.tr("Profile name already exists."))
+                return
+            if self.manager.rename_profile(old_name, new_name):
+                self.refresh_tabs()
+                # Select the renamed tab
+                for i in range(self.tabWidget.count()):
+                    if self.tabWidget.tabText(i) == new_name:
+                        self.tabWidget.setCurrentIndex(i)
+                        break
+            else:
+                QMessageBox.warning(self, self.tr("Error"), self.tr("Failed to rename profile."))
 
     def refresh_tabs(self):
         if not self.tabWidget:

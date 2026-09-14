@@ -74,10 +74,12 @@ def store_profile_secret(profile_id: str, secret: str) -> bool:
         return False
 
 
-def get_profile_secret(profile_id: str) -> str:
+def get_profile_secret(profile_id: str) -> str | None:
     """Retrieves sensitive profile authentication key from the secret store.
 
-    Returns empty string if missing or if backend is unavailable.
+    Returns:
+        str: Secret key if found, or "" if no secret is set.
+        None: If the secret store backend is unavailable or encounters an error.
     """
     if not profile_id:
         return ""
@@ -88,7 +90,7 @@ def get_profile_secret(profile_id: str) -> str:
             return _custom_backend.get(username, "")
         except (KeyError, TypeError) as e:
             logger.error(f"Custom secret backend get failed for {profile_id}: {e}")
-            return ""
+            return None
 
     try:
         import keyring
@@ -96,7 +98,7 @@ def get_profile_secret(profile_id: str) -> str:
         logger.warning(
             f"OS Keyring package unavailable; failed to retrieve credentials for profile {profile_id}: {e}"
         )
-        return ""
+        return None
 
     try:
         username = f"auth_key_{profile_id}"
@@ -106,7 +108,7 @@ def get_profile_secret(profile_id: str) -> str:
         logger.warning(
             f"OS Keyring unavailable; failed to retrieve credentials for profile {profile_id}: {e}"
         )
-        return ""
+        return None
 
 
 def delete_profile_secret(profile_id: str) -> bool:

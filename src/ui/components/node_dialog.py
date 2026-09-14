@@ -60,12 +60,16 @@ class NodeDialog(BaseUiDialog):
         self.chkUnattendedValue = self.ui.findChild(QCheckBox, "chkUnattendedValue")
         self.chkWebclientValue = self.ui.findChild(QCheckBox, "chkWebclientValue")
         self.chkAdvertiseConnectorValue = self.ui.findChild(QCheckBox, "chkAdvertiseConnectorValue")
+        self.lineEditExtraArgs = self.ui.findChild(QLineEdit, "lineEditExtraArgs")
+        self.lineEditAcceptRisk = self.ui.findChild(QLineEdit, "lineEditAcceptRisk")
 
         # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
         accessible_configs = [
             (self.comboBoxExitNode, "Exit Node Selector", "Select a remote peer device to route internet egress traffic through."),
             (self.lineEditRoutes, "Subnet Routes Input", "Comma-separated RFC 1918 subnets to advertise to the Tailnet."),
             (self.lineEditHostname, "Custom Hostname Override", "Overrides the machine name advertised to the coordination server."),
+            (self.lineEditExtraArgs, "Extra Daemon Arguments", "Custom flags or arguments passed directly to tailscale up."),
+            (self.lineEditAcceptRisk, "Risk Acknowledgment Flag", "Risk acknowledgment flags passed to tailscale up (e.g. lose-ssh, all)."),
             (self.lineEditTags, "ACL Tags Input", "Comma-separated ACL tags to assign to this node (e.g. tag:server)."),
             (self.lineEditEmergencyIp, "Emergency Cached IP", "Displays the last known IPv4 address of the node for emergency fallback."),
             (self.listNativeSwitch, "Instant Switch Profile List", "Select multiple compatible profiles for sub-second switching."),
@@ -247,6 +251,9 @@ class NodeDialog(BaseUiDialog):
 
         if hasattr(self, 'lineEditExtraArgs') and self.lineEditExtraArgs:
             self.lineEditExtraArgs.setText(getattr(self.profile, 'extra_args', ''))
+
+        if hasattr(self, 'lineEditAcceptRisk') and self.lineEditAcceptRisk:
+            self.lineEditAcceptRisk.setText(getattr(self.profile, 'accept_risk', ''))
 
         if self.lineEditTags:
             self.lineEditTags.setText(getattr(self.profile, 'advertise_tags', ""))
@@ -483,6 +490,8 @@ class NodeDialog(BaseUiDialog):
         self.profile.advertise_connector = self.chkAdvertiseConnector.isChecked() if hasattr(self, 'chkAdvertiseConnector') and self.chkAdvertiseConnector else False
         if hasattr(self, 'lineEditExtraArgs') and self.lineEditExtraArgs:
             self.profile.extra_args = self.lineEditExtraArgs.text().strip()
+        if hasattr(self, 'lineEditAcceptRisk') and self.lineEditAcceptRisk:
+            self.profile.accept_risk = self.lineEditAcceptRisk.text().strip()
 
         # Save checked profiles
         if self.listNativeSwitch:

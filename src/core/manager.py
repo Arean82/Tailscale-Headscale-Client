@@ -185,7 +185,12 @@ class Manager:
         db_profiles = self.db.load_all_profiles()
         for prof in db_profiles:
             # Securely retrieve authentication key from native OS Keyring
-            prof.auth_key = get_profile_secret(prof.id)
+            secret = get_profile_secret(prof.id)
+            if secret is None:
+                logger.warning(f"OS Keyring unavailable; credentials for profile '{prof.name}' could not be retrieved.")
+                prof.auth_key = ""
+            else:
+                prof.auth_key = secret
             self.profiles[prof.name] = prof
 
     def save_profiles(self):
@@ -193,7 +198,8 @@ class Manager:
         for order, profile in enumerate(self.profiles.values()):
             self.db.save_profile(profile, tab_order=order)
             if profile.auth_key:
-                store_profile_secret(profile.id, profile.auth_key)
+                if not store_profile_secret(profile.id, profile.auth_key):
+                    logger.warning(f"Failed to persist credentials for profile '{profile.name}' ({profile.id}) to OS Keyring.")
             else:
                 delete_profile_secret(profile.id)
 
@@ -236,6 +242,10 @@ class Manager:
 
     def add_profile(self, profile: Profile):
         """Adds or updates a profile in the hybrid vault."""
+        if profile.name in self.profiles and self.profiles[profile.name].id != profile.id:
+            old_prof = self.profiles[profile.name]
+            delete_profile_secret(old_prof.id)
+            self.db.delete_profile(old_prof.id, profile_name=old_prof.name)
         self.profiles[profile.name] = profile
         self.save_profiles()
 

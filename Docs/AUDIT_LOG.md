@@ -48,6 +48,13 @@
   - Configured [`mypy.ini`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/mypy.ini) with `[mypy-qt_material.*]` `ignore_missing_imports = true` (ASCII encoded).
   - Executed static typing audit `mypy src/`: **0 type errors across all 30 source files** (`Success: no issues found in 30 source files`).
   - Fixed broken lowercase `docs/` markdown links across all documentation files (`Docs/USER_MANUAL.md`, `Docs/QUICK_START.md`, `Docs/SECURITY_AND_PRIVACY_COMPLIANCE.md`, `Docs/ENTERPRISE_PROCUREMENT_READINESS.md`, `Docs/AUDIT_LOG.md`).
+  - **Vault, API & GUI Synchronization Fixes**:
+    - **Keyring Failure Warning**: [`Manager.save_profiles`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) verifies `store_profile_secret` return code and logs a warning when OS Keyring storage fails.
+    - **Keyring Status Distinction**: [`get_profile_secret`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/crypto.py) returns `None` on backend error vs `""` for unset secrets; [`Manager.load_profiles`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) logs unavailability and safely defaults.
+    - **Duplicate-Name Guard**: [`Manager.add_profile`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) verifies duplicate names across distinct IDs and purges orphaned SQLite/Keyring records.
+    - **Fernet Ciphertext Dropping**: [`decrypt_legacy_key`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/crypto.py) drops un-decryptable `gAAAA` ciphertext with an explicit warning when `master.key` is missing.
+    - **Profile Rename Action**: Added "Rename Current Profile..." to the Profile menu and wired to [`rename_profile`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) via interactive dialog.
+    - **Extra Args & Accept Risk UI**: Connected `lineEditExtraArgs` and `lineEditAcceptRisk` in [`node.ui`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/pygui/dialogs/node.ui) and [`node_dialog.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/components/node_dialog.py).
 
 ### 2. Verification & Quality Assurance
 - **Static Typing Audit**: `mypy src/`
