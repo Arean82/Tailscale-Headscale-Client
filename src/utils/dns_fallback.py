@@ -42,14 +42,16 @@ def apply_fallback(domain, ip):
     Attempts to map a domain to an IP in the system hosts file.
     Uses 'check-first' UAC logic to elevate only if necessary.
     """
-    # Check if domain already maps to this IP
+    import socket
+
+    # If the domain already resolves to the target IP, no edit is needed.
     try:
-        import socket
         if socket.gethostbyname(domain) == ip:
-            return True # Already resolving correctly, no need to touch hosts
+            return True
     except (socket.gaierror, socket.herror, OSError):
-        # Domain cannot be resolved normally; proceed with fallback mapping
-        return False
+        # DNS resolution failed: this is exactly the emergency the fallback
+        # exists for — pin the domain via the hosts file instead of giving up.
+        pass
 
     # Try silent edit first
     try:
@@ -61,7 +63,9 @@ def apply_fallback(domain, ip):
         # Requires Administrator elevation; fall through to UAC invocation
         pass
         
-    # Needs elevation
+    # Needs elevation; the ShellExecuteW "runas" helper exists only on Windows
+    if sys.platform != "win32":
+        return False
     script_path = os.path.abspath(__file__)
     # ShellExecuteW returns > 32 if successful
     ret = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script_path}" apply "{domain}" "{ip}"', None, 0)

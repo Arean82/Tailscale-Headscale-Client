@@ -72,14 +72,36 @@ class StreamToLogger:
     def flush(self):
         pass
 
+class NullWriter:
+    """No-op sink used when no console exists.
+
+    In windowed (console=False) PyInstaller builds, sys.__stdout__/sys.__stderr__
+    are None; restoring them directly makes every print() raise AttributeError
+    inside Qt slots, silently aborting the rest of the slot.
+    """
+
+    def write(self, buf):
+        pass
+
+    def flush(self):
+        pass
+
+    def isatty(self):
+        return False
+
+
+def _console_stream(real_stream):
+    return real_stream if real_stream is not None else NullWriter()
+
+
 def manage_sys_streams(enabled, logger=None):
     """Overrides or restores standard print outputs."""
     if enabled and logger:
         sys.stdout = StreamToLogger(logger, logging.DEBUG)
         sys.stderr = StreamToLogger(logger, logging.ERROR)
     else:
-        sys.stdout = sys.__stdout__
-        sys.stderr = sys.__stderr__
+        sys.stdout = _console_stream(sys.__stdout__)
+        sys.stderr = _console_stream(sys.__stderr__)
 
 def get_profile_logger(profile_name, base_dir):
     """Dynamically creates a logger for a specific profile connection."""
