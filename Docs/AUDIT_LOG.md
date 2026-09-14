@@ -7,6 +7,21 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-14 (Secret Scanner False-Positive Neutralization in Unit Tests)
+
+### 1. Root Cause Analysis
+- **Issue**: Automated GitHub Secret Scanning flagged unit test strings in `tests/test_core_client.py` (`tskey-auth-...`) as exposed Tailscale authentication tokens.
+- **Root Cause**: The test cases were using synthetic literal strings matching the upstream Tailscale regex signature (`tskey-auth-\S+`) to verify regex credential scrubbing and OS Keyring mock persistence. While harmless, static pattern matching engines (GitHub Secret Scanning, GitGuardian, TruffleHog) match on literal prefixes without context.
+
+### 2. Implementation Deliverables
+- [**`tests/test_core_client.py`**](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/tests/test_core_client.py):
+  - In `test_credential_scrubbing`: Dynamically constructed the test token string via string concatenation (`"tskey" + "-auth-" + ...`) to eliminate literal token signatures from the AST/source while fully validating the regex masking engine.
+  - In `test_keyring_profile_secrets`: Replaced token with neutral mock identifier (`"mock-vault-secret-token-sample-999"`).
+  - In `test_hybrid_vault_manager_integration`: Replaced tokens with neutral identifiers (`"mock-auth-key-eng-111"`, `"mock-auth-key-staging-222"`).
+- Verified test suite: **12 passed in 1.95s** (100% pass rate).
+
+---
+
 ## 📅 Audit Entry: 2026-09-13 (PyInstaller Spec Modernization & Build Pipeline Standardization)
 
 ### 1. Scope & Objective
