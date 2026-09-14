@@ -96,8 +96,20 @@ class TestClientCore(unittest.TestCase):
             decrypted = decrypt_legacy_key(encrypted, test_key_file)
             self.assertEqual(decrypted, secret)
 
-            # Missing key file returns original text
+            # Missing key file returns original text for plaintext values...
             self.assertEqual(decrypt_legacy_key("plain_text", "non_existent_key_path"), "plain_text")
+            # ...but ciphertext is dropped, never passed through as an auth key
+            self.assertEqual(decrypt_legacy_key(encrypted, "non_existent_key_path"), "")
+
+            # No key path at all: plaintext passes, ciphertext is dropped
+            self.assertEqual(decrypt_legacy_key("plain_text"), "plain_text")
+            self.assertEqual(decrypt_legacy_key(encrypted), "")
+
+            # Plaintext stored alongside a regenerated (wrong) master.key is
+            # recovered as plaintext instead of being lost
+            with open(test_key_file, "wb") as f:
+                f.write(Fernet.generate_key())
+            self.assertEqual(decrypt_legacy_key("plain_text", test_key_file), "plain_text")
         finally:
             if os.path.exists(test_key_file):
                 os.remove(test_key_file)

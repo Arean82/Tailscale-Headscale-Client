@@ -1,26 +1,35 @@
 # =============================================================================
-# Tailscale & Headscale Client Enterprise Production Dependencies
+# Tailscale & Headscale Client Enterprise Dependencies & Quality Tooling
 # =============================================================================
 
-# GUI Framework & Material Theming (Qt6 LTS Track)
-PySide6>=6.6.0
-qt-material>=2.14
+# GUI Framework & Material Theming (Qt6 Track)
+PySide6>=6.6.0,<7.0.0
+qt-material>=2.14,<3.0.0
 
 # Hardware Vault & Host Security (OS Keyring / Cryptographic Primitives)
-cryptography>=42.0.0
-keyring>=24.0.0
+cryptography>=42.0.0,<50.0.0
+keyring>=24.0.0,<26.0.0
 
 # Process Supervision, System Metrics & Networking
-psutil>=5.9.0
-requests>=2.31.0
+psutil>=5.9.0,<8.0.0
+requests>=2.31.0,<3.0.0
 
 # Document Rendering & Rich Text Processing (Markdown & Syntax Highlighting)
-markdown>=3.5.0
-pygments>=2.16.0
-beautifulsoup4>=4.12.0
+markdown>=3.5.0,<4.0.0
+pygments>=2.16.0,<3.0.0
+beautifulsoup4>=4.12.0,<5.0.0
 
 # Internationalization & Dynamic Localization
-deep-translator>=1.9.0
+deep-translator>=1.9.0,<2.0.0
 
 # Executable Packaging & Binary Freezing
-PyInstaller>=6.0.0
+PyInstaller>=6.0.0,<7.0.0
+
+# Static Typing & Type Stubs (Mypy Reproducibility)
+mypy>=2.0.0,<3.0.0
+types-psutil>=7.0.0
+types-Markdown>=3.7.0
+
+# Testing & Quality Gates
+pytest>=8.0.0,<10.0.0
+

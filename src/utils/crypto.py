@@ -148,25 +148,47 @@ def delete_profile_secret(profile_id: str) -> bool:
         return False
 
 
+def _legacy_plaintext_or_drop(text: str) -> str:
+    """Resolves a legacy key value when no usable master.key can decrypt it.
+
+    Fernet tokens always start with 'gAAAA', so that prefix identifies
+    ciphertext: without its master.key it is unrecoverable and must be dropped
+    loudly instead of being installed as a raw auth key. Anything else is
+    treated as a plaintext legacy key.
+    """
+    if text.startswith("gAAAA"):
+        logger.warning(
+            "Legacy encrypted key detected (Fernet format) but master.key is unavailable; "
+            "dropping un-decryptable ciphertext to avoid storing raw ciphertext as key."
+        )
+        return ""
+    return text
+
+
 def decrypt_legacy_key(encrypted_text: str, key_file_path: str | None = None) -> str:
     """One-time helper for legacy migration: decrypts a key using an existing master.key file."""
     if not encrypted_text:
         return ""
     if not key_file_path:
-        return encrypted_text
+        return _legacy_plaintext_or_drop(encrypted_text)
 
     import os
 
     from cryptography.fernet import Fernet, InvalidToken
     if not os.path.exists(key_file_path):
-        return encrypted_text
+        return _legacy_plaintext_or_drop(encrypted_text)
 
     try:
         with open(key_file_path, "rb") as f:
             key = f.read()
         fernet = Fernet(key)
         return fernet.decrypt(encrypted_text.encode()).decode()
-    except (OSError, ValueError, InvalidToken) as e:
+    except InvalidToken as e:
+        # Value is not decryptable with this key — most likely a plaintext
+        # legacy key coexisting with a regenerated master.key.
+        logger.warning(f"Legacy key not decryptable with master.key ({e}); treating as plaintext.")
+        return _legacy_plaintext_or_drop(encrypted_text)
+    except (OSError, ValueError) as e:
         logger.warning(f"Legacy key decryption fallback failed: {e}")
         return ""
 
