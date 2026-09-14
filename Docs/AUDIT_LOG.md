@@ -7,6 +7,19 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-14 (GitHub Security Advisory GHSA-g394-pp59-p72c Publication)
+
+### 1. Published Advisory Details
+- **Advisory ID**: [GHSA-g394-pp59-p72c](https://github.com/Arean82/Tailscale-Headscale-Client/security/advisories/GHSA-g394-pp59-p72c)
+- **Title**: Resource Exhaustion & Fallback Inconsistencies in IPC Socket and Keyring Storage
+- **Severity**: Moderate
+- **CWE IDs**: CWE-775, CWE-400, CWE-754
+- **Affected Releases**: `< 1.2.0`
+- **Patched Releases**: `>= 1.2.0` / `2026.1.0`
+- **Documentation Updated**: Synchronized [`Docs/SECURITY_ADVISORIES.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SECURITY_ADVISORIES.md).
+
+---
+
 ## 📅 Audit Entry: 2026-09-14 (CodeQL Static Analysis: Full Resolution of 'Empty except' / py/empty-except)
 
 ### 1. Scope & Root Cause Analysis

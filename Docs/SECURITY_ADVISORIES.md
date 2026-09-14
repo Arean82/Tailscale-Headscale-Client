@@ -1,4 +1,4 @@
-﻿# Tailscale & Headscale Client: Security Advisories & Vulnerability Bulletins 🛡️📢
+# Tailscale & Headscale Client: Security Advisories & Vulnerability Bulletins 🛡️📢
 
 **Document ID:** THC-SEC-ADV-2026.1  
 **Classification:** Public Security Advisory Register & Threat Notices  
@@ -13,7 +13,7 @@ This document tracks all officially recognized security advisories, vulnerabilit
 
 | Advisory ID | Date Disclosed | Severity (CVSS) | Affected Component | Summary / Root Cause | Resolution / Fixed In | Status |
 | :--- | :---: | :---: | :--- | :--- | :--- | :---: |
-| **THC-SA-2026-001** | 2026-09-14 | **Medium (5.5)** | `src/ui/main_window.py` | Potential uninitialized variable (`is_running`) in daemon poller callback could trigger `UnboundLocalError`. | Fixed with safe boolean initialization in `2026.1.0`. | **RESOLVED** |
+| [**GHSA-g394-pp59-p72c**](https://github.com/Arean82/Tailscale-Headscale-Client/security/advisories/GHSA-g394-pp59-p72c)<br>*(THC-SA-2026-001)* | 2026-09-14 | **Moderate** | `src/utils/local_api.py`, `src/utils/crypto.py` | Resource exhaustion in IPC socket handles & unhandled keyring fallback exceptions. | Resolved with context managers and atomic key generation in `v1.2.0` / `2026.1.0`. | **PUBLISHED** |
 | **THC-SA-2026-002** | 2026-09-14 | **Low (3.1)** | `src/utils/local_api.py` | Windows Named Pipe and socket descriptor handles left open on abrupt network exception (`py/file-not-closed`). | Refactored with Python deterministic context managers (`with open`) in `2026.1.0`. | **RESOLVED** |
 | **THC-SA-2026-003** | 2026-09-14 | **Low (2.8)** | Core & Utils (`except:`) | Untyped bare `except:` blocks risking suppression of system interrupt signals (`Ctrl+C`, `SystemExit`). | Narrowed to specific error subclasses (`OSError`, `socket.gaierror`) across all files in `2026.1.0`. | **RESOLVED** |
 | **THC-SA-2026-004** | 2026-09-13 | **High (7.2)** | Legacy Storage (`data/`) | Plaintext legacy token storage in directory tree (`profiles.json` / text files). | Migrated to **Option C Hybrid Vault** (OS Keyring + SQLite topology) in `2026.1.0`. | **RESOLVED** |
@@ -22,15 +22,16 @@ This document tracks all officially recognized security advisories, vulnerabilit
 
 ## 2. Detailed Advisory Bulletins
 
-### 📌 Advisory THC-SA-2026-001: Uninitialized Variable in Daemon Status Poller
-* **Vulnerability Type:** CWE-456 (Missing Initialization of a Variable to an Adequate Value)
-* **Severity:** Medium — CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H (Score: 5.5)
-* **Affected Versions:** < 2026.1.0
-* **Fixed In:** `2026.1.0` (Commit: `e231f8e`)
+### 📌 Advisory [GHSA-g394-pp59-p72c](https://github.com/Arean82/Tailscale-Headscale-Client/security/advisories/GHSA-g394-pp59-p72c) (THC-SA-2026-001): Resource Exhaustion & Fallback Inconsistencies in IPC Socket and Keyring Storage
+* **GitHub Advisory ID:** [GHSA-g394-pp59-p72c](https://github.com/Arean82/Tailscale-Headscale-Client/security/advisories/GHSA-g394-pp59-p72c)
+* **Vulnerability Type:** CWE-775 (Missing Release of File Descriptor or Handle), CWE-400 (Uncontrolled Resource Consumption), CWE-754 (Improper Check for Unusual Conditions)
+* **Severity:** Moderate (CVSS v3.1 / CVSS v4.0)
+* **Affected Versions:** < 1.2.0
+* **Fixed In:** `1.2.0` / `2026.1.0`
 * **Description:**
-  In `_poll_daemon_status()`, if an error or unexpected state occurred while invoking the child process status check, the boolean flag `is_running` was bypassed. Evaluating `if is_running or ...` triggered an unhandled `UnboundLocalError`, crashing the timer callback.
+  Static application security testing (CodeQL SAST) identified potential socket descriptor leaks during LocalAPI daemon communication (`src/utils/local_api.py`), along with unhandled key generation exceptions and dead-store variable retention in `src/utils/crypto.py`. Under sustained polling, unclosed sockets could cause system handle exhaustion.
 * **Remediation:**
-  `is_running = False` is now pre-initialized at the top of the function scope, and buffer decoding is protected within a `try/except/finally` block.
+  LocalAPI socket connections were transitioned to deterministic Python context managers (`with socket.socket(...) as s:`). Key generation logic was refactored into an atomic helper (`_generate_and_store_new_key`) with strict typing and structured exception handling.
 
 ---
 
