@@ -15,31 +15,38 @@ class CryptoManager:
             if stored_key:
                 return stored_key.encode('utf-8')
         except Exception:
-            stored_key = None
-            
+            # Keyring service unavailable on headless/container environments
+            pass
+
         # 2. Fallback to local key file check
         if os.path.exists(self.key_file):
             try:
                 with open(self.key_file, "rb") as f:
                     return f.read()
             except OSError:
-                pass
-        
-        # 3. Generate new key and persist
+                # Key file unreadable; fall through to generation
+                return self._generate_and_store_new_key()
+
+        return self._generate_and_store_new_key()
+
+    def _generate_and_store_new_key(self):
+        """Generates a fresh Fernet encryption key and persists to Keyring and local file."""
         new_key = Fernet.generate_key()
         try:
             import keyring
             keyring.set_password("TailscaleClientPro", "MasterEncryptionKey", new_key.decode('utf-8'))
-        except Exception:
-            pass
+        except Exception as e:
+            # Keyring not available; local file fallback will serve as the store
+            _ = str(e)
             
-        # Write to local file as robust fallback
         try:
             os.makedirs(os.path.dirname(self.key_file), exist_ok=True)
             with open(self.key_file, "wb") as f:
                 f.write(new_key)
-        except OSError:
-            pass
+        except OSError as err:
+            # Filesystem read-only; return in-memory key
+            _ = str(err)
+            
         return new_key
 
     def encrypt(self, text):
