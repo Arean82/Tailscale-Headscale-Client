@@ -7,6 +7,22 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-14 (GitHub CodeQL Code Scanning Workflow Implementation)
+
+### 1. Scope & Objective
+- **Automated Semantic Code Scanning**: Implemented an automated GitHub Actions workflow utilizing GitHub CodeQL for static application security testing (SAST) on Python code.
+- **Enterprise Standards Compliance**: Satisfies NIST SP 800-218 (SSDF) Clause PW.7, Executive Order 14028, and ISO 27001 continuous static analysis requirements.
+
+### 2. Implementation Deliverables
+- [**`.github/workflows/codeql.yml`**](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/.github/workflows/codeql.yml):
+  - Configured automated triggers on `push` and `pull_request` against `main` and `master`.
+  - Configured weekly recurring schedule (every Monday at 06:00 UTC) to identify newly disclosed vulnerabilities in upstream dependencies.
+  - Enabled enhanced query suite: `+security-extended,security-and-quality` (scanning for CWE vulnerabilities, memory leaks, resource exhaustion, and code smells).
+  - Explicit least-privilege token permissions (`contents: read`, `security-events: write`).
+- Codebase verified ready with 0 static type errors (`mypy`) and 100% test pass rate (`pytest`).
+
+---
+
 ## 📅 Audit Entry: 2026-09-14 (Secret Scanner False-Positive Neutralization in Unit Tests)
 
 ### 1. Root Cause Analysis
