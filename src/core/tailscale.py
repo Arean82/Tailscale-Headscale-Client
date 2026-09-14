@@ -380,8 +380,6 @@ class TailscaleManager(QObject):
             try:
                 from src.utils.local_api import query_local_api
                 data = query_local_api()
-                is_connected = False
-                status_text = "Disconnected"
                 ips = data.get("TailscaleIPs", [])
                 state = data.get("BackendState", "")
                 
@@ -395,6 +393,7 @@ class TailscaleManager(QObject):
                     is_connected = False
                     status_text = "Pending Admin Approval"
                 else:
+                    is_connected = False
                     status_text = state or "Disconnected"
                     
                 self.cache.set("status", {"connected": is_connected, "text": status_text, "ips": ips, "raw_data": data})
@@ -416,8 +415,6 @@ class TailscaleManager(QObject):
     def _on_status_finished(self):
         output = self.status_proc.readAllStandardOutput().data().decode()
         
-        is_connected = False
-        status_text = "Disconnected"
         ips = []
         raw_data = {}
         
@@ -438,6 +435,7 @@ class TailscaleManager(QObject):
                 is_connected = False
                 status_text = "Pending Admin Approval"
             else:
+                is_connected = False
                 status_text = state or "Disconnected"
         except Exception:
             if "logged out" in output.lower():
@@ -446,6 +444,9 @@ class TailscaleManager(QObject):
             elif "running" in output.lower() or "connected" in output.lower():
                 is_connected = True
                 status_text = "Connected"
+            else:
+                is_connected = False
+                status_text = "Disconnected"
             
         self.cache.set("status", {"connected": is_connected, "text": status_text, "ips": ips, "raw_data": raw_data})
         self._update_state(status_text)

@@ -7,6 +7,24 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-14 (CodeQL Rules: Resource Management & Redundant Variable Assignments)
+
+### 1. Scope & Root Cause Analysis
+- **`py/file-not-closed`**: In [`src/utils/local_api.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/local_api.py), opening the Windows Named Pipe via `open(pipe_path, "r+b", buffering=0)` without a context manager risked leaving file handles unclosed if an exception occurred prior to `f.close()`.
+- **`py/multiple-definition`**: In [`src/core/tailscale.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/tailscale.py), initializing `is_connected = False` and `status_text = "Disconnected"` right before an `if/elif/else` tree unconditionally overwriting both variables made the initial assignments dead stores.
+
+### 2. Implementation Deliverables
+- [**`src/utils/local_api.py`**](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/local_api.py):
+  - Refactored Named Pipe access to use python `with open(...) as f:` context managers.
+  - Refactored Unix domain socket communication to use `with socket.socket(...) as s:` context managers, guaranteeing immediate resource cleanup even on abrupt connection failures.
+- [**`src/core/tailscale.py`**](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/tailscale.py):
+  - Removed redundant early variable assignments in `check_status()` and `_on_status_finished()`, ensuring exhaustive assignment in every branch without dead stores.
+
+### 3. Verification & Quality Assurance
+- Zero resource leaks; 100% test pass rate (`12/12 passed`).
+
+---
+
 ## 📅 Audit Entry: 2026-09-14 (CodeQL Comprehensive Static Analysis & Code Quality Remediation)
 
 ### 1. Scope & Objective

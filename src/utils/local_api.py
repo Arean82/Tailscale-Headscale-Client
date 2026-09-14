@@ -11,12 +11,11 @@ def query_local_api(path=None):
     if sys.platform == "win32":
         pipe_path = path or r"\\.\pipe\ProtectedPrefix\administrators\Tailscale\tailscaled"
         try:
-            # Open Windows Named Pipe
-            f = open(pipe_path, "r+b", buffering=0)
-            request = b"GET /localapi/v0/status HTTP/1.1\r\nHost: local-tailscaled\r\n\r\n"
-            f.write(request)
-            response = f.read(65536)
-            f.close()
+            # Open Windows Named Pipe safely with context manager
+            with open(pipe_path, "r+b", buffering=0) as f:
+                request = b"GET /localapi/v0/status HTTP/1.1\r\nHost: local-tailscaled\r\n\r\n"
+                f.write(request)
+                response = f.read(65536)
             
             parts = response.split(b"\r\n\r\n", 1)
             if len(parts) == 2:
@@ -31,18 +30,17 @@ def query_local_api(path=None):
             sock_path = mac_fallback
             
         try:
-            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            s.connect(sock_path)
-            request = b"GET /localapi/v0/status HTTP/1.1\r\nHost: local-tailscaled\r\n\r\n"
-            s.sendall(request)
-            
-            response = b""
-            while True:
-                chunk = s.recv(4096)
-                if not chunk:
-                    break
-                response += chunk
-            s.close()
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.connect(sock_path)
+                request = b"GET /localapi/v0/status HTTP/1.1\r\nHost: local-tailscaled\r\n\r\n"
+                s.sendall(request)
+                
+                response = b""
+                while True:
+                    chunk = s.recv(4096)
+                    if not chunk:
+                        break
+                    response += chunk
             
             parts = response.split(b"\r\n\r\n", 1)
             if len(parts) == 2:
@@ -60,8 +58,8 @@ def is_local_api_available(path=None):
         pipe_path = path or r"\\.\pipe\ProtectedPrefix\administrators\Tailscale\tailscaled"
         try:
             # Try to open the Named Pipe briefly to test availability
-            f = open(pipe_path, "r+b", buffering=0)
-            f.close()
+            with open(pipe_path, "r+b", buffering=0):
+                pass
             return True
         except Exception:
             return False
