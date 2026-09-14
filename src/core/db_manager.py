@@ -1,14 +1,15 @@
 # src/core/db_manager.py
 # This is the database manager for the application.
 
-import sqlite3
-import os
 import json
 import logging
+import os
+import sqlite3
 import threading
 from datetime import datetime
-from typing import List, Dict, Any
-from .models import Profile, AppSettings
+from typing import Any
+
+from .models import AppSettings, Profile
 
 CURRENT_DB_VERSION = 1
 
@@ -211,8 +212,22 @@ class DatabaseManager:
         finally:
             conn.close()
 
+    def _restore_buffer(self, items):
+        """Merges previously-snapshot deltas back into the buffer after a failed flush."""
+        with self._buffer_lock:
+            for prof, vals in items.items():
+                if prof not in self.traffic_buffer:
+                    self.traffic_buffer[prof] = dict(vals)
+                else:
+                    self.traffic_buffer[prof]['sent'] += vals['sent']
+                    self.traffic_buffer[prof]['recv'] += vals['recv']
+
     def flush_buffer(self):
-        """Writes all buffered traffic deltas to the database in one batch (thread-safe)."""
+        """Writes all buffered traffic deltas to the database in one batch (thread-safe).
+
+        On any failure (no connection or DB write error) the snapshot is merged
+        back into the buffer so measured traffic is never silently discarded.
+        """
         with self._buffer_lock:
             if not self.traffic_buffer:
                 return
@@ -221,19 +236,12 @@ class DatabaseManager:
             
         conn = self._create_connection()
         if not conn:
-            # Restore buffer if connection failed
-            with self._buffer_lock:
-                for prof, vals in items_to_flush.items():
-                    if prof not in self.traffic_buffer:
-                        self.traffic_buffer[prof] = vals
-                    else:
-                        self.traffic_buffer[prof]['sent'] += vals['sent']
-                        self.traffic_buffer[prof]['recv'] += vals['recv']
+            self._restore_buffer(items_to_flush)
             return
         
         try:
             cursor = conn.cursor()
-            now = datetime.now()
+            now = datetime.now().astimezone()  # timezone-aware; wall-clock date kept for daily grouping
             date_str = now.strftime("%Y-%m-%d")
             timestamp_str = now.strftime("%Y-%m-%d %H:%M:%S")
             
@@ -252,6 +260,7 @@ class DatabaseManager:
             self.logger.info(f"Flushed traffic buffer for {flushed_count} profiles.")
         except sqlite3.Error as e:
             self.logger.error(f"Error flushing traffic buffer: {e}")
+            self._restore_buffer(items_to_flush)
         finally:
             conn.close()
 
@@ -259,7 +268,7 @@ class DatabaseManager:
         conn = self._create_connection()
         if not conn: return 0, 0
         try:
-            date_str = (date or datetime.now()).strftime("%Y-%m-%d")
+            date_str = (date or datetime.now().astimezone()).strftime("%Y-%m-%d")
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT SUM(sent_delta), SUM(recv_delta) FROM traffic_data
@@ -381,7 +390,7 @@ class DatabaseManager:
         finally:
             conn.close()
 
-    def load_all_profiles(self) -> List[Profile]:
+    def load_all_profiles(self) -> list[Profile]:
         """Loads all profiles ordered by tab_order without auth_key (auth_key retrieved via Keyring)."""
         conn = self._create_connection()
         if not conn:
@@ -440,7 +449,7 @@ class DatabaseManager:
             conn.close()
         return profiles
 
-    def delete_profile(self, profile_id: str, profile_name: str = None) -> bool:
+    def delete_profile(self, profile_id: str, profile_name: str | None = None) -> bool:
         """Deletes a profile from profiles, and cascades cleanup to raw_state and traffic_data."""
         conn = self._create_connection()
         if not conn:
@@ -509,12 +518,12 @@ class DatabaseManager:
             
             from dataclasses import fields
             valid_fields = {f.name for f in fields(AppSettings)}
-            data: Dict[str, Any] = {}
+            data: dict[str, Any] = {}
             for key, val_str in rows:
                 if key in valid_fields:
                     try:
                         data[key] = json.loads(val_str)
-                    except Exception:
+                    except (ValueError, TypeError):
                         data[key] = val_str
             return AppSettings(**data)
         except sqlite3.Error as e:

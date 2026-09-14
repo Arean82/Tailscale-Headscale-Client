@@ -45,7 +45,7 @@ class TailscaleManager(QObject):
         self.executor.status_ready.connect(self._on_status_ready)
         self.executor.cli_finished.connect(self._on_cli_finished)
         self.executor.prelogout_done.connect(self._on_prelogout_done)
-        self.executor.sso_url_found.connect(lambda url: webbrowser.open(url))
+        self.executor.sso_url_found.connect(webbrowser.open)
 
         from .cache_manager import CacheManager
         cache_file = os.path.join(cache_dir, "ts_cache.json") if cache_dir else "ts_cache.json"

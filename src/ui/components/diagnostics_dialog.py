@@ -1,7 +1,9 @@
-from PySide6.QtWidgets import QPushButton, QTextBrowser
 from PySide6.QtCore import QProcess
-from .simple_dialogs import BaseUiDialog
+from PySide6.QtWidgets import QPushButton, QTextBrowser
+
 from ...core.tailscale import get_tailscale_path
+from .simple_dialogs import BaseUiDialog
+
 
 class DiagnosticsDialog(BaseUiDialog):
     def __init__(self, parent=None):

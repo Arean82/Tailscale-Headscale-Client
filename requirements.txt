@@ -1,11 +1,26 @@
-PySide6
-cryptography
-psutil
-requests
-markdown
-pygments
-beautifulsoup4
-PyInstaller
-deep-translator
-keyring
-qt-material
+# =============================================================================
+# Tailscale & Headscale Client Enterprise Production Dependencies
+# =============================================================================
+
+# GUI Framework & Material Theming (Qt6 LTS Track)
+PySide6>=6.6.0
+qt-material>=2.14
+
+# Hardware Vault & Host Security (OS Keyring / Cryptographic Primitives)
+cryptography>=42.0.0
+keyring>=24.0.0
+
+# Process Supervision, System Metrics & Networking
+psutil>=5.9.0
+requests>=2.31.0
+
+# Document Rendering & Rich Text Processing (Markdown & Syntax Highlighting)
+markdown>=3.5.0
+pygments>=2.16.0
+beautifulsoup4>=4.12.0
+
+# Internationalization & Dynamic Localization
+deep-translator>=1.9.0
+
+# Executable Packaging & Binary Freezing
+PyInstaller>=6.0.0

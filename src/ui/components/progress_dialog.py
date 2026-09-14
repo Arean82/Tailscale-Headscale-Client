@@ -1,7 +1,9 @@
 import os
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel
-from PySide6.QtUiTools import QUiLoader
+
 from PySide6.QtCore import QFile, Qt
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout
+
 
 class ProgressDialog(QDialog):
     def __init__(self, parent=None):

@@ -1,9 +1,18 @@
 # src/ui/components/settings_dialog.py
 
 import os
-from PySide6.QtWidgets import QCheckBox, QPushButton, QMessageBox, QSpinBox, QLineEdit, QComboBox
+
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSpinBox,
+)
 
 from .simple_dialogs import BaseUiDialog
+
 
 class SettingsDialog(BaseUiDialog):
     def __init__(self, manager, parent=None):
@@ -229,18 +238,19 @@ class SettingsDialog(BaseUiDialog):
                     self.parent().restart_app()
 
     def _open_log_folder(self):
+        import shutil
         import sys
         path = self.manager.base_dir
         if os.path.exists(path):
             import subprocess
             try:
                 if sys.platform == 'win32':
-                    os.startfile(path)
+                    os.startfile(path)  # noqa: S606 (folder open in Explorer, not a shell process)
                 elif sys.platform == 'darwin':
-                    subprocess.Popen(['open', path])
+                    subprocess.Popen([shutil.which("open") or "open", path], shell=False)
                 else:
-                    subprocess.Popen(['xdg-open', path])
-            except (FileNotFoundError, Exception) as e:
+                    subprocess.Popen([shutil.which("xdg-open") or "xdg-open", path], shell=False)
+            except OSError as e:
                 QMessageBox.warning(
                     self, 
                     "Open Folder Failed", 

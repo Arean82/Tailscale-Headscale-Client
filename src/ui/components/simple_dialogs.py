@@ -1,11 +1,20 @@
 import os
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, 
-                             QPushButton, QLabel, QTextBrowser, 
-                             QTableWidget, QTableWidgetItem, QHeaderView)
-from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, Qt, QUrl, QThread, Signal, QObject
-import requests
 import re
+
+import requests
+from PySide6.QtCore import QFile, QObject, Qt, QThread, QUrl, Signal
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtWidgets import (
+    QDialog,
+    QHeaderView,
+    QLabel,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextBrowser,
+    QVBoxLayout,
+)
+
 
 class BaseUiDialog(QDialog):
     def __init__(self, ui_name, parent=None):
@@ -95,7 +104,7 @@ class AboutDialog(BaseUiDialog):
         self.setFixedSize(300, 180)
         
         # Set dynamic text to avoid hardcoding in UI files
-        from ...utils.constants import APP_VERSION, APP_COPYRIGHT, APP_NAME
+        from ...utils.constants import APP_COPYRIGHT, APP_NAME, APP_VERSION
         
         lbl_name = self.ui.findChild(QLabel, "labelAppName")
         lbl_version = self.ui.findChild(QLabel, "labelVersion")
@@ -151,7 +160,7 @@ class ImageDownloadWorker(QObject):
                         with open(local_path, 'wb') as f:
                             f.write(r.content)
                         self.image_ready.emit()
-                except Exception as e:
+                except OSError as e:
                     print(f"DEBUG: Download failed for {url}: {e}")
         
 class ReadmeDialog(BaseUiDialog):
@@ -223,7 +232,7 @@ class ReadmeDialog(BaseUiDialog):
                 readme_path = os.path.join(os.getcwd(), "Docs", "README.md")
             
         if os.path.exists(readme_path):
-            with open(readme_path, "r", encoding="utf-8") as f:
+            with open(readme_path, encoding="utf-8") as f:
                 md_text = f.read()
         
         if md_text:
@@ -304,7 +313,7 @@ class ReadmeDialog(BaseUiDialog):
         def resolve_local_img(match):
             alt_text = match.group(1)
             rel_path = match.group(2)
-            if rel_path.startswith("http://") or rel_path.startswith("https://"):
+            if rel_path.startswith(("http://", "https://")):
                 return match.group(0)
             clean_path = rel_path.replace("../", "").replace("./", "")
             candidate = os.path.join(base_dir, clean_path)
@@ -319,7 +328,7 @@ class ReadmeDialog(BaseUiDialog):
             pre = match.group(1)
             src = match.group(2)
             post = match.group(3)
-            if src.startswith("http://") or src.startswith("https://"):
+            if src.startswith(("http://", "https://")):
                 return match.group(0)
             clean_path = src.replace("../", "").replace("./", "")
             candidate = os.path.join(base_dir, clean_path)
@@ -522,7 +531,7 @@ class LicenseDialog(BaseUiDialog):
                 
             if os.path.exists(license_path):
                 try:
-                    with open(license_path, "r", encoding="utf-8") as f:
+                    with open(license_path, encoding="utf-8") as f:
                         content = f.read()
                 except OSError:
                     content = "Error loading LICENSE file content."

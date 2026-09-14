@@ -51,8 +51,8 @@ def query_local_api(path=None, timeout=DEFAULT_TIMEOUT):
             parts = response.split(b"\r\n\r\n", 1)
             if len(parts) == 2:
                 return json.loads(parts[1].decode('utf-8'))
-        except Exception as e:
-            raise RuntimeError(f"Named Pipe connection failed: {e}")
+        except (OSError, ValueError) as e:
+            raise RuntimeError(f"Named Pipe connection failed: {e}") from e
     else:
         sock_path = path or "/var/run/tailscale/tailscaled.sock"
         # Common macOS App Store socket path fallback
@@ -77,8 +77,8 @@ def query_local_api(path=None, timeout=DEFAULT_TIMEOUT):
             parts = response.split(b"\r\n\r\n", 1)
             if len(parts) == 2:
                 return json.loads(parts[1].decode('utf-8'))
-        except Exception as e:
-            raise RuntimeError(f"Unix Domain Socket connection failed: {e}")
+        except (OSError, ValueError) as e:
+            raise RuntimeError(f"Unix Domain Socket connection failed: {e}") from e
 
     raise RuntimeError("Unsupported platform or empty response")
 
@@ -93,7 +93,7 @@ def is_local_api_available(path=None):
             with open(pipe_path, "r+b", buffering=0):
                 pass
             return True
-        except Exception:
+        except OSError:
             return False
     else:
         sock_path = path or "/var/run/tailscale/tailscaled.sock"
@@ -110,5 +110,5 @@ def is_local_api_available(path=None):
             s.connect(sock_path)
             s.close()
             return True
-        except Exception:
+        except OSError:
             return False

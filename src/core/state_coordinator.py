@@ -78,10 +78,7 @@ class ConnectionStateMachine(QObject):
             return False
             
         # Guard: If already DISCONNECTED, ignore redundant DISCONNECTED transitions
-        if old_state == AppState.DISCONNECTED and new_state == AppState.DISCONNECTED:
-            return False
-            
-        return True
+        return not (old_state == AppState.DISCONNECTED and new_state == AppState.DISCONNECTED)
 
     def _on_state_exit(self, old_state, new_state):
         """
@@ -418,26 +415,25 @@ class StateCoordinator(QObject):
         self.connection_status_changed.emit(is_connected, status_text)
 
     def _on_state_machine_changed(self, state):
-        if state == AppState.CONNECTED:
+        if state == AppState.CONNECTED and self.state_machine.last_connect_args:
             # Cache the IP on successful connection
-            if self.state_machine.last_connect_args:
-                profile_name = self.state_machine.last_connect_args.get("profile_name")
-                login_server = self.state_machine.last_connect_args.get("login_server")
-                if profile_name and login_server:
-                    profile = self.manager.profiles.get(profile_name)
-                    if profile:
-                        import socket
-                        import urllib.parse
-                        try:
-                            parsed = urllib.parse.urlparse(login_server)
-                            domain = parsed.hostname
-                            if domain and getattr(profile, 'enable_dns_fallback', False):
-                                ip = socket.gethostbyname(domain)
-                                if ip and getattr(profile, 'last_known_ip', None) != ip:
-                                    profile.last_known_ip = ip
-                                    self.manager.save_profiles()
-                        except (socket.gaierror, socket.herror, ValueError, OSError):
-                            # Non-resolvable domain or URL parse issue
-                            pass
-                            
+            profile_name = self.state_machine.last_connect_args.get("profile_name")
+            login_server = self.state_machine.last_connect_args.get("login_server")
+            if profile_name and login_server:
+                profile = self.manager.profiles.get(profile_name)
+                if profile:
+                    import socket
+                    import urllib.parse
+                    try:
+                        parsed = urllib.parse.urlparse(login_server)
+                        domain = parsed.hostname
+                        if domain and getattr(profile, 'enable_dns_fallback', False):
+                            ip = socket.gethostbyname(domain)
+                            if ip and getattr(profile, 'last_known_ip', None) != ip:
+                                profile.last_known_ip = ip
+                                self.manager.save_profiles()
+                    except (socket.gaierror, socket.herror, ValueError, OSError):
+                        # Non-resolvable domain or URL parse issue
+                        pass
+
         self.state_changed.emit(state)

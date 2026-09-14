@@ -1,8 +1,11 @@
 import os
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel
-from PySide6.QtUiTools import QUiLoader
+from datetime import UTC
+
 from PySide6.QtCore import QFile
 from PySide6.QtGui import QAccessible, QAccessibleEvent
+from PySide6.QtUiTools import QUiLoader
+from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+
 
 class DashboardView(QWidget):
     def __init__(self, manager, ts_manager, profile=None):
@@ -82,8 +85,8 @@ class DashboardView(QWidget):
         self.prev_stats = None
 
         # 7. Setup Pulse Animation (for "Connecting..." state)
+        from PySide6.QtCore import QEasingCurve, QPropertyAnimation
         from PySide6.QtWidgets import QGraphicsOpacityEffect
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
         self.opacity_effect = QGraphicsOpacityEffect(self.btnVpnAction)
         self.btnVpnAction.setGraphicsEffect(self.opacity_effect)
         
@@ -140,10 +143,9 @@ class DashboardView(QWidget):
         if not self.labelStatus: return
         
         # Stop pulse if we are no longer connecting or checking
-        if status_text not in ["Checking...", "Connecting..."]:
-            if hasattr(self, 'pulse_anim'):
-                self.pulse_anim.stop()
-                self.opacity_effect.setOpacity(1.0)
+        if status_text not in ["Checking...", "Connecting..."] and hasattr(self, 'pulse_anim'):
+            self.pulse_anim.stop()
+            self.opacity_effect.setOpacity(1.0)
         
         # If we are checking, don't revert to "Disconnected" if we were already connected
         if status_text == "Checking..." and self.labelStatus.text() == "🟢 Connected":
@@ -269,11 +271,11 @@ class DashboardView(QWidget):
                 if raw_data:
                     expiry_str = raw_data.get("Self", {}).get("KeyExpiry") or raw_data.get("Self", {}).get("Expiry", "")
                     if expiry_str:
-                        from datetime import datetime, timezone
+                        from datetime import datetime
                         # Safely parse first 19 characters "YYYY-MM-DDTHH:MM:SS" to avoid nanosecond parsing errors on Python < 3.11
                         base_time = expiry_str[:19]
-                        expiry_dt = datetime.fromisoformat(base_time).replace(tzinfo=timezone.utc)
-                        now_dt = datetime.now(timezone.utc)
+                        expiry_dt = datetime.fromisoformat(base_time).replace(tzinfo=UTC)
+                        now_dt = datetime.now(UTC)
                         delta = expiry_dt - now_dt
                         days = delta.days
                         
@@ -297,7 +299,7 @@ class DashboardView(QWidget):
                 else:
                     print("[DEBUG Node Expiry] No raw status data cached yet.")
                     self.labelExpiry.setText("")
-            except Exception as e:
+            except (ValueError, TypeError, AttributeError) as e:
                 print(f"[DEBUG Node Expiry] Parsing failed: {e}")
                 self.labelExpiry.setText("")
         elif self.labelExpiry:

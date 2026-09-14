@@ -1,0 +1,23 @@
+# Ruff policy for Tailscale-Headscale-Client.
+#
+# The tree is kept clean against this rule set: `ruff check src/ main.py tests/ scripts/`
+# must report zero findings. Deliberate one-off exceptions are documented with a
+# `# noqa: <CODE>` comment at the exact line; blanket per-rule ignores are not used.
+
+target-version = "py312"
+line-length = 120
+
+[lint]
+# Standard groups (E4/E7/E9/F) plus the extended groups this project is held to:
+# import sorting, bugbear, blind-except, bandit security, simplify, pyupgrade,
+# comprehensions, datetime hygiene, perflint, pie, and pylint warnings.
+extend-select = ["I", "B", "BLE", "S", "SIM", "UP", "C4", "DTZ", "PERF", "PIE", "PLW"]
+
+# S603 (subprocess without shell-equals-true): this ruff version flags any
+# subprocess call whose argv is not a pure literal, even with explicit
+# shell=False (verified empirically). Every call site here builds argv as an
+# explicit list whose head is get_tailscale_path() (a fixed-location resolver);
+# the only user-supplied part (profile extra_args) is shlex-split into the
+# list, never passed to a shell. There is no shell-interpolation surface, so
+# the rule is unsatisfiable by design and ignored as a documented policy.
+ignore = ["S603"]

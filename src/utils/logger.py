@@ -47,6 +47,7 @@ def setup_logger(name, log_file, level=logging.DEBUG):
 
 import re
 
+
 def scrub_credentials(text):
     if not text or not isinstance(text, str):
         return text

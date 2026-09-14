@@ -276,7 +276,7 @@ class PeerListDialog(BaseUiDialog):
         self.tablePeers.setColumnCount(6)
         self.tablePeers.setRowCount(len(peer_dict))
         
-        for idx, (peer_key, peer_info) in enumerate(peer_dict.items()):
+        for idx, peer_info in enumerate(peer_dict.values()):
             dns_name = peer_info.get("DNSName", "").split('.')[0]
             host_name = dns_name or peer_info.get("HostName", "Unknown Device")
             

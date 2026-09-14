@@ -1,15 +1,15 @@
 import json
+import logging
 import os
 import shutil
-import logging
-from typing import Dict, Optional
-from .models import Profile, AppSettings
+
 from ..utils.crypto import (
-    store_profile_secret,
-    get_profile_secret,
+    decrypt_legacy_key,
     delete_profile_secret,
-    decrypt_legacy_key
+    get_profile_secret,
+    store_profile_secret,
 )
+from .models import AppSettings, Profile
 
 # Child of the app logger configured in main.py so records reach app.log
 logger = logging.getLogger("TailscaleClient.Manager")
@@ -31,7 +31,7 @@ class Manager:
         from .db_manager import DatabaseManager
         self.db = DatabaseManager(base_dir)
         
-        self.profiles: Dict[str, Profile] = {}
+        self.profiles: dict[str, Profile] = {}
         self.settings = AppSettings()
         
         # 1. Load Settings (SQLite with legacy fallback)
@@ -61,10 +61,10 @@ class Manager:
     def _read_file(self, path: str) -> str:
         if os.path.exists(path):
             try:
-                with open(path, "r", encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     return f.read().strip()
-            except Exception:
-                pass
+            except (OSError, UnicodeError) as e:
+                logger.debug(f"Could not read legacy file {path}: {e}")
         return ""
 
     def _check_and_migrate_legacy_data(self):
@@ -72,7 +72,7 @@ class Manager:
         # 1. Settings migration if DB empty but settings.json exists
         if os.path.exists(self.settings_file):
             try:
-                with open(self.settings_file, "r", encoding="utf-8") as f:
+                with open(self.settings_file, encoding="utf-8") as f:
                     data = json.load(f)
                     from dataclasses import fields
                     valid_fields = {field.name for field in fields(AppSettings)}
@@ -80,7 +80,7 @@ class Manager:
                     migrated_settings = AppSettings(**filtered_data)
                     self.db.save_app_settings(migrated_settings)
                     self.settings = migrated_settings
-            except Exception as e:
+            except (ValueError, TypeError, OSError) as e:
                 logger.error(f"Error migrating legacy settings: {e}")
 
         # 2. Profiles migration if SQLite profiles table is empty but tab_names_file exists
@@ -88,14 +88,15 @@ class Manager:
         if db_count == 0 and os.path.exists(self.tab_names_file):
             try:
                 logger.info("Migrating legacy profile text files to SQLite and Keyring...")
-                with open(self.tab_names_file, "r", encoding="utf-8") as f:
+                with open(self.tab_names_file, encoding="utf-8") as f:
                     tab_names = json.load(f)
                     
                 order = 0
-                for tab_id, name in tab_names.items():
+                for name in tab_names.values():
                     try:
                         profile_dir = self._get_tab_dir(name)
-                    except Exception:
+                    except (PermissionError, ValueError) as e:
+                        logger.warning(f"Skipping legacy profile '{name}' (unsafe directory name): {e}")
                         continue
 
                     if not os.path.exists(profile_dir):
@@ -175,7 +176,7 @@ class Manager:
                     except OSError as err:
                         logger.debug(f"Legacy backup folder move: {err}")
                 logger.info(f"Successfully migrated {order} legacy profiles to Option C Hybrid Vault.")
-            except Exception as e:
+            except (OSError, ValueError, TypeError) as e:
                 logger.error(f"Error executing legacy profiles migration: {e}")
 
     def load_profiles(self):
@@ -189,7 +190,7 @@ class Manager:
 
     def save_profiles(self):
         """Saves all active profiles to SQLite and stores auth keys in OS Keyring."""
-        for order, (name, profile) in enumerate(self.profiles.items()):
+        for order, profile in enumerate(self.profiles.values()):
             self.db.save_profile(profile, tab_order=order)
             if profile.auth_key:
                 store_profile_secret(profile.id, profile.auth_key)
@@ -209,7 +210,7 @@ class Manager:
         except OSError as err:
             logger.debug(f"Mirroring settings to legacy JSON: {err}")
 
-    def get_profile(self, identifier: str) -> Optional[Profile]:
+    def get_profile(self, identifier: str) -> Profile | None:
         """Looks up a profile by name or by its immutable UUIDv4."""
         if not identifier:
             return None

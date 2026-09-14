@@ -130,6 +130,42 @@ class TestCriticalBugFixes(unittest.TestCase):
             self.assertEqual(df.run_cli_if_requested(["prog.exe", "--dns-fallback", "bogus"]), 2)
         self.assertEqual(calls, [("hs.example.com", "1.2.3.4"), ("hs.example.com", None)])
 
+    def test_flush_buffer_restores_on_write_failure(self):
+        """Candidate 5 gap: a DB write error mid-flush must not silently discard
+        buffered traffic deltas — the snapshot is merged back into the buffer."""
+        import sqlite3
+
+        from src.core.db_manager import DatabaseManager
+        tmp_dir = os.path.join(tempfile.gettempdir(), "db_flush_regression")
+        os.makedirs(tmp_dir, exist_ok=True)
+        try:
+            db = DatabaseManager(tmp_dir)
+            db.traffic_buffer["p"] = {"sent": 100, "recv": 50}
+
+            class BadCursor:
+                def execute(self, *args, **kwargs):
+                    raise sqlite3.Error("disk I/O error (simulated)")
+
+            class BadConn:
+                def cursor(self):
+                    return BadCursor()
+
+                def close(self):
+                    pass
+
+            db._create_connection = BadConn
+            db.flush_buffer()
+            self.assertEqual(db.traffic_buffer.get("p"), {"sent": 100, "recv": 50})
+
+            # Also verify the no-connection path restores
+            db.traffic_buffer["p2"] = {"sent": 10, "recv": 5}
+            db._create_connection = lambda: None
+            db.flush_buffer()
+            self.assertEqual(db.traffic_buffer.get("p2"), {"sent": 10, "recv": 5})
+        finally:
+            import shutil
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
 
 if __name__ == "__main__":
     unittest.main()

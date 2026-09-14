@@ -1,6 +1,13 @@
-from PySide6.QtWidgets import QStackedWidget, QCheckBox, QLineEdit, QMessageBox, QPushButton
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QStackedWidget,
+)
 
 from .simple_dialogs import BaseUiDialog
+
 
 class ProfileDialog(BaseUiDialog):
     def __init__(self, parent=None, profile=None, manager=None):

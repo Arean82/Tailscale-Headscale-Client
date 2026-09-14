@@ -7,7 +7,6 @@ credential dropping (Candidate 3).
 """
 
 import logging
-from typing import Optional
 
 logger = logging.getLogger("TailscaleClient.Crypto")
 
@@ -19,7 +18,7 @@ _custom_backend = None
 
 def set_secret_backend(backend):
     """Overrides the active secret store backend (e.g. dict-based mock for testing)."""
-    global _custom_backend
+    global _custom_backend  # noqa: PLW0603 (backend swap is the documented hermetic-test seam)
     _custom_backend = backend
 
 
@@ -46,22 +45,29 @@ def store_profile_secret(profile_id: str, secret: str) -> bool:
             else:
                 _custom_backend.pop(username, None)
             return True
-        except Exception as e:
+        except (KeyError, TypeError) as e:
             logger.error(f"Custom secret backend store failed for {profile_id}: {e}")
             return False
 
     try:
         import keyring
+    except ImportError as e:
+        logger.warning(
+            f"OS Keyring package unavailable; failed to store credentials for profile {profile_id}: {e}"
+        )
+        return False
+
+    try:
         username = f"auth_key_{profile_id}"
         if secret:
             keyring.set_password(KEYRING_SERVICE, username, secret)
         else:
             try:
                 keyring.delete_password(KEYRING_SERVICE, username)
-            except Exception:
-                pass
+            except keyring.errors.KeyringError as e:
+                logger.debug(f"Keyring entry removal skipped for {profile_id}: {e}")
         return True
-    except Exception as e:
+    except keyring.errors.KeyringError as e:
         logger.warning(
             f"OS Keyring unavailable; failed to store credentials for profile {profile_id}: {e}"
         )
@@ -80,16 +86,23 @@ def get_profile_secret(profile_id: str) -> str:
         try:
             username = f"auth_key_{profile_id}"
             return _custom_backend.get(username, "")
-        except Exception as e:
+        except (KeyError, TypeError) as e:
             logger.error(f"Custom secret backend get failed for {profile_id}: {e}")
             return ""
 
     try:
         import keyring
+    except ImportError as e:
+        logger.warning(
+            f"OS Keyring package unavailable; failed to retrieve credentials for profile {profile_id}: {e}"
+        )
+        return ""
+
+    try:
         username = f"auth_key_{profile_id}"
         secret = keyring.get_password(KEYRING_SERVICE, username)
         return secret or ""
-    except Exception as e:
+    except keyring.errors.KeyringError as e:
         logger.warning(
             f"OS Keyring unavailable; failed to retrieve credentials for profile {profile_id}: {e}"
         )
@@ -109,26 +122,33 @@ def delete_profile_secret(profile_id: str) -> bool:
             username = f"auth_key_{profile_id}"
             _custom_backend.pop(username, None)
             return True
-        except Exception as e:
+        except (KeyError, TypeError) as e:
             logger.error(f"Custom secret backend delete failed for {profile_id}: {e}")
             return False
 
     try:
         import keyring
+    except ImportError as e:
+        logger.warning(
+            f"OS Keyring package unavailable; failed to delete credentials for profile {profile_id}: {e}"
+        )
+        return False
+
+    try:
         username = f"auth_key_{profile_id}"
         try:
             keyring.delete_password(KEYRING_SERVICE, username)
-        except Exception:
-            pass
+        except keyring.errors.KeyringError as e:
+            logger.debug(f"Keyring entry removal skipped for {profile_id}: {e}")
         return True
-    except Exception as e:
+    except keyring.errors.KeyringError as e:
         logger.warning(
             f"OS Keyring unavailable; failed to delete credentials for profile {profile_id}: {e}"
         )
         return False
 
 
-def decrypt_legacy_key(encrypted_text: str, key_file_path: Optional[str] = None) -> str:
+def decrypt_legacy_key(encrypted_text: str, key_file_path: str | None = None) -> str:
     """One-time helper for legacy migration: decrypts a key using an existing master.key file."""
     if not encrypted_text:
         return ""
@@ -136,16 +156,17 @@ def decrypt_legacy_key(encrypted_text: str, key_file_path: Optional[str] = None)
         return encrypted_text
 
     import os
+
+    from cryptography.fernet import Fernet, InvalidToken
     if not os.path.exists(key_file_path):
         return encrypted_text
 
     try:
-        from cryptography.fernet import Fernet
         with open(key_file_path, "rb") as f:
             key = f.read()
         fernet = Fernet(key)
         return fernet.decrypt(encrypted_text.encode()).decode()
-    except Exception as e:
+    except (OSError, ValueError, InvalidToken) as e:
         logger.warning(f"Legacy key decryption fallback failed: {e}")
         return ""
 

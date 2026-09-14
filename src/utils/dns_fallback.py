@@ -1,18 +1,18 @@
+import ctypes
 import os
 import sys
-import ctypes
 
 HOSTS_FILE = r"C:\Windows\System32\drivers\etc\hosts"
 
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except Exception:
+    except (AttributeError, OSError):
         return False
 
 def _edit_hosts(domain, ip=None):
     try:
-        with open(HOSTS_FILE, 'r') as f:
+        with open(HOSTS_FILE) as f:
             lines = f.readlines()
         
         # Remove existing entries for this domain
@@ -34,7 +34,7 @@ def _edit_hosts(domain, ip=None):
             f.writelines(new_lines)
             
         return True
-    except Exception:
+    except (OSError, UnicodeError):
         return False
 
 def apply_fallback(domain, ip):

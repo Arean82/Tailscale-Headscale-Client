@@ -9,11 +9,11 @@ from src.core.cache_manager import CacheManager
 from src.core.models import AppSettings, AppState, Profile
 from src.utils.a11y_checker import A11yCheckResult, check_screen_reader_environment
 from src.utils.crypto import (
-    store_profile_secret,
-    get_profile_secret,
-    delete_profile_secret,
-    set_secret_backend,
     decrypt_legacy_key,
+    delete_profile_secret,
+    get_profile_secret,
+    set_secret_backend,
+    store_profile_secret,
 )
 
 
@@ -66,13 +66,13 @@ class TestClientCore(unittest.TestCase):
     def test_secret_store_adapter(self):
         """Candidate 3: SecretStore adapter stores, retrieves, and deletes with explicit return codes."""
         test_id = "test-profile-uuid-12345"
-        secret = "mock-super-secret-key-999"
+        secret = "mock-super-secret-key-999"  # noqa: S105 (test fixture, not a real credential)
 
         self.assertTrue(store_profile_secret(test_id, secret))
         self.assertEqual(get_profile_secret(test_id), secret)
 
         # Updating secret
-        updated_secret = "mock-super-secret-key-updated"
+        updated_secret = "mock-super-secret-key-updated"  # noqa: S105 (test fixture, not a real credential)
         self.assertTrue(store_profile_secret(test_id, updated_secret))
         self.assertEqual(get_profile_secret(test_id), updated_secret)
 
@@ -85,7 +85,7 @@ class TestClientCore(unittest.TestCase):
         from cryptography.fernet import Fernet
         key = Fernet.generate_key()
         fernet = Fernet(key)
-        secret = "legacy-raw-auth-key-555"
+        secret = "legacy-raw-auth-key-555"  # noqa: S105 (test fixture, not a real credential)
         encrypted = fernet.encrypt(secret.encode()).decode()
 
         test_key_file = os.path.join("temp_data", "test_legacy_master.key")
@@ -218,7 +218,7 @@ class TestClientCore(unittest.TestCase):
             store_profile_secret,
         )
         test_uuid = str(uuid.uuid4())
-        secret_key = "mock-vault-secret-token-sample-999"
+        secret_key = "mock-vault-secret-token-sample-999"  # noqa: S105 (test fixture, not a real credential)
 
         try:
             store_profile_secret(test_uuid, secret_key)
@@ -344,6 +344,7 @@ class TestClientCore(unittest.TestCase):
     def test_database_migration_ladder(self):
         """Candidate 5: PRAGMA user_version upgrades legacy tables missing newer columns."""
         import sqlite3
+
         from src.core.db_manager import DatabaseManager
         test_dir = os.path.join("temp_data", "test_migration_ladder")
         os.makedirs(test_dir, exist_ok=True)
@@ -385,6 +386,7 @@ class TestClientCore(unittest.TestCase):
     def test_traffic_buffer_thread_safety(self):
         """Candidate 5: Traffic buffer operations are thread-safe and atomic across flushes."""
         import threading
+
         from src.core.db_manager import DatabaseManager
         test_dir = os.path.join("temp_data", "test_buffer_threads")
         os.makedirs(test_dir, exist_ok=True)

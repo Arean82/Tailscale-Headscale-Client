@@ -1,9 +1,18 @@
 # src/ui/components/node_dialog.py
 
 import json
-from PySide6.QtWidgets import QPushButton, QLineEdit, QComboBox, QListWidget, QListWidgetItem
+
 from PySide6.QtCore import QProcess, Qt
+from PySide6.QtWidgets import (
+    QComboBox,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QPushButton,
+)
+
 from .simple_dialogs import BaseUiDialog
+
 
 class NodeDialog(BaseUiDialog):
     def __init__(self, profile, manager, parent=None):
@@ -125,7 +134,7 @@ class NodeDialog(BaseUiDialog):
 
         # Populate listNativeSwitch
         if self.listNativeSwitch:
-            for name, p in self.manager.profiles.items():
+            for name in self.manager.profiles:
                 item = QListWidgetItem(name, self.listNativeSwitch)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
                 
@@ -330,10 +339,10 @@ class NodeDialog(BaseUiDialog):
                             if ip:
                                 self.lineEditEmergencyIp.setText(ip)
                                 self.lineEditEmergencyIp.setPlaceholderText("Resolved from live Control URL!")
-                    except Exception as res_err:
+                    except (OSError, ValueError) as res_err:
                         print("DEBUG [node_dialog]: Could not resolve ControlURL IP:", res_err)
                     
-            except Exception as e:
+            except (ValueError, TypeError, AttributeError) as e:
                 print("DEBUG [node_dialog]: Exception parsing prefs:", e)
                 
         self.prefs_proc.finished.connect(on_prefs_finished)
@@ -360,7 +369,7 @@ class NodeDialog(BaseUiDialog):
                 
                 # Parse exit nodes and map their subnet routes
                 peers = data.get("Peer") or {}
-                for peer_id, peer_info in peers.items():
+                for peer_info in peers.values():
                     # Parse primary subnet routes advertised by peer
                     allowed_ips = peer_info.get("AllowedIPs") or []
                     subnets = [ip for ip in allowed_ips if "/" in ip and not ip.endswith("/32") and not ip.endswith("/128")]
@@ -379,7 +388,7 @@ class NodeDialog(BaseUiDialog):
                         active_system_exit_node = target_name
 
                 # Deduplicate and sort exit nodes
-                exit_nodes = sorted(list(set(exit_nodes)))
+                exit_nodes = sorted(set(exit_nodes))
                 
                 if self.comboBoxExitNode:
                     self.comboBoxExitNode.blockSignals(True)
@@ -418,7 +427,7 @@ class NodeDialog(BaseUiDialog):
                         self.lineEditHostname.setText(ts_hostname)
                         self.lineEditHostname.setPlaceholderText("Detected from active connection!")
 
-            except Exception as e:
+            except (ValueError, TypeError, AttributeError) as e:
                 print("DEBUG [node_dialog]: Exception parsing status:", e)
                 
         self.status_proc.finished.connect(on_finished)

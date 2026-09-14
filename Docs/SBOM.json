@@ -9,14 +9,14 @@
       {
         "vendor": "Tailscale-Headscale-Client Engineering",
         "name": "AuditCompliancePackager",
-        "version": "2026.1.0"
+        "version": "5.0.0"
       }
     ],
     "component": {
       "name": "Tailscale-Headscale-Client",
-      "version": "2026.1.0",
+      "version": "5.0.0",
       "type": "application",
-      "bom-ref": "pkg:generic/tailscale-headscale-client@2026.1.0",
+      "bom-ref": "pkg:generic/tailscale-headscale-client@5.0.0",
       "description": "Enterprise PySide6 GUI Client for Tailscale & Headscale Mesh Networks with Zero-Trust Isolation, Full Keyboard Operability, and VPAT / Section 508 / EN 301 549 Compliance",
       "licenses": [
         {
@@ -196,7 +196,7 @@
   ],
   "dependencies": [
     {
-      "ref": "pkg:generic/tailscale-headscale-client@2026.1.0",
+      "ref": "pkg:generic/tailscale-headscale-client@5.0.0",
       "dependsOn": [
         "pkg:pypi/pyside6@6.8.0",
         "pkg:pypi/cryptography@43.0.1",

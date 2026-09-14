@@ -1,8 +1,9 @@
 import os
 import xml.etree.ElementTree as ET
 
+
 def clean_css_translations(file_path):
-    tree = ET.parse(file_path)
+    tree = ET.parse(file_path)  # noqa: S314 (parses this project's own checked-in translation XML, not untrusted input)
     root = tree.getroot()
     
     cleaned_count = 0
@@ -16,12 +17,11 @@ def clean_css_translations(file_path):
         if source is not None and source.text and translation is not None:
             text = source.text.lower().strip()
             # If it contains CSS properties or looks like a strict CSS block "{...}"
-            if any(marker in text for marker in css_markers) or (text.endswith(';') and ':' in text):
-                if translation.text and translation.get('type') != 'unfinished':
-                    # Erase the bad translation and mark it as unfinished
-                    translation.text = None
-                    translation.set('type', 'unfinished')
-                    cleaned_count += 1
+            if (any(marker in text for marker in css_markers) or (text.endswith(';') and ':' in text)) and translation.text and translation.get('type') != 'unfinished':
+                # Erase the bad translation and mark it as unfinished
+                translation.text = None
+                translation.set('type', 'unfinished')
+                cleaned_count += 1
                     
     if cleaned_count > 0:
         tree.write(file_path, encoding='utf-8', xml_declaration=True)

@@ -1,9 +1,9 @@
 # Tailscale & Headscale Client: Master Architecture Blueprint & Technical Specification 🏗️🛡️
 
-**Document ID:** THC-ARCH-SPEC-2026.1  
+**Document ID:** THC-ARCH-SPEC-5.0  
 **Classification:** Enterprise Engineering Blueprint & System Architecture  
-**Software Release:** 2026.1.0 Platinum LTS  
-**System State:** 100% Production Grade — Zero Stubs, Zero Speculation  
+**Software Release:** 5.0.0  
+**System State:** Verified Codebase Implementation  
 
 ---
 
@@ -137,32 +137,37 @@ The client communicates with the host Tailscale engine through a hybrid IPC pipe
 sequenceDiagram
     autonumber
     participant UI as 🖥️ Main UI Thread
-    participant QTh as ⚡ Background QThread
-    participant IPC as 🔌 Tailscale Service Wrapper
-    participant Engine as ⚙️ tailscaled Daemon
+    participant SM as 🚦 ConnectionStateMachine
+    participant TSMGR as ⚙️ TailscaleManager
+    participant Exec as ⚡ TailscaleExecutor (QProcess & Worker QThread)
+    participant Engine as 🛡️ tailscaled Daemon
 
-    UI->>QTh: emit request_connect(profile_params)
-    activate QTh
-    QTh->>IPC: execute_connect(server_url, auth_key)
-    activate IPC
-    IPC->>IPC: Validate binary path (tailscale / tailscale.exe)
-    alt LocalAPI Socket Available
-        IPC->>Engine: POST /localapi/v0/up {LoginServer: "...", Key: "..."}
-        Engine-->>IPC: HTTP 200 OK (Stream Status Response)
-    else CLI Fallback
-        IPC->>Engine: subprocess.Popen(["tailscale", "up", "--login-server=...", "--reset"])
-        Engine-->>IPC: Process returncode = 0 + stdout
+    UI->>SM: connect() / transition(CONNECTING)
+    activate SM
+    SM->>TSMGR: connect_args(params)
+    activate TSMGR
+    opt Server Switched
+        TSMGR->>Exec: request_prelogout(params)
+        Exec->>Engine: tailscale logout (Worker QThread, timeout=5s)
+        Engine-->>Exec: returncode
+        Exec-->>TSMGR: prelogout_done
     end
-    deactivate IPC
-    IPC-->>QTh: StatusPayload(State="Connected", IP="100.64.0.1")
-    QTh-->>UI: emit status_updated(StatusPayload)
-    deactivate QTh
-    UI->>UI: Refresh Badges, Re-draw Peer Grid
+    TSMGR->>Exec: run_command(["tailscale", "up", ...])
+    deactivate TSMGR
+    activate Exec
+    Exec->>Engine: QProcess.start("tailscale", ["up", ...])
+    Engine-->>Exec: stdout / stderr streaming
+    Exec-->>UI: emit output_received / sso_url_found
+    Engine-->>Exec: QProcess finished(exit_code)
+    Exec-->>SM: on_command_finished(exit_code)
+    deactivate Exec
+    SM-->>UI: emit state_changed(CONNECTED / ERROR)
+    deactivate SM
 ```
 
-### IPC Fallback Mechanism:
-1. **Primary Protocol**: Native Tailscale LocalAPI HTTP endpoint via platform socket (Unix Domain Socket on Linux/macOS; Windows Named Pipe or localhost security-token bound loopback on Windows).
-2. **Resilience Fallback**: Direct CLI invocation (`tailscale --json status`, `tailscale up`, `tailscale down`) wrapped in clean non-shell `subprocess` invocations with explicit execution timeouts (preventing zombie or hanging processes).
+### IPC & Status Polling Mechanism:
+1. **Interactive Commands (`tailscale up`, `switch`, `logout`)**: Handled asynchronously via streaming `QProcess` in `TailscaleExecutor`. Never blocks the Qt GUI event loop.
+2. **Telemetry & Fast Status Queries**: Polled through the LocalAPI socket (`/localapi/v0/status` over Named Pipe on Windows, Unix domain socket on Linux/macOS) with a 2-second timeout, gracefully falling back to non-blocking `tailscale status --json` executed on the dedicated `_BlockingWorker` thread.
 
 ---
 
@@ -178,12 +183,12 @@ flowchart LR
 
     Profile["📂 Profile Definition<br><i>ID: UUIDv4<br>Name: Corporate Lab<br>URL: https://hs.corp.net<br>Routes: 10.0.0.0/16</i>"]:::mem
     Split{"Separation of<br>Concerns"}
-    ConfFile[("🗄️ SQLite Vault (traffic_stats.db)<br><b>profiles & app_settings tables</b><br>(Topology, Routing, Preferences)<br><b>Zero Plaintext Keys</b>")]:::safe
-    Vault[("🔐 Hardware OS Vault<br><b>Windows DPAPI</b><br><b>macOS Keychain</b><br><b>Linux SecretService</b><br><i>Key: auth_key_UUIDv4</i>")]:::os
+    SQLite["🗄️ SQLite Database (traffic_stats.db)<br><b>profiles & app_settings</b><br>Stores: Non-sensitive topology & routes"]:::safe
+    Keyring["🔐 OS Secure Keyring<br><b>auth_key_{UUIDv4}</b><br>Stores: High-entropy pre-auth keys"]:::os
 
     Profile --> Split
-    Split -->|Network Topology & Flags| ConfFile
-    Split -->|Pre-Auth Key by UUIDv4| Vault
+    Split -->|Topology & Settings| SQLite
+    Split -->|Bearer Credentials| Keyring
 ```
 
 * **Elimination of File Fragmentation**: The client avoids legacy file fragmentation (which stored 20+ separate text files per profile) by maintaining a structured SQLite database (`traffic_stats.db`) with `profiles` and `app_settings` tables.
@@ -196,11 +201,10 @@ flowchart LR
 
 ## 6. PySide6 GUI Architecture & Qt Event Loop Threading
 
-To adhere to enterprise UI standards, the interface remains smooth and responsive at 60+ FPS, even during heavy network polling:
-
-* **Main Thread Isolation**: The Qt Main Thread (`QApplication`) only performs widget instantiation, layout calculation, user event dispatching, and graphics painting.
-* **Worker Execution**: All time-consuming tasks (pinging peers, issuing HTTP status requests, polling DERP latency) are executed inside background `QThread` instances.
-* **Thread Communication**: Workers communicate strictly via Qt's thread-safe **Signals and Slots** (`pyqtSignal` / `Signal`), eliminating Python GIL race conditions or invalid memory access across thread boundaries.
+The desktop interface uses PySide6 with native Qt signal-slot dispatching:
+* **Decoupled Architecture**: View widgets (`DashboardView`, `PeerDialog`, `NodeDialog`) communicate strictly via signals and delegate all execution to `ConnectionStateMachine` and `TailscaleExecutor`.
+* **Zero UI Freezing**: Long-running status calls, ping diagnostics, and prelogouts run on `_BlockingWorker` off the GUI thread.
+* **Themes & High-Contrast**: Supports native light/dark stylesheets and optional dynamic `qt-material` accents.
 
 ---
 
@@ -208,20 +212,9 @@ To adhere to enterprise UI standards, the interface remains smooth and responsiv
 
 The client implements full compliance with **EN 301 549 (Software Clause 11)** and **WCAG 2.1 Level AA**:
 
-* **Accessible Names & Descriptions (EN 301 549 11.1.1.1 / WCAG 1.1.1)**: Every widget across all `.ui` and view modules explicitly declares semantic titles and screen reader instructions:
-  ```python
-  widget.setAccessibleName("Unique Semantic Title")
-  widget.setAccessibleDescription("Detailed instruction and purpose for screen readers")
-  ```
-* **Decoupling from Color Alone (EN 301 549 11.1.4.1 / WCAG 1.4.1)**: System state and setting indicators never communicate meaning solely through red, green, or yellow hues. Every indicator combines high-contrast color badges with explicit text and symbol tokens (e.g., `✓ Active` vs `✗ Inactive`, `🔴 Disconnected` vs `🟢 Connected`).
-* **Keyboard Trap Immunity & Native Focus Mechanics (EN 301 549 11.2.1.2 & 11.2.1.8 / WCAG 2.1.1 & 2.1.2)**:
-  - **Architectural Preservation**: The core application architecture (Daemon IPC, QThread telemetry polling, Keyring storage, Profile manager, and WireGuard networking) remains completely untouched and pristine.
-  - **Native Qt Focus Progression**: Tab navigation operates purely via native Qt focus engine mechanics:
-    - Pressing <kbd>Tab</kbd> advances focus along the declarative `<tabstops>` order defined in `tab_widget.ui`.
-    - Pressing <kbd>Shift</kbd> + <kbd>Tab</kbd> steps backwards along the exact same chain.
-    - All visual indicators are rendered natively through the Qt stylesheet engine using the `:focus` pseudo-selector (`dark.qss`, `light.qss`, `vibrant.qss`), maintaining a $\ge$ 3.0:1 contrast ratio (WCAG SC 1.4.11).
-  - **Dialog Immunity**: All 11 `.ui` dialogs declare `<property name="default">` and `<property name="autoDefault">` on submit/dismiss buttons. Base dialog controllers (`BaseUiDialog`, `LicenseDialog`, `LogViewerDialog`, `ProfileNameDialog`, `ProgressDialog`) intercept <kbd>Escape</kbd>, <kbd>Return</kbd>, and <kbd>Enter</kbd> events via `keyPressEvent`, guaranteeing that keyboard focus can freely navigate into and out of every modal interface without becoming trapped.
-* **Focus Management (EN 301 549 11.2.4.7 / WCAG 2.4.7)**: Focus tab sequencing follows natural reading order, with high-visibility focus indicators meeting the 3.0:1 contrast ratio required by WCAG SC 1.4.11.
+* **Accessible Names & Descriptions (EN 301 549 11.1.1.1 / WCAG 1.1.1)**: Every widget across `.ui` and view modules explicitly declares semantic titles and screen reader instructions via `setAccessibleName` and `setAccessibleDescription`.
+* **Decoupling from Color Alone (EN 301 549 11.1.4.1 / WCAG 1.4.1)**: System state and setting indicators combine high-contrast color badges with explicit text tokens.
+* **Keyboard Trap Immunity (EN 301 549 11.2.1.2 & 11.2.1.8 / WCAG 2.1.1 & 2.1.2)**: All modal dialogs intercept <kbd>Esc</kbd> and <kbd>Enter</kbd> events, and focus sequencing follows logical `<tabstops>`.
 
 ---
 
@@ -229,19 +222,19 @@ The client implements full compliance with **EN 301 549 (Software Clause 11)** a
 
 | Platform | Process Detection | Sockets / Paths | Keyring Backend |
 | :--- | :--- | :--- | :--- |
-| **Windows** | `tailscaled.exe` via Windows Service Control Manager (`sc.exe` / win32service) | Named pipe `\\.\pipe\ProtectedPrefix\Administrators\Tailscale\tailscaled` | Microsoft Windows Credential Manager (`DPAPI`) |
+| **Windows** | `tailscaled.exe` via Windows Service Control Manager | Named pipe `\\.\pipe\ProtectedPrefix\Administrators\Tailscale\tailscaled` | Microsoft Windows Credential Manager (`DPAPI`) |
 | **Linux** | `systemctl is-active tailscaled` | `/var/run/tailscale/tailscaled.sock` | FreeDesktop SecretService / GNOME Keyring / KWallet |
-| **macOS** | `launchctl list | grep tailscale` | `/var/run/tailscaled.socket` | Apple Keychain Services |
+| **macOS** | CLI path resolution | `/var/run/tailscaled.socket` | Apple Keychain Services |
 
 ---
 
 ## 9. Telemetry, Status Parsing & In-Memory State Pipeline
 
 When `tailscale status --json` or the LocalAPI `/localapi/v0/status` is polled:
-1. The JSON payload is validated against expected schema schemas.
-2. The `Self` node dictionary is extracted to update IP allocations, advertised subnets, exit node state, and DERP relay ID.
-3. The `Peer` map is processed into structured `PeerNode` instances, calculating online/offline presence, rx/tx byte counters, and direct UDP vs DERP relay path states.
-4. Qt models emit targeted row-level updates to the `QTableWidget` to prevent jarring UI re-renders during active use.
+1. The JSON payload is parsed into dictionary format.
+2. The `BackendState` (e.g. `Running`, `NeedsLogin`, `NeedsMachineAuth`) is mapped to unified `(is_connected, status_text, ips)` tuples via `status_from_json()`.
+3. Self node IP addresses (`TailscaleIPs`) and peer metrics are displayed on the dashboard without blocking the main event loop.
+4. Traffic deltas are buffered thread-safely in `DatabaseManager` and flushed periodically to `traffic_data` in SQLite.
 
 ---
 

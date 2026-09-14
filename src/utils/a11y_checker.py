@@ -5,9 +5,10 @@ Checks for native AT-SPI2 / Orca (Linux), Speech Synthesis / Media features (Win
 and VoiceOver (macOS), providing copy-pasteable terminal remediation commands.
 """
 
-import sys
 import os
 import shutil
+import sys
+
 
 class A11yCheckResult:
     def __init__(self, is_healthy: bool, title: str, summary: str, details: str, remediation_cmd: str = "", package_manager: str = ""):

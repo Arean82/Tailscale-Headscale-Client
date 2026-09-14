@@ -39,9 +39,9 @@ def get_tailscale_path():
 
     elif sys.platform == "win32":
         win_paths = [
-            os.path.join(os.environ.get("ProgramFiles", "C:\\Program Files"), "Tailscale", "tailscale.exe"),
-            os.path.join(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)"), "Tailscale", "tailscale.exe"),
-            os.path.join(os.environ.get("LocalAppData", ""), "Programs", "Tailscale", "tailscale.exe")
+            os.path.join(os.environ.get("ProgramFiles", "C:\\Program Files"), "Tailscale", "tailscale.exe"),  # noqa: SIM112 (Windows env var names)
+            os.path.join(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)"), "Tailscale", "tailscale.exe"),  # noqa: SIM112 (Windows env var names)
+            os.path.join(os.environ.get("LocalAppData", ""), "Programs", "Tailscale", "tailscale.exe")  # noqa: SIM112 (Windows env var names)
         ]
         for path in win_paths:
             if os.path.exists(path):
@@ -127,18 +127,18 @@ class _BlockingWorker(QObject):
                 payload = {"connected": connected, "text": text, "ips": ips, "raw_data": data}
                 self.status_ready.emit(payload)
                 return
-            except Exception:
+            except (RuntimeError, OSError, ValueError) as e:
                 # Local API unavailable; fall through to the CLI on this thread
-                pass
+                logger.debug(f"Local API status query failed, falling back to CLI: {e}")
 
         try:
             result = subprocess.run(
                 [get_tailscale_path(), "status", "--json"],
-                capture_output=True, text=True, timeout=6, **_popen_kwargs()
+                capture_output=True, text=True, timeout=6, check=False, shell=False, **_popen_kwargs()
             )
             try:
                 data = json.loads(result.stdout)
-            except Exception:
+            except (ValueError, TypeError):
                 data = {}
             if data:
                 connected, text, ips = status_from_json(data)
@@ -158,7 +158,7 @@ class _BlockingWorker(QObject):
         try:
             result = subprocess.run(
                 [get_tailscale_path()] + list(args),
-                capture_output=True, text=True, timeout=timeout, **_popen_kwargs()
+                capture_output=True, text=True, timeout=timeout, check=False, shell=False, **_popen_kwargs()
             )
             self.cli_done.emit(op_id, result.returncode, result.stdout, result.stderr)
         except subprocess.TimeoutExpired:
@@ -175,7 +175,7 @@ class _BlockingWorker(QObject):
         try:
             result = subprocess.run(
                 [get_tailscale_path(), "logout"],
-                capture_output=True, timeout=5, **_popen_kwargs()
+                capture_output=True, timeout=5, check=False, shell=False, **_popen_kwargs()
             )
             ok = result.returncode == 0
         except (subprocess.SubprocessError, OSError) as e:
@@ -258,8 +258,8 @@ class TailscaleExecutor(QObject):
     def _extract_auth_url(self, text: str) -> "str | None":
         """Deterministically extracts and validates an authentication/registration URL without regex."""
         import urllib.parse
-        for line in text.splitlines():
-            line = line.strip()
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
             if not line:
                 continue
             for token in line.split():
@@ -339,20 +339,20 @@ class TailscaleExecutor(QObject):
         try:
             result = subprocess.run(
                 [get_tailscale_path(), "status", "--json"],
-                capture_output=True, text=True, timeout=timeout, **_popen_kwargs()
+                capture_output=True, text=True, timeout=timeout, check=False, shell=False, **_popen_kwargs()
             )
             data = json.loads(result.stdout)
             state = data.get("BackendState")
             is_connected = (state != "NeedsLogin" and state != "Stopped" and state != "NoState")
             return is_connected, state
-        except Exception:
+        except (subprocess.SubprocessError, OSError, ValueError):
             return False, "Error"
 
     def logout_sync(self, timeout=5):
         try:
             subprocess.run(
                 [get_tailscale_path(), "logout"],
-                capture_output=True, timeout=timeout, **_popen_kwargs()
+                capture_output=True, timeout=timeout, check=False, shell=False, **_popen_kwargs()
             )
         except (subprocess.SubprocessError, OSError):
             # Service may already be logged out or stopped

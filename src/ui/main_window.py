@@ -213,7 +213,7 @@ class MainWindow(QMainWindow):
                     output = self.poll_proc.readAllStandardError().data().decode(errors="ignore").lower() + \
                              self.poll_proc.readAllStandardOutput().data().decode(errors="ignore").lower()
                     is_running = not ("failed to connect" in output or "tailscaled may not be running" in output or self.poll_proc.exitCode() != 0)
-                except Exception:
+                except RuntimeError:
                     is_running = False
                 finally:
                     self.poll_proc.deleteLater()
@@ -302,7 +302,7 @@ class MainWindow(QMainWindow):
             return
 
         # Cleanup empty profile directories
-        for name in self.manager.profiles.keys():
+        for name in self.manager.profiles:
             try:
                 profile_dir = self.manager._get_tab_dir(name)
             except (PermissionError, ValueError):
@@ -324,15 +324,14 @@ class MainWindow(QMainWindow):
 
     def changeEvent(self, event):
         # Match legacy logic: Hide to tray on minimize (gui/gui_main.py:171-172)
-        if event.type() == QEvent.WindowStateChange:
-            if self.isMinimized():
-                self.hide()
-                self.tray_icon.showMessage(
-                    "Tailscale Client Pro",
-                    "Application minimized to tray.",
-                    QSystemTrayIcon.Information,
-                    2000
-                )
+        if event.type() == QEvent.WindowStateChange and self.isMinimized():
+            self.hide()
+            self.tray_icon.showMessage(
+                "Tailscale Client Pro",
+                "Application minimized to tray.",
+                QSystemTrayIcon.Information,
+                2000
+            )
         super().changeEvent(event)
 
     def _on_tab_changed(self, index):
@@ -361,9 +360,8 @@ class MainWindow(QMainWindow):
             if self.tabWidget.count() > target_idx:
                 self.tabWidget.setCurrentIndex(target_idx)
                 view = self.tabWidget.widget(target_idx)
-                if hasattr(view, "toggle_connection"):
-                    if not self.ts_manager.check_status()[0]:
-                        view.toggle_connection()
+                if hasattr(view, "toggle_connection") and not self.ts_manager.check_status()[0]:
+                    view.toggle_connection()
 
     def ensure_initial_profile(self):
         if not self.manager.profiles:
@@ -596,11 +594,10 @@ class MainWindow(QMainWindow):
         """Enable/disable profile actions based on connection status."""
         # Trigger native desktop notification on state change
         if hasattr(self, 'last_status_text'):
-            if self.last_status_text != status_text and self.last_status_text is not None:
-                if hasattr(self, 'tray_icon') and self.tray_icon:
-                    title = "Tailscale Connected" if is_connected else "Tailscale Status"
-                    icon = QSystemTrayIcon.Information if is_connected else QSystemTrayIcon.Warning if "Approval" in status_text else QSystemTrayIcon.Information
-                    self.tray_icon.showMessage(title, f"VPN tunnel status is now {status_text}.", icon, 3000)
+            if self.last_status_text != status_text and self.last_status_text is not None and hasattr(self, 'tray_icon') and self.tray_icon:
+                title = "Tailscale Connected" if is_connected else "Tailscale Status"
+                icon = QSystemTrayIcon.Information if is_connected else QSystemTrayIcon.Warning if "Approval" in status_text else QSystemTrayIcon.Information
+                self.tray_icon.showMessage(title, f"VPN tunnel status is now {status_text}.", icon, 3000)
             self.last_status_text = status_text
 
         can_edit = not is_connected
@@ -694,9 +691,9 @@ class MainWindow(QMainWindow):
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         qss_path = os.path.join(base_dir, "assets", "themes", f"{target_theme}.qss")
         try:
-            with open(qss_path, "r", encoding="utf-8") as f:
+            with open(qss_path, encoding="utf-8") as f:
                 style = f.read()
-        except Exception:
+        except OSError:
             style = ""
             
         # Apply style ONLY to the TabWidget
@@ -862,7 +859,7 @@ class MainWindow(QMainWindow):
             try:
                 self.tabWidget.currentChanged.disconnect(self._on_tab_changed)
             except (RuntimeError, TypeError) as sig_err:
-                warnings.warn(f"Tab currentChanged disconnect: {sig_err}", category=RuntimeWarning)
+                warnings.warn(f"Tab currentChanged disconnect: {sig_err}", category=RuntimeWarning, stacklevel=2)
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
     def update_advanced_menu_state(self):
@@ -916,7 +913,7 @@ class MainWindow(QMainWindow):
             
             if raw_data:
                 peers = raw_data.get("Peer", {}) or {}
-                for peer_id, peer in peers.items():
+                for peer in peers.values():
                     if peer.get("ExitNodeOption"):
                         name = peer.get("HostName") or peer.get("DNSName", "").split(".")[0]
                         ips = peer.get("TailscaleIPs", [""])
@@ -953,7 +950,7 @@ class MainWindow(QMainWindow):
         try:
             self.ts_manager.worker.run_command(["up", f"--exit-node={ip}"])
             self.ts_manager.check_status(force=True)
-        except Exception as e:
+        except RuntimeError as e:
             print(f"[DEBUG Tray Switcher] Failed to set exit node: {e}")
 
     def _check_screen_reader_on_startup(self):
