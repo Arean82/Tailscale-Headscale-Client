@@ -105,8 +105,8 @@ def _check_windows_a11y() -> A11yCheckResult:
         mf_dll = os.path.join(system32, "mf.dll")
         if not os.path.exists(mf_dll):
             is_windows_n = True
-    except Exception:
-        pass
+    except OSError:
+        is_windows_n = False
 
     if is_windows_n:
         ps_cmd = 'DISM /Online /Add-Capability /CapabilityName:Media.MediaFeaturePack~~~~0.0.1.0'

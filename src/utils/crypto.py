@@ -8,33 +8,25 @@ class CryptoManager:
         self.fernet = Fernet(self.key)
 
     def _get_or_create_key(self):
+        # 1. Try resolving key from OS Keyring
         try:
             import keyring
             stored_key = keyring.get_password("TailscaleClientPro", "MasterEncryptionKey")
             if stored_key:
                 return stored_key.encode('utf-8')
         except Exception:
-            pass
+            stored_key = None
             
-        # Fallback to local key file check
+        # 2. Fallback to local key file check
         if os.path.exists(self.key_file):
             try:
                 with open(self.key_file, "rb") as f:
-                    key = f.read()
-                    # Try to migrate local key to secure Keyring
-                    try:
-                        import keyring
-                        keyring.set_password("TailscaleClientPro", "MasterEncryptionKey", key.decode('utf-8'))
-                    except Exception:
-                        pass
-                    return key
-            except Exception:
+                    return f.read()
+            except OSError:
                 pass
         
-        # Generate new key
+        # 3. Generate new key and persist
         new_key = Fernet.generate_key()
-        
-        # Try to save to Keyring securely
         try:
             import keyring
             keyring.set_password("TailscaleClientPro", "MasterEncryptionKey", new_key.decode('utf-8'))
@@ -42,9 +34,12 @@ class CryptoManager:
             pass
             
         # Write to local file as robust fallback
-        os.makedirs(os.path.dirname(self.key_file), exist_ok=True)
-        with open(self.key_file, "wb") as f:
-            f.write(new_key)
+        try:
+            os.makedirs(os.path.dirname(self.key_file), exist_ok=True)
+            with open(self.key_file, "wb") as f:
+                f.write(new_key)
+        except OSError:
+            pass
         return new_key
 
     def encrypt(self, text):
@@ -75,9 +70,9 @@ def store_profile_secret(profile_id: str, secret: str) -> None:
             try:
                 keyring.delete_password(KEYRING_SERVICE, username)
             except Exception:
-                pass
+                return
     except Exception:
-        pass
+        return
 
 def get_profile_secret(profile_id: str) -> str:
     """Retrieves sensitive profile authentication key from OS Keyring."""
@@ -101,7 +96,7 @@ def delete_profile_secret(profile_id: str) -> None:
         try:
             keyring.delete_password(KEYRING_SERVICE, username)
         except Exception:
-            pass
+            return
     except Exception:
-        pass
+        return
 

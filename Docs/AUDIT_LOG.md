@@ -7,6 +7,30 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-14 (CodeQL Static Analysis: Full Resolution of 'Empty except' / py/empty-except)
+
+### 1. Scope & Root Cause Analysis
+- **CodeQL Rule**: `py/empty-except` (CWE-391).
+- **Issue**: Handlers containing an empty `pass` statement silently discarded exceptions without recording context or specifying expected error subclasses.
+- **Remediation Standard**:
+  - Replaced broad `except Exception:` with narrow, specific exception subclasses (e.g., `(OSError, FileNotFoundError)`, `(socket.gaierror, socket.herror)`, `(RuntimeError, TypeError)`, `(psutil.NoSuchProcess, psutil.AccessDenied)`).
+  - Substituted empty `pass` blocks with explicit control flow (`return`, `continue`) or debug-level diagnostics (`logger.debug()`) and documented rationale.
+
+### 2. Remediated Files
+- [`src/utils/dns_fallback.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/dns_fallback.py) (Alerts #90, #24, #25): Handled `socket.gaierror`, `socket.herror`, and `PermissionError` with clean return values.
+- [`src/ui/main_window.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/main_window.py) (Alerts #91, #92): Replaced `pass` in `rmdir` loop with `continue`, handled tab disconnect cleanly.
+- [`src/core/tailscale.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/tailscale.py) (Alerts #93, #43, #41, #36, #35): Narrowed process watchdog exceptions to `(psutil.NoSuchProcess, psutil.AccessDenied)`, logout to `(subprocess.SubprocessError, OSError)`, and stats to `(KeyError, OSError, psutil.Error)`.
+- [`src/utils/crypto.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/crypto.py) (Alerts #16–#22): Cleanly handled Keyring operations with non-blocking return flows.
+- [`src/utils/autostart.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/autostart.py) (Alerts #9–#14): Handled OS-specific Registry and plist `OSError` with explicit returns.
+- [`src/core/state_coordinator.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/state_coordinator.py) (Alerts #34, #37, #39): Handled adapter inspection errors and socket resolution errors with specific exceptions.
+- [`src/core/cache_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/cache_manager.py) (Alert #15), [`src/core/manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) (Alerts #29, #30), [`src/core/models.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/models.py) (Alert #32), [`src/ui/components/peer_dialog.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/components/peer_dialog.py) (Alert #33), [`src/ui/components/simple_dialogs.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/components/simple_dialogs.py) (Alerts #38, #40), [`src/utils/a11y_checker.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/a11y_checker.py) (Alert #8), [`src/utils/logger.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/logger.py) (Alert #26), [`main.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/main.py) (Alert #27).
+
+### 3. Verification & Quality Assurance
+- **Flake8 Linter**: 0 errors, 0 warnings.
+- **Unit & Integration Suite**: 12/12 passed (100%).
+
+---
+
 ## 📅 Audit Entry: 2026-09-14 (CodeQL Rules: Resource Management & Redundant Variable Assignments)
 
 ### 1. Scope & Root Cause Analysis

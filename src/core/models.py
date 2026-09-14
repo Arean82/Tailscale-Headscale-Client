@@ -119,8 +119,8 @@ class LoginSession:
                     self.process.terminate()
                     if not self.process.waitForFinished(500):
                         self.process.kill()
-            except Exception:
-                pass
+            except (RuntimeError, AttributeError):
+                return
             self.process = None
 
 

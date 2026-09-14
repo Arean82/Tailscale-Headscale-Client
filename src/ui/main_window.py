@@ -298,7 +298,8 @@ class MainWindow(QMainWindow):
                 try:
                     os.rmdir(profile_dir)
                 except OSError:
-                    pass
+                    # Ignore directory-not-empty or in-use errors on exit
+                    continue
                 
         # Final flush of traffic data before exit to prevent data loss
         if hasattr(self.manager, 'db'):
@@ -846,8 +847,8 @@ class MainWindow(QMainWindow):
             warnings.simplefilter("ignore", category=RuntimeWarning)
             try:
                 self.tabWidget.currentChanged.disconnect(self._on_tab_changed)
-            except (RuntimeError, TypeError):
-                pass
+            except (RuntimeError, TypeError) as sig_err:
+                warnings.warn(f"Tab currentChanged disconnect: {sig_err}", category=RuntimeWarning)
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
     def update_advanced_menu_state(self):

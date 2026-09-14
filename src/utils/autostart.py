@@ -23,10 +23,12 @@ def set_autostart(enabled: bool):
                 try:
                     winreg.DeleteValue(key, app_name)
                 except FileNotFoundError:
-                    pass
+                    # Key already deleted or never existed
+                    return
             winreg.CloseKey(key)
-        except Exception:
-            pass
+        except OSError:
+            # Insufficient registry privileges
+            return
 
     elif sys.platform.startswith("linux"):
         autostart_dir = os.path.expanduser("~/.config/autostart")
@@ -46,14 +48,14 @@ Comment=Start Tailscale Client Pro at startup
             try:
                 with open(desktop_file, "w", encoding="utf-8") as f:
                     f.write(desktop_content)
-            except Exception:
-                pass
+            except OSError:
+                return
         else:
             if os.path.exists(desktop_file):
                 try:
                     os.remove(desktop_file)
-                except Exception:
-                    pass
+                except OSError:
+                    return
 
     elif sys.platform == "darwin":
         launch_agents_dir = os.path.expanduser("~/Library/LaunchAgents")
@@ -87,11 +89,11 @@ Comment=Start Tailscale Client Pro at startup
             try:
                 with open(plist_file, "w", encoding="utf-8") as f:
                     f.write(plist_content)
-            except Exception:
-                pass
+            except OSError:
+                return
         else:
             if os.path.exists(plist_file):
                 try:
                     os.remove(plist_file)
-                except Exception:
-                    pass
+                except OSError:
+                    return

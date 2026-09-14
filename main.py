@@ -91,7 +91,8 @@ if __name__ == "__main__":
             import ctypes
             myappid = 'arean82.tailscale.headscale.client.pro'
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-        except Exception:
+        except (AttributeError, OSError):
+            # Shell32 or AppUserModelID not available on non-Windows/wine
             pass
             
     # Dynamically set app name to match the running .exe name (specified in your .spec file)
