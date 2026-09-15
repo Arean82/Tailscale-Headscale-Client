@@ -22,11 +22,15 @@ def _open_pipe_bounded(pipe_path, timeout):
     a daemon and will die with the process) and raise TimeoutError.
     """
     result = {}
+    claimed = threading.Event()
 
     def _open():
         try:
-            # Explicitly yielded to caller's context manager and closed deterministically in finally block below
-            result["f"] = open(pipe_path, "r+b", buffering=0)  # noqa: SIM115  # lgtm [py/file-not-closed]
+            f = open(pipe_path, "r+b", buffering=0)
+            if claimed.is_set():
+                f.close()
+                return
+            result["f"] = f
         except OSError as e:
             result["e"] = e
 
@@ -34,6 +38,7 @@ def _open_pipe_bounded(pipe_path, timeout):
     opener.start()
     opener.join(timeout)
     if "f" in result:
+        claimed.set()
         handle = result["f"]
         try:
             yield handle
@@ -42,6 +47,7 @@ def _open_pipe_bounded(pipe_path, timeout):
         return
     if "e" in result:
         raise result["e"]
+    claimed.set()
     raise TimeoutError(f"Named pipe open timed out after {timeout}s")
 
 
