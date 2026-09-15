@@ -122,8 +122,8 @@ Communication between the desktop client and the background `tailscaled` service
 
 ## 7. GitHub CodeQL Continuous Static Analysis (SAST)
 
-The project enforces continuous static application security testing via GitHub CodeQL:
-* **Workflow**: [`.github/workflows/codeql.yml`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/.github/workflows/codeql.yml)
+The project enforces continuous static application security testing via GitHub CodeQL (Action v4):
+* **Workflow**: [`.github/workflows/codeql.yml`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/.github/workflows/codeql.yml) (`github/codeql-action/init@v4`, `analyze@v4`)
 * **Query Suites**: `security-extended`, `security-and-quality`
 * **Trigger Cadence**: Automated on every `push` and `pull_request` targeting `main`, alongside recurring weekly automated scans.
 * **Audit Result**: **0 open alerts** across all severity levels (Critical, High, Medium, Low, and Quality Notes).

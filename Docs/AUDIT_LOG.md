@@ -55,12 +55,18 @@
     - **Fernet Ciphertext Dropping**: [`decrypt_legacy_key`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/crypto.py) drops un-decryptable `gAAAA` ciphertext with an explicit warning when `master.key` is missing.
     - **Profile Rename Action**: Added "Rename Current Profile..." to the Profile menu and wired to [`rename_profile`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) via interactive dialog.
     - **Extra Args & Accept Risk UI**: Connected `lineEditExtraArgs` and `lineEditAcceptRisk` in [`node.ui`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/pygui/dialogs/node.ui) and [`node_dialog.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/components/node_dialog.py).
+    - **CodeQL Action v4 Migration**: Upgraded [`.github/workflows/codeql.yml`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/.github/workflows/codeql.yml) steps (`init`, `analyze`) from deprecated `v3` to `v4` in compliance with GitHub Actions deprecation guidelines.
+    - **CodeQL SAST Zero-Alert Remediation**:
+      - Fixed Alert #98 (`src/core/executor.py`): Eliminated duplicate variable declaration in `run_status`.
+      - Fixed Alert #100 (`src/utils/local_api.py`): Refactored `_open_pipe_bounded` with `@contextlib.contextmanager` and deterministic `finally: handle.close()` block.
+      - Fixed Alert #99 (`src/core/tailscale.py`): Removed unused `QProcess` import.
+      - Fixed Alert #97 (`tests/test_executor.py`): Replaced unused global `_app` assignment with safe singleton initialization `if QCoreApplication.instance() is None: QCoreApplication([])`.
 
 ### 2. Verification & Quality Assurance
 - **Static Typing Audit**: `mypy src/`
   - **Result**: `Success: no issues found in 30 source files` (0 errors).
 - **Full Test Suite Execution**: `pytest tests/ -q`
-  - **Result**: **34 passed in 4.80s (100% pass rate)**.
+  - **Result**: **47 passed in 4.90s (100% pass rate)**.
 - **Defects / Stale Backend Processes**: 0 unresolved, 0 active stale tasks.
 
 ---
