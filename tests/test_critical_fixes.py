@@ -14,11 +14,12 @@ class TestCriticalBugFixes(unittest.TestCase):
         """Bug 1: windowed (console=False) builds have sys.__stdout__/__stderr__ = None;
         restoring them directly made every print() raise inside Qt slots."""
         from src.utils.logger import manage_sys_streams
-        real_dunder_out, real_dunder_err = sys.__stdout__, sys.__stderr__
-        saved_stdout, saved_stderr = sys.stdout, sys.stderr
-        try:
-            sys.__stdout__ = None
-            sys.__stderr__ = None
+        # patch.object: mypy rejects direct assignment to the final dunders
+        # (ruff rejects setattr), and patch restores every stream on exit.
+        with patch.object(sys, "__stdout__", None), \
+                patch.object(sys, "__stderr__", None), \
+                patch.object(sys, "stdout", sys.stdout), \
+                patch.object(sys, "stderr", sys.stderr):
             manage_sys_streams(False, None)
             self.assertIsNotNone(sys.stdout)
             self.assertIsNotNone(sys.stderr)
@@ -26,9 +27,6 @@ class TestCriticalBugFixes(unittest.TestCase):
             sys.stdout.write("direct write")
             sys.stdout.flush()
             self.assertFalse(sys.stdout.isatty())
-        finally:
-            sys.__stdout__, sys.__stderr__ = real_dunder_out, real_dunder_err
-            sys.stdout, sys.stderr = saved_stdout, saved_stderr
 
     def test_apply_fallback_pins_domain_when_dns_fails(self):
         """Bug 2: the inverted early-return skipped the hosts-file edit exactly

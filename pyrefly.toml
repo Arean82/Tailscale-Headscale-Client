@@ -1,0 +1,24 @@
+# Pyrefly configuration (IDE type checker).
+#
+# The project's top-level package is literally named `src`, so the repository
+# root is the import root. Without this file, Pyrefly's src-layout heuristic
+# infers `<repo>/src` as the import root, which makes every `import src.*`
+# unresolvable with: Cannot find module `src.core.tailscale`.
+
+python-version = "3.12"
+
+# Repository root is the import root for the `src`, `tests` and `scripts` packages.
+search-path = ["."]
+
+# Never auto-add `<config dir>/src` (or other guessed roots) as an import root.
+disable-search-path-heuristics = true
+
+# Only the project's own sources are checked. Generated/derived trees (build/,
+# dist/, temp_data/, caches) are never included: dist/ holds a stale copy of
+# src/ from the last PyInstaller build, which would duplicate every module.
+project-includes = [
+    "src/**",
+    "tests/**",
+    "scripts/**",
+    "main.py",
+]

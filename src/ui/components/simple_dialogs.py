@@ -139,6 +139,76 @@ def get_logical_filename(url):
     return clean
 
 
+def badge_download_url(url):
+    """Returns the fetch URL that yields a real PNG from shields.io.
+
+    shields.io serves SVG unless '.png' appears before the query string, so
+    downloading the README badge URL as-is would cache SVG bytes under a .png
+    filename (which QTextBrowser then fails to render).
+    """
+    if "img.shields.io" not in url:
+        return url
+    path, sep, query = url.partition("?")
+    if path.endswith(".png"):
+        return url
+    return f"{path}.png{sep}{query}"
+
+
+def resolve_readme_images(md_text, base_dir, cache_dirs):
+    """Resolves local relative image paths and cache-resident remote badges.
+
+    Remote images present in any of `cache_dirs` (searched in priority order,
+    first hit wins) are rewritten to local file URLs so the README renders
+    fully offline. URLs not found in any cache dir are returned as missing so
+    the caller can fetch them in the background.
+    """
+    # 1. Resolve local relative images (e.g., ../assets/image.png, assets/...)
+    def resolve_local_img(match):
+        alt_text = match.group(1)
+        rel_path = match.group(2)
+        if rel_path.startswith(("http://", "https://")):
+            return match.group(0)
+        clean_path = rel_path.replace("../", "").replace("./", "")
+        candidate = os.path.join(base_dir, clean_path)
+        if os.path.exists(candidate):
+            return f"![{alt_text}]({QUrl.fromLocalFile(candidate).toString()})"
+        return match.group(0)
+
+    md_text = re.sub(r'!\[(.*?)\]\((.*?)\)', resolve_local_img, md_text)
+
+    # Also resolve HTML <img src="..."> tags
+    def resolve_html_img(match):
+        pre = match.group(1)
+        src = match.group(2)
+        post = match.group(3)
+        if src.startswith(("http://", "https://")):
+            return match.group(0)
+        clean_path = src.replace("../", "").replace("./", "")
+        candidate = os.path.join(base_dir, clean_path)
+        if os.path.exists(candidate):
+            return f'<img{pre}src="{QUrl.fromLocalFile(candidate).toString()}"{post}>'
+        return match.group(0)
+
+    md_text = re.sub(r'<img([^>]*?)src=["\'](.*?)["\']([^>]*?)>', resolve_html_img, md_text)
+
+    # 2. Remote badges: prefer any cache dir, otherwise report as missing
+    img_urls = re.findall(r'!\[.*?\]\((https?://.*?)\)', md_text)
+    img_urls += re.findall(r'<img.*?src=["\'](https?://.*?)["\']', md_text)
+
+    missing_urls = []
+    for url in set(img_urls):
+        filename = get_logical_filename(url)
+        for cache_dir in cache_dirs:
+            local_path = os.path.join(cache_dir, filename)
+            if os.path.exists(local_path):
+                md_text = md_text.replace(url, QUrl.fromLocalFile(local_path).toString())
+                break
+        else:
+            missing_urls.append(url)
+
+    return md_text, missing_urls
+
+
 class ImageDownloadWorker(QObject):
     image_ready = Signal()
 
@@ -155,14 +225,15 @@ class ImageDownloadWorker(QObject):
             
             if not os.path.exists(local_path):
                 try:
-                    r = requests.get(url, headers=headers, timeout=10)
+                    # Fetch the PNG form so the cached file matches its .png name
+                    r = requests.get(badge_download_url(url), headers=headers, timeout=10)
                     if r.status_code == 200:
                         with open(local_path, 'wb') as f:
                             f.write(r.content)
                         self.image_ready.emit()
                 except OSError as e:
                     print(f"DEBUG: Download failed for {url}: {e}")
-        
+
 class ReadmeDialog(BaseUiDialog):
     def __init__(self, theme="light", parent=None):
         super().__init__("readme.ui", parent)
@@ -305,55 +376,19 @@ class ReadmeDialog(BaseUiDialog):
             app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
         else:
             app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
-            
-        cache_dir = os.path.join(app_dir, "assets", "cache")
-        os.makedirs(cache_dir, exist_ok=True)
-        
-        # 1. Resolve local relative images (e.g., ../assets/image.png, assets/...)
-        def resolve_local_img(match):
-            alt_text = match.group(1)
-            rel_path = match.group(2)
-            if rel_path.startswith(("http://", "https://")):
-                return match.group(0)
-            clean_path = rel_path.replace("../", "").replace("./", "")
-            candidate = os.path.join(base_dir, clean_path)
-            if os.path.exists(candidate):
-                return f"![{alt_text}]({QUrl.fromLocalFile(candidate).toString()})"
-            return match.group(0)
 
-        md_text = re.sub(r'!\[(.*?)\]\((.*?)\)', resolve_local_img, md_text)
-        
-        # Also resolve HTML <img src="..."> tags
-        def resolve_html_img(match):
-            pre = match.group(1)
-            src = match.group(2)
-            post = match.group(3)
-            if src.startswith(("http://", "https://")):
-                return match.group(0)
-            clean_path = src.replace("../", "").replace("./", "")
-            candidate = os.path.join(base_dir, clean_path)
-            if os.path.exists(candidate):
-                return f'<img{pre}src="{QUrl.fromLocalFile(candidate).toString()}"{post}>'
-            return match.group(0)
+        writable_cache = os.path.join(app_dir, "assets", "cache")
+        os.makedirs(writable_cache, exist_ok=True)
 
-        md_text = re.sub(r'<img([^>]*?)src=["\'](.*?)["\']([^>]*?)>', resolve_html_img, md_text)
+        # The build ships a prefetched badge cache (assets/cache) so the README
+        # renders offline on first run instead of waiting on shields.io.
+        if hasattr(sys, '_MEIPASS'):
+            bundled_cache = os.path.join(sys._MEIPASS, "assets", "cache")
+        else:
+            bundled_cache = os.path.join(base_dir, "assets", "cache")
 
-        # 2. Remote URLs check and caching
-        img_urls = re.findall(r'!\[.*?\]\((https?://.*?)\)', md_text)
-        img_urls += re.findall(r'<img.*?src=["\'](https?://.*?)["\']', md_text)
-        
-        missing_urls = []
-        for url in set(img_urls):
-            filename = get_logical_filename(url)
-            local_path = os.path.join(cache_dir, filename)
-            
-            if os.path.exists(local_path):
-                local_url = QUrl.fromLocalFile(local_path).toString()
-                md_text = md_text.replace(url, local_url)
-            else:
-                missing_urls.append(url)
-            
-        return md_text, missing_urls
+        # Writable cache first (freshest), then the cache shipped inside the build
+        return resolve_readme_images(md_text, base_dir, [writable_cache, bundled_cache])
 
     def _start_background_download(self, urls):
         """Launches the background thread to fetch images."""
@@ -371,10 +406,11 @@ class ReadmeDialog(BaseUiDialog):
         self.worker.moveToThread(self.download_thread)
         
         self.download_thread.started.connect(self.worker.run)
-        self.worker.image_ready.connect(self.load_readme) # Refresh on every image
-        
-        # Cleanup
-        self.worker.image_ready.connect(self.worker.deleteLater)
+        self.worker.image_ready.connect(self.load_readme) # Refresh after each cached image
+
+        # Cleanup: retire the worker only after run() returns, otherwise the
+        # worker is deleted after the first image and the rest never download.
+        self.download_thread.finished.connect(self.worker.deleteLater)
         self.download_thread.finished.connect(self.download_thread.deleteLater)
         
         self.download_thread.start()

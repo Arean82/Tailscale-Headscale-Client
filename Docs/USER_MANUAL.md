@@ -192,7 +192,17 @@ This software has been certified under **EN 301 549 (Software Clause 11)** and *
 
 | Key Combination | Action Scope | Operation |
 | :--- | :--- | :--- |
+| <kbd>Ctrl</kbd> + <kbd>Return</kbd> | Main Window / Active Tab | **Connect / Disconnect VPN** toggle |
+| <kbd>Ctrl</kbd> + <kbd>,</kbd> | Application Global | Open **Settings Dialog** |
+| <kbd>Ctrl</kbd> + <kbd>Q</kbd> | Application Global | **Quit / Exit Application** |
+| <kbd>Ctrl</kbd> + <kbd>N</kbd> | Application Global | **Add New Profile** modal |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Application Global | **Remove Current Profile** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Application Global | Open **Peer List Dialog** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> | Application Global | Open **Network Diagnostics Dialog** |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>A</kbd> | Application Global | Open **Advanced Node Options** |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Application Global | **Check Screen Reader & AT Setup** (Launches interactive accessibility diagnostics) |
+| <kbd>F1</kbd> | Application Global | Open **About Dialog** |
+| <kbd>Shift</kbd> + <kbd>F1</kbd> | Application Global | Open **Documentation & Readme Viewer** |
 
 ### Universal Focus Navigation & Dialog Controls
 

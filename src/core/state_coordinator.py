@@ -187,7 +187,7 @@ class StateCoordinator(QObject):
         
         # Cache status to prevent multiple background processes
         self._cached_status = None
-        self._last_status_query_time = 0
+        self._last_status_query_time: float = 0.0
         self._query_cooldown_seconds = 2.0  # Coalesce queries within 2 seconds
         
         # Self-healing and Observability metrics
@@ -267,14 +267,20 @@ class StateCoordinator(QObject):
         # 2. WiFi / Network Switch Watchdog
         try:
             import psutil
-            current_adapters = list(psutil.net_if_addrs().keys())
-            if self._last_adapters and self._last_adapters != current_adapters:
-                # Network adapter changed! Clear cache to force clean state refresh
-                self._cached_status = None
-            self._last_adapters = current_adapters
-        except (psutil.Error, OSError):
-            # Adapter inspection failed
-            self._last_adapters = []
+        except ImportError:
+            # psutil unavailable: skip adapter-change detection entirely
+            psutil = None
+
+        if psutil is not None:
+            try:
+                current_adapters = list(psutil.net_if_addrs().keys())
+                if self._last_adapters and self._last_adapters != current_adapters:
+                    # Network adapter changed! Clear cache to force clean state refresh
+                    self._cached_status = None
+                self._last_adapters = current_adapters
+            except (psutil.Error, OSError):
+                # Adapter inspection failed
+                self._last_adapters = []
             
         if self._cached_status is not None and (now - self._last_status_query_time) < self._query_cooldown_seconds:
             return self._cached_status

@@ -4,7 +4,7 @@ import os
 import sys
 
 from PySide6.QtCore import QEvent, QFile, QTimer
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QShortcut
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -18,6 +18,26 @@ from PySide6.QtWidgets import (
 from ..core.tailscale import get_tailscale_path
 from .components.log_viewer_dlg import LogViewerDialog
 from .dashboard import DashboardView
+
+# Global accelerators exactly as declared in pygui/windows/main_window.ui.
+# The menu bar is rebuilt in Python, so these must be re-applied explicitly
+# or the keyboard shortcuts documented in Docs/ are silently lost.
+GLOBAL_ACCELERATORS = {
+    "actionSettings": "Ctrl+,",
+    "actionExit": "Ctrl+Q",
+    "actionAddProfile": "Ctrl+N",
+    "actionRemoveProfile": "Ctrl+Shift+D",
+    "actionAbout": "F1",
+    "actionReadme": "Shift+F1",
+    "actionAdvanced": "Ctrl+Alt+A",
+    "actionPeerList": "Ctrl+Shift+P",
+    "actionDiagnostics": "Ctrl+Shift+N",
+    "actionCheckA11y": "Ctrl+Shift+S",
+}
+
+# Declared on btn_connect in pygui/windows/tab_widget.ui; bound on the main
+# window so it acts on whichever profile tab is active.
+CONNECT_TOGGLE_SHORTCUT = "Ctrl+Return"
 
 
 class MainWindow(QMainWindow):
@@ -46,6 +66,11 @@ class MainWindow(QMainWindow):
         if self.tabWidget:
             self.tabWidget.setAccessibleName("VPN Profiles Navigation Tabs")
             self.tabWidget.setAccessibleDescription("Switch between configured Headscale and Tailscale network profiles.")
+
+        # Ctrl+Return toggles the visible tab's connection (tab_widget.ui binds
+        # it to btn_connect, which only covers the tab that owns the button).
+        self.connect_shortcut = QShortcut(QKeySequence(CONNECT_TOGGLE_SHORTCUT), self)
+        self.connect_shortcut.activated.connect(self._toggle_active_tab_connection)
         self.setWindowTitle("Tailscale Client Pro")
         self.setAccessibleName("Tailscale Client Pro Main Window")
         self.setAccessibleDescription("Main application window for managing Tailscale and Headscale VPN connections.")
@@ -522,9 +547,21 @@ class MainWindow(QMainWindow):
         help_menu.addSeparator()
 
         self.actionCheckA11y = QAction(self.tr("Check &Screen Reader Setup..."), self)
-        self.actionCheckA11y.setShortcut("Ctrl+Shift+S")
         self.actionCheckA11y.triggered.connect(self.check_screen_reader_interactive)
         help_menu.addAction(self.actionCheckA11y)
+
+        # Re-apply the accelerators declared in the designer .ui files so the
+        # documented global shortcuts stay functional after the Python rebuild.
+        for action_attr, sequence in GLOBAL_ACCELERATORS.items():
+            action = getattr(self, action_attr, None)
+            if action is not None:
+                action.setShortcut(sequence)
+
+    def _toggle_active_tab_connection(self):
+        """Connects/disconnects the profile shown in the active tab (Ctrl+Return)."""
+        widget = self.tabWidget.currentWidget() if self.tabWidget else None
+        if widget is not None and hasattr(widget, "toggle_connection"):
+            widget.toggle_connection()
 
     def populate_logs_menu(self):
 
