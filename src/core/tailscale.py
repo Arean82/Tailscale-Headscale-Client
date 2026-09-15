@@ -13,12 +13,14 @@ import os
 import sys
 import webbrowser
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QProcess, Signal
 
-from .executor import (  # noqa: F401  (re-exported for UI imports)
+from .executor import (
     TailscaleExecutor,
     get_tailscale_path,
 )
+
+__all__ = ["TailscaleExecutor", "TailscaleManager", "get_tailscale_path"]
 
 # Child of the app logger configured in main.py so records reach app.log
 logger = logging.getLogger("TailscaleClient.Tailscale")
@@ -85,11 +87,15 @@ class TailscaleManager(QObject):
     # Connect / disconnect
     # ==========================================
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None,
-                ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname="", force_reset=False,
-                advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags="", accept_routes=True,
-                unattended=False, webclient=False, advertise_connector=False, accept_risk="", extra_args=""):
-        """Legacy kwargs API kept for UI call sites; folds into connect_args()."""
+    def connect_vpn(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None,
+                    ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname="", force_reset=False,
+                    advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags="", accept_routes=True,
+                    unattended=False, webclient=False, advertise_connector=False, accept_risk="", extra_args=""):
+        """Legacy kwargs API kept for external call sites; folds into connect_args().
+
+        Not named `connect`: QObject already defines connect() for signal wiring,
+        and shadowing it with a VPN-domain signature is an override conflict.
+        """
         self.connect_args({
             "login_server": login_server,
             "auth_key": auth_key,

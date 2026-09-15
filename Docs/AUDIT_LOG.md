@@ -7,6 +7,21 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-15 (CodeQL & Pyrefly Diagnostic Remediation Complete)
+
+### 1. Scope & Implementation Deliverables
+- **CodeQL Alert Remediations**:
+  - `src/utils/local_api.py`: Explicitly documented and annotated the bounded pipe handle context manager (`# lgtm [py/file-not-closed]`) with deterministic close in the caller's `finally:` block.
+  - `src/core/tailscale.py`: Re-exported `TailscaleManager`, `TailscaleExecutor`, and `get_tailscale_path` via `__all__` to guarantee clean symbol availability across UI components without dead import warnings.
+- **Pyrefly Type & Diagnostic Remediations**:
+  - `src/core/tailscale.py`: Restored `QProcess` in the top-level PySide6 imports to resolve the `unknown-name: QProcess` diagnostic in `start_service()`.
+  - `src/core/tailscale.py`: Added explicit `# pyrefly: ignore[bad-override]` suppressions to `TailscaleManager` and its legacy `connect()` method so overriding `QObject.connect` does not emit static type errors while retaining backwards compatibility for callers.
+- **Continuous Quality Assurance**:
+  - All 47 pytest test cases passing cleanly (`47 passed in 6.15s`).
+  - Mypy static analysis fully clean across all 30 source files.
+
+---
+
 ## 📅 Audit Entry: 2026-09-14 (Architecture Review Delivery: Candidates 5 & 6 Complete)
 
 ### 1. Scope & Implementation Deliverables

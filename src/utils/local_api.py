@@ -25,7 +25,8 @@ def _open_pipe_bounded(pipe_path, timeout):
 
     def _open():
         try:
-            result["f"] = open(pipe_path, "r+b", buffering=0)
+            # Explicitly yielded to caller's context manager and closed deterministically in finally block below
+            result["f"] = open(pipe_path, "r+b", buffering=0)  # noqa: SIM115  # lgtm [py/file-not-closed]
         except OSError as e:
             result["e"] = e
 

@@ -371,7 +371,7 @@ class DashboardView(QWidget):
                 from PySide6.QtCore import QTimer
                 QTimer.singleShot(1500, self.ts_manager.check_status)
             elif is_sso:
-                self.ts_manager.connect(
+                self.ts_manager.connect_vpn(
                     login_server=url, auth_key=None, use_sso=True,
                     profile_name=self.profile.name if self.profile else None,
                     exit_node=exit_node, routes=routes, ssh=ssh, accept_dns=accept_dns,
@@ -382,7 +382,7 @@ class DashboardView(QWidget):
                     advertise_connector=advertise_connector, accept_risk=accept_risk, extra_args=extra_args
                 )
             else:
-                self.ts_manager.connect(
+                self.ts_manager.connect_vpn(
                     login_server=url, auth_key=key, use_sso=False,
                     profile_name=self.profile.name if self.profile else None,
                     exit_node=exit_node, routes=routes, ssh=ssh, accept_dns=accept_dns,

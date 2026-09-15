@@ -293,7 +293,11 @@ class StateCoordinator(QObject):
     def check_status_sync(self):
         return self.ts_manager.check_status_sync()
 
-    def connect(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname=None, force_reset=False, advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags="", **kwargs):
+    def connect_vpn(self, login_server, auth_key=None, use_sso=False, profile_name=None, exit_node=None, routes=None, ssh=False, accept_dns=False, allow_lan=False, disable_snat=False, hostname=None, force_reset=False, advertise_exit_node=False, shields_up=False, force_reauth=False, advertise_tags="", **kwargs):
+        """Starts a connection through the state machine.
+
+        Not named `connect`: QObject already defines connect() for signal wiring.
+        """
         self._cached_status = None  # Invalidate cache on action
         
         # PROACTIVE FALLBACK CHECK

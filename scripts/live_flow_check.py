@@ -154,15 +154,15 @@ def main():
     status_events.clear()
     if args.sso:
         print("   SSO mode: a browser window will open; complete the login there.")
-        manager.connect(login_server=args.login_server or "https://controlplane.tailscale.com",
-                        use_sso=True, profile_name="live-flow-check")
+        manager.connect_vpn(login_server=args.login_server or "https://controlplane.tailscale.com",
+                            use_sso=True, profile_name="live-flow-check")
     else:
         key = os.environ.get("TS_TEST_AUTH_KEY", "")
         if not key:
             print("   NOTE: TS_TEST_AUTH_KEY not set; connecting without a key "
                   "(daemon will surface its own auth flow or fail — still a valid executor test).")
-        manager.connect(login_server=args.login_server or "https://controlplane.tailscale.com",
-                        auth_key=key, use_sso=False, profile_name="live-flow-check")
+        manager.connect_vpn(login_server=args.login_server or "https://controlplane.tailscale.com",
+                            auth_key=key, use_sso=False, profile_name="live-flow-check")
 
     connected = wait_for(
         lambda: any(t == "Connected" for _, t in status_events), timeout_ms=30000, desc="'Connected' status")
