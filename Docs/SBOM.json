@@ -2,9 +2,9 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "version": 1,
+  "version": 2,
   "metadata": {
-    "timestamp": "2026-09-13T07:45:00Z",
+    "timestamp": "2026-09-15T12:40:00Z",
     "tools": [
       {
         "vendor": "Tailscale-Headscale-Client Engineering",
@@ -30,9 +30,9 @@
   "components": [
     {
       "name": "PySide6",
-      "version": "6.8.0",
+      "version": "6.11.1",
       "type": "library",
-      "bom-ref": "pkg:pypi/pyside6@6.8.0",
+      "bom-ref": "pkg:pypi/pyside6@6.11.1",
       "description": "Official Python bindings for Qt 6 graphical user interface framework",
       "scope": "required",
       "licenses": [
@@ -42,13 +42,29 @@
           }
         }
       ],
-      "purl": "pkg:pypi/pyside6@6.8.0"
+      "purl": "pkg:pypi/pyside6@6.11.1"
+    },
+    {
+      "name": "qt-material",
+      "version": "2.17",
+      "type": "library",
+      "bom-ref": "pkg:pypi/qt-material@2.17",
+      "description": "Material Design theme provider for Qt (dynamic light/dark accents in the UI)",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/qt-material@2.17"
     },
     {
       "name": "cryptography",
-      "version": "43.0.1",
+      "version": "49.0.0",
       "type": "library",
-      "bom-ref": "pkg:pypi/cryptography@43.0.1",
+      "bom-ref": "pkg:pypi/cryptography@49.0.0",
       "description": "Cryptographic recipes and primitives for secure memory manipulation and token handling",
       "scope": "required",
       "licenses": [
@@ -63,13 +79,13 @@
           }
         }
       ],
-      "purl": "pkg:pypi/cryptography@43.0.1"
+      "purl": "pkg:pypi/cryptography@49.0.0"
     },
     {
       "name": "keyring",
-      "version": "24.3.1",
+      "version": "25.6.0",
       "type": "library",
-      "bom-ref": "pkg:pypi/keyring@24.3.1",
+      "bom-ref": "pkg:pypi/keyring@25.6.0",
       "description": "Platform-native credential storage service (Windows Credential Locker, macOS Keychain, Linux SecretService)",
       "scope": "required",
       "licenses": [
@@ -79,13 +95,13 @@
           }
         }
       ],
-      "purl": "pkg:pypi/keyring@24.3.1"
+      "purl": "pkg:pypi/keyring@25.6.0"
     },
     {
       "name": "psutil",
-      "version": "6.0.0",
+      "version": "7.2.2",
       "type": "library",
-      "bom-ref": "pkg:pypi/psutil@6.0.0",
+      "bom-ref": "pkg:pypi/psutil@7.2.2",
       "description": "Cross-platform process supervisor and system utilization monitoring",
       "scope": "required",
       "licenses": [
@@ -95,14 +111,14 @@
           }
         }
       ],
-      "purl": "pkg:pypi/psutil@6.0.0"
+      "purl": "pkg:pypi/psutil@7.2.2"
     },
     {
       "name": "requests",
-      "version": "2.32.3",
+      "version": "2.34.2",
       "type": "library",
-      "bom-ref": "pkg:pypi/requests@2.32.3",
-      "description": "Python HTTP library for secure REST LocalAPI and Headscale communication",
+      "bom-ref": "pkg:pypi/requests@2.34.2",
+      "description": "Python HTTP library used for README badge retrieval",
       "scope": "required",
       "licenses": [
         {
@@ -111,13 +127,13 @@
           }
         }
       ],
-      "purl": "pkg:pypi/requests@2.32.3"
+      "purl": "pkg:pypi/requests@2.34.2"
     },
     {
       "name": "markdown",
-      "version": "3.7",
+      "version": "3.10.2",
       "type": "library",
-      "bom-ref": "pkg:pypi/markdown@3.7",
+      "bom-ref": "pkg:pypi/markdown@3.10.2",
       "description": "Python implementation of Markdown for structured documentation and dialog parsing",
       "scope": "required",
       "licenses": [
@@ -127,13 +143,13 @@
           }
         }
       ],
-      "purl": "pkg:pypi/markdown@3.7"
+      "purl": "pkg:pypi/markdown@3.10.2"
     },
     {
       "name": "pygments",
-      "version": "2.18.0",
+      "version": "2.19.1",
       "type": "library",
-      "bom-ref": "pkg:pypi/pygments@2.18.0",
+      "bom-ref": "pkg:pypi/pygments@2.19.1",
       "description": "Generic syntax highlighter for logs and configuration previews",
       "scope": "required",
       "licenses": [
@@ -143,13 +159,13 @@
           }
         }
       ],
-      "purl": "pkg:pypi/pygments@2.18.0"
+      "purl": "pkg:pypi/pygments@2.19.1"
     },
     {
       "name": "beautifulsoup4",
-      "version": "4.12.3",
+      "version": "4.14.3",
       "type": "library",
-      "bom-ref": "pkg:pypi/beautifulsoup4@4.12.3",
+      "bom-ref": "pkg:pypi/beautifulsoup4@4.14.3",
       "description": "Screen reader accessible DOM and rich text HTML parser",
       "scope": "required",
       "licenses": [
@@ -159,14 +175,14 @@
           }
         }
       ],
-      "purl": "pkg:pypi/beautifulsoup4@4.12.3"
+      "purl": "pkg:pypi/beautifulsoup4@4.14.3"
     },
     {
       "name": "deep-translator",
       "version": "1.11.4",
       "type": "library",
       "bom-ref": "pkg:pypi/deep-translator@1.11.4",
-      "description": "Flexible multilingual translation engine for enterprise localization pipelines",
+      "description": "Flexible multilingual translation engine for enterprise localization pipelines (developer tooling)",
       "scope": "optional",
       "licenses": [
         {
@@ -179,10 +195,10 @@
     },
     {
       "name": "PyInstaller",
-      "version": "6.10.0",
+      "version": "6.6.0",
       "type": "library",
-      "bom-ref": "pkg:pypi/pyinstaller@6.10.0",
-      "description": "Enterprise binary packager bundles Python applications into standalone executables",
+      "bom-ref": "pkg:pypi/pyinstaller@6.6.0",
+      "description": "Build-time binary packager that bundles the application into standalone executables (not shipped in the app)",
       "scope": "optional",
       "licenses": [
         {
@@ -191,21 +207,102 @@
           }
         }
       ],
-      "purl": "pkg:pypi/pyinstaller@6.10.0"
+      "purl": "pkg:pypi/pyinstaller@6.6.0"
+    },
+    {
+      "name": "ruff",
+      "version": "0.16.3",
+      "type": "library",
+      "bom-ref": "pkg:pypi/ruff@0.16.3",
+      "description": "Build-time linter enforcing the zero-findings policy declared in ruff.toml (not shipped in the app)",
+      "scope": "optional",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/ruff@0.16.3"
+    },
+    {
+      "name": "mypy",
+      "version": "2.3.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/mypy@2.3.1",
+      "description": "Build-time static type checker configured by mypy.ini (not shipped in the app)",
+      "scope": "optional",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/mypy@2.3.1"
+    },
+    {
+      "name": "pytest",
+      "version": "9.1.1",
+      "type": "library",
+      "bom-ref": "pkg:pypi/pytest@9.1.1",
+      "description": "Build-time unit test runner executing the tests/ suite (not shipped in the app)",
+      "scope": "optional",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/pytest@9.1.1"
+    },
+    {
+      "name": "types-psutil",
+      "version": "7.2.2.20260906",
+      "type": "library",
+      "bom-ref": "pkg:pypi/types-psutil@7.2.2.20260906",
+      "description": "PEP 561 type stubs for psutil enabling the reproducible mypy run (not shipped in the app)",
+      "scope": "optional",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/types-psutil@7.2.2.20260906"
+    },
+    {
+      "name": "types-Markdown",
+      "version": "3.10.2.20260712",
+      "type": "library",
+      "bom-ref": "pkg:pypi/types-markdown@3.10.2.20260712",
+      "description": "PEP 561 type stubs for Markdown enabling the reproducible mypy run (not shipped in the app)",
+      "scope": "optional",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/types-markdown@3.10.2.20260712"
     }
   ],
   "dependencies": [
     {
       "ref": "pkg:generic/tailscale-headscale-client@5.0.0",
       "dependsOn": [
-        "pkg:pypi/pyside6@6.8.0",
-        "pkg:pypi/cryptography@43.0.1",
-        "pkg:pypi/keyring@24.3.1",
-        "pkg:pypi/psutil@6.0.0",
-        "pkg:pypi/requests@2.32.3",
-        "pkg:pypi/markdown@3.7",
-        "pkg:pypi/pygments@2.18.0",
-        "pkg:pypi/beautifulsoup4@4.12.3"
+        "pkg:pypi/pyside6@6.11.1",
+        "pkg:pypi/qt-material@2.17",
+        "pkg:pypi/cryptography@49.0.0",
+        "pkg:pypi/keyring@25.6.0",
+        "pkg:pypi/psutil@7.2.2",
+        "pkg:pypi/requests@2.34.2",
+        "pkg:pypi/markdown@3.10.2",
+        "pkg:pypi/pygments@2.19.1",
+        "pkg:pypi/beautifulsoup4@4.14.3"
       ]
     }
   ]

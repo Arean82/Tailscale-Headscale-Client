@@ -172,15 +172,26 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(5000, safe_retry_show)
 
     def check_daemon_async(self, retry_count=0):
-        from PySide6.QtCore import QTimer
+        """Startup daemon check.
+
+        The LocalAPI probe is used only while "Enable Experimental Local API"
+        is ticked; with it off the LocalAPI is not contacted at all and the
+        daemon is probed through the CLI instead.
+        """
+        if not self.manager.settings.use_local_api:
+            self._probe_daemon_cli(lambda running: self._handle_daemon_probe(running, retry_count))
+            return
 
         from src.utils.local_api import is_local_api_available
-        
-        is_running = is_local_api_available()
+        self._handle_daemon_probe(is_local_api_available(), retry_count)
+
+    def _handle_daemon_probe(self, is_running, retry_count):
+        from PySide6.QtCore import QTimer
+
         if is_running:
             # Successfully running! No dialog needed.
             return
-            
+
         # If not running, let's retry in the background dynamically (every 2 seconds)
         # based on the custom "Startup Daemon Wait" setting (minimum of 5 retries / 10s)
         max_retries = max(5, self.manager.settings.startup_delay // 2)
@@ -189,6 +200,26 @@ class MainWindow(QMainWindow):
         else:
             # Still not running after retries, show the wait/start dialog
             self.show_service_wait_dialog()
+
+    def _probe_daemon_cli(self, callback):
+        """Async `tailscale status --json` probe used when the LocalAPI is off."""
+        from PySide6.QtCore import QProcess
+
+        proc = QProcess(self)
+        self._daemon_probe_proc = proc
+
+        def on_finished(*_):
+            output = (proc.readAllStandardError().data().decode(errors="ignore")
+                      + proc.readAllStandardOutput().data().decode(errors="ignore")).lower()
+            running = not ("failed to connect" in output
+                           or "tailscaled may not be running" in output
+                           or proc.exitCode() != 0)
+            proc.deleteLater()
+            self._daemon_probe_proc = None
+            callback(running)
+
+        proc.finished.connect(on_finished)
+        proc.start(get_tailscale_path(), ["status", "--json"])
 
     def show_service_wait_dialog(self):
         from PySide6.QtCore import Qt, QTimer

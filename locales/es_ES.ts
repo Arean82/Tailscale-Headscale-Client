@@ -11,7 +11,7 @@
     <message>
         <location filename="../pygui/dialogs/about.ui" line="17" />
         <source>TAILSCALE VPN</source>
-        <translation>VPN DE ESCALA FINAL</translation>
+        <translation>TAILSCALE VPN</translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/about.ui" line="22" />
@@ -20,8 +20,12 @@
     </message>
     <message>
         <location filename="../pygui/dialogs/about.ui" line="28" />
+        <source>Version 5.0.0 Pro</source>
+        <translation>Versión 5.0.0 Pro</translation>
+    </message>
+    <message>
         <source>Version 4.0.0 Pro</source>
-        <translation>Versión 4.0.0 Pro</translation>
+        <translation type="vanished">Versión 4.0.0 Pro</translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/about.ui" line="38" />
@@ -38,7 +42,7 @@ construido con Python y Tailscale.</translation>
     <message>
         <location filename="../pygui/dialogs/about.ui" line="61" />
         <source>Close</source>
-        <translation>Cerca</translation>
+        <translation>Cerrar</translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/profile.ui" line="32" />
@@ -78,7 +82,7 @@ construido con Python y Tailscale.</translation>
         <location filename="../pygui/dialogs/credentials.ui" line="76" />
         <location filename="../pygui/dialogs/credentials.ui" line="131" />
         <source>https://vpn.example.com</source>
-        <translation>https://vpn.ejemplo.com</translation>
+        <translation>https://vpn.example.com</translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/credentials.ui" line="83" />
@@ -121,9 +125,9 @@ construido con Python y Tailscale.</translation>
         <translation>Cancelar</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/credentials.ui" line="188" />
+        <location filename="../pygui/dialogs/credentials.ui" line="191" />
         <source>Save</source>
-        <translation>Ahorrar</translation>
+        <translation>Guardar</translation>
     </message>
 </context>
 <context>
@@ -153,9 +157,37 @@ p, li { white-space: pre-wrap; }
         <translation>Ejecute Netcheck</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/diagnostics.ui" line="103" />
+        <location filename="../pygui/dialogs/diagnostics.ui" line="84" />
+        <source>Test Screen Reader and Accessibility Health Button</source>
+        <translation>Botón de prueba del lector de pantalla y la accesibilidad</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/diagnostics.ui" line="87" />
+        <source>Verifies if Orca, AT-SPI2, or Windows speech media packs are installed and provides remediation commands if missing.</source>
+        <translation>Comprueba si Orca, AT-SPI2 o los paquetes de voz de Windows están instalados y proporciona comandos de remediación si faltan.</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/diagnostics.ui" line="96" />
+        <source>Check Screen Reader</source>
+        <translation>Comprobar el lector de pantalla</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/diagnostics.ui" line="122" />
         <source>Close</source>
-        <translation>Cerca</translation>
+        <translation>Cerrar</translation>
+    </message>
+</context>
+<context>
+    <name>LicenseDialog</name>
+    <message>
+        <location filename="../pygui/dialogs/license.ui" line="14" />
+        <source>Software License Agreement</source>
+        <translation>Acuerdo de licencia de software</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/license.ui" line="57" />
+        <source>Close</source>
+        <translation>Cerrar</translation>
     </message>
 </context>
 <context>
@@ -206,7 +238,7 @@ QPushButton:hover { background-color: #b71c1c; }</source>
     <message>
         <location filename="../pygui/dialogs/log_viewer.ui" line="73" />
         <source>Clear</source>
-        <translation>Claro</translation>
+        <translation>Borrar</translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/log_viewer.ui" line="95" />
@@ -250,7 +282,7 @@ QPushButton:checked { background-color: #7b1fa2; border: 2px solid white; }</sou
     <message>
         <location filename="../pygui/dialogs/log_viewer.ui" line="150" />
         <source>DEBUG</source>
-        <translation>DEPURAR</translation>
+        <translation>DEPURACIÓN</translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/log_viewer.ui" line="163" />
@@ -276,7 +308,7 @@ QPushButton:hover { background-color: #059669; }</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../pygui/dialogs/log_viewer.ui" line="202" />
+        <location filename="../pygui/dialogs/log_viewer.ui" line="211" />
         <source>QPushButton {
     background-color: #2b2b2b;
     color: white;
@@ -291,9 +323,9 @@ QPushButton:hover {
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../pygui/dialogs/log_viewer.ui" line="215" />
+        <location filename="../pygui/dialogs/log_viewer.ui" line="202" />
         <source>Close</source>
-        <translation>Cerca</translation>
+        <translation>Cerrar</translation>
     </message>
 </context>
 <context>
@@ -301,7 +333,7 @@ QPushButton:hover {
     <message>
         <location filename="../pygui/windows/main_window.ui" line="26" />
         <source>TAILSCALE VPN Client</source>
-        <translation>Cliente VPN A ESCALA TAIL</translation>
+        <translation>Cliente TAILSCALE VPN</translation>
     </message>
     <message>
         <source>Settings</source>
@@ -309,7 +341,7 @@ QPushButton:hover {
     </message>
     <message>
         <source>Exit</source>
-        <translation type="vanished">Salida</translation>
+        <translation type="vanished">Salir</translation>
     </message>
     <message>
         <source>Add New Profile</source>
@@ -321,7 +353,7 @@ QPushButton:hover {
     </message>
     <message>
         <source>Light Theme</source>
-        <translation type="vanished">Tema ligero</translation>
+        <translation type="vanished">Tema claro</translation>
     </message>
     <message>
         <source>Dark Theme</source>
@@ -340,136 +372,222 @@ QPushButton:hover {
         <translation type="vanished">Léame</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="88" />
+        <location filename="../pygui/windows/main_window.ui" line="94" />
+        <location filename="../src/ui/main_window.py" line="443" />
         <source>&amp;File</source>
         <translation>&amp;Archivo</translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="49" />
+        <location filename="../src/ui/main_window.py" line="445" />
         <source>&amp;Settings</source>
         <translation>&amp;Ajustes</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="52" />
-        <source>E&amp;xit</source>
-        <translation>Salida</translation>
+        <location filename="../pygui/windows/main_window.ui" line="50" />
+        <source>Ctrl+,</source>
+        <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="55" />
+        <location filename="../pygui/windows/main_window.ui" line="53" />
+        <source>E&amp;xit</source>
+        <translation>&amp;Salir</translation>
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="54" />
+        <source>Ctrl+Q</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="57" />
+        <location filename="../src/ui/main_window.py" line="457" />
         <source>&amp;Add New Profile</source>
         <translation>&amp;Agregar nuevo perfil</translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="58" />
+        <source>Ctrl+N</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="61" />
+        <location filename="../src/ui/main_window.py" line="465" />
         <source>&amp;Remove Current Profile</source>
         <translation>&amp;Eliminar perfil actual</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="61" />
+        <location filename="../pygui/windows/main_window.ui" line="62" />
+        <source>Ctrl+Shift+D</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="65" />
         <source>&amp;System Default</source>
         <translation>&amp;Predeterminado del sistema</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="64" />
+        <location filename="../pygui/windows/main_window.ui" line="68" />
         <source>&amp;Light Theme</source>
-        <translation>&amp; Tema ligero</translation>
+        <translation>&amp;Tema claro</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="67" />
+        <location filename="../pygui/windows/main_window.ui" line="71" />
+        <location filename="../src/ui/main_window.py" line="480" />
         <source>&amp;Dark Theme</source>
         <translation>&amp;Tema oscuro</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="70" />
+        <location filename="../pygui/windows/main_window.ui" line="74" />
         <source>&amp;Vibrant Pro Theme</source>
         <translation>&amp;Tema profesional vibrante</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="73" />
+        <location filename="../pygui/windows/main_window.ui" line="77" />
+        <location filename="../src/ui/main_window.py" line="489" />
         <source>&amp;Material</source>
         <translation>&amp;Material</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="76" />
+        <location filename="../pygui/windows/main_window.ui" line="80" />
+        <location filename="../src/ui/main_window.py" line="526" />
         <source>qt-material not installed</source>
-        <translation>material qt no instalado</translation>
+        <translation>qt-material no instalado</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="79" />
+        <location filename="../pygui/windows/main_window.ui" line="83" />
+        <location filename="../src/ui/main_window.py" line="566" />
         <source>&amp;About Us</source>
         <translation>&amp;Sobre nosotros</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="82" />
-        <source>View &amp;License</source>
-        <translation>Ver y licencia</translation>
+        <location filename="../pygui/windows/main_window.ui" line="84" />
+        <source>F1</source>
+        <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="85" />
+        <location filename="../pygui/windows/main_window.ui" line="87" />
+        <location filename="../src/ui/main_window.py" line="570" />
+        <source>View &amp;License</source>
+        <translation>Ver &amp;licencia</translation>
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="90" />
+        <location filename="../src/ui/main_window.py" line="574" />
         <source>&amp;Readme</source>
         <translation>&amp;Léame</translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="91" />
+        <source>Shift+F1</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="97" />
         <source>&amp;Profiles</source>
         <translation>&amp;Perfiles</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="94" />
+        <location filename="../pygui/windows/main_window.ui" line="100" />
+        <location filename="../src/ui/main_window.py" line="470" />
         <source>&amp;Theme</source>
         <translation>&amp;Tema</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="97" />
+        <location filename="../pygui/windows/main_window.ui" line="103" />
+        <location filename="../src/ui/main_window.py" line="542" />
         <source>&amp;Advanced</source>
         <translation>&amp;Avanzado</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="100" />
+        <location filename="../pygui/windows/main_window.ui" line="106" />
+        <location filename="../src/ui/main_window.py" line="543" />
         <source>&amp;Advanced Options...</source>
         <translation>&amp;Opciones avanzadas...</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="103" />
+        <location filename="../pygui/windows/main_window.ui" line="107" />
+        <source>Ctrl+Alt+A</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="110" />
+        <location filename="../src/ui/main_window.py" line="547" />
         <source>&amp;Peer List...</source>
         <translation>&amp;Lista de pares...</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="106" />
+        <location filename="../pygui/windows/main_window.ui" line="111" />
+        <source>Ctrl+Shift+P</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="114" />
+        <location filename="../src/ui/main_window.py" line="551" />
         <source>&amp;Network Diagnostics...</source>
         <translation>&amp;Diagnóstico de red...</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="109" />
+        <location filename="../pygui/windows/main_window.ui" line="115" />
+        <source>Ctrl+Shift+N</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="118" />
+        <source>Check &amp;Screen Reader Environment...</source>
+        <translation>Comprobar el entorno del &amp;lector de pantalla...</translation>
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="119" />
+        <source>Ctrl+Shift+S</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="120" />
+        <source>Check Screen Reader Shortcut Action</source>
+        <translation>Acción del atajo de comprobación del lector de pantalla</translation>
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="121" />
+        <source>Runs instant accessibility and screen reader diagnostics, verifying Orca, Speech Dispatcher, and Windows speech packages.</source>
+        <translation>Ejecuta un diagnóstico instantáneo de accesibilidad y del lector de pantalla, verificando Orca, Speech Dispatcher y los paquetes de voz de Windows.</translation>
+    </message>
+    <message>
+        <location filename="../pygui/windows/main_window.ui" line="124" />
+        <location filename="../src/ui/main_window.py" line="564" />
         <source>&amp;Help</source>
         <translation>&amp;Ayuda</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="112" />
+        <location filename="../pygui/windows/main_window.ui" line="127" />
+        <location filename="../src/ui/main_window.py" line="536" />
         <source>&amp;Logs</source>
-        <translation>&amp;registros</translation>
+        <translation>&amp;Registros</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="115" />
+        <location filename="../pygui/windows/main_window.ui" line="130" />
+        <location filename="../src/ui/main_window.py" line="537" />
         <source>&amp;Global Logs</source>
         <translation>&amp;Registros globales</translation>
     </message>
     <message>
         <source>Global &amp;Logs</source>
-        <translation type="vanished">Registros y globales</translation>
+        <translation type="vanished">&amp;Registros globales</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="118" />
+        <location filename="../pygui/windows/main_window.ui" line="133" />
+        <location filename="../src/ui/main_window.py" line="555" />
         <source>Enable Quick &amp;Exit-Node Switcher</source>
-        <translation>Habilitar el conmutador de nodo de salida y rápida</translation>
+        <translation>Activar el conmutador rápido de nodo de &amp;salida</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="121" />
+        <location filename="../pygui/windows/main_window.ui" line="136" />
+        <location filename="../src/ui/components/settings_dialog.py" line="228" />
         <source>Language Changed</source>
         <translation>Idioma cambiado</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/main_window.ui" line="124" />
+        <location filename="../pygui/windows/main_window.ui" line="139" />
+        <location filename="../src/ui/components/settings_dialog.py" line="229" />
         <source>The application needs to restart to apply the new language translation.
 
 Your Tailscale VPN connection will remain safely active in the background.
@@ -481,251 +599,387 @@ Su conexión VPN de Tailscale permanecerá activa de forma segura en segundo pla
 
 ¿Reiniciar la GUI ahora?</translation>
     </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="449" />
+        <source>&amp;Exit</source>
+        <translation>&amp;Salir</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="454" />
+        <source>&amp;Profile</source>
+        <translation>&amp;Perfil</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="461" />
+        <source>Re&amp;name Current Profile...</source>
+        <translation>Re&amp;nombrar el perfil actual...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="474" />
+        <source>&amp;Light Theme (Default)</source>
+        <translation>Tema &amp;claro (predeterminado)</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="493" />
+        <source>Default Accent (Standard)</source>
+        <translation>Acento predeterminado (estándar)</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="580" />
+        <source>Check &amp;Screen Reader Setup...</source>
+        <translation>Comprobar la configuración del &amp;lector de pantalla...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="613" />
+        <source>No logs found</source>
+        <translation>No se encontraron registros</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="627" />
+        <source>No .log files found</source>
+        <translation>No se encontraron archivos .log</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="908" />
+        <source>Rename Profile</source>
+        <translation>Cambiar nombre del perfil</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="909" />
+        <source>Enter new profile name:</source>
+        <translation>Introduzca el nuevo nombre del perfil:</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="915" />
+        <location filename="../src/ui/main_window.py" line="920" />
+        <location filename="../src/ui/main_window.py" line="930" />
+        <source>Error</source>
+        <translation>Error</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="915" />
+        <source>Profile name cannot be empty.</source>
+        <translation>El nombre del perfil no puede estar vacío.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="920" />
+        <source>Profile name already exists.</source>
+        <translation>El nombre del perfil ya existe.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/main_window.py" line="930" />
+        <source>Failed to rename profile.</source>
+        <translation>No se pudo cambiar el nombre del perfil.</translation>
+    </message>
 </context>
 <context>
     <name>NodeDialog</name>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="14" />
         <location filename="../pygui/dialogs/node.ui" line="14" />
         <source>Advanced Options</source>
         <translation>Opciones avanzadas</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="28" />
         <location filename="../pygui/dialogs/node.ui" line="92" />
         <source>Auto-Sync with Active Tailscale Daemon</source>
         <translation>Sincronización automática con Active Tailscale Daemon</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="31" />
         <location filename="../pygui/dialogs/node.ui" line="86" />
         <source>If checked, pulls live settings from the background daemon. Uncheck to manually configure.</source>
         <translation>Si está marcado, extrae la configuración en vivo del demonio en segundo plano. Desmarque para configurar manualmente.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="42" />
         <location filename="../pygui/dialogs/node.ui" line="89" />
         <source>color: #4ade80;</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="55" />
         <location filename="../pygui/dialogs/node.ui" line="48" />
         <source>Exit Node :</source>
-        <translation>Salir del nodo:</translation>
+        <translation>Nodo de salida:</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="64" />
-        <location filename="../pygui/dialogs/node.ui" line="295" />
+        <location filename="../pygui/dialogs/node.ui" line="300" />
         <source>Accept DNS (--accept-dns)</source>
         <translation>Aceptar DNS (--accept-dns)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="67" />
-        <location filename="../pygui/dialogs/node.ui" line="292" />
+        <location filename="../pygui/dialogs/node.ui" line="297" />
         <source>Accept DNS settings pushed by the Tailnet.</source>
         <translation>Acepte la configuración de DNS impulsada por Tailnet.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="74" />
-        <location filename="../pygui/dialogs/node.ui" line="225" />
+        <location filename="../pygui/dialogs/node.ui" line="267" />
         <source>Allow LAN (--exit-node-allow-lan-access)</source>
         <translation>Permitir LAN (--exit-node-allow-lan-access)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="77" />
-        <location filename="../pygui/dialogs/node.ui" line="222" />
+        <location filename="../pygui/dialogs/node.ui" line="264" />
         <source>Allow access to local LAN when using an Exit Node.</source>
         <translation>Permitir el acceso a la LAN local cuando se utiliza un nodo de salida.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="84" />
-        <location filename="../pygui/dialogs/node.ui" line="235" />
+        <location filename="../pygui/dialogs/node.ui" line="330" />
         <source>Disable SNAT (--snat-subnet-routes=false)</source>
         <translation>Deshabilitar SNAT (--snat-subnet-routes=false)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="87" />
-        <location filename="../pygui/dialogs/node.ui" line="232" />
+        <location filename="../pygui/dialogs/node.ui" line="327" />
         <source>Disable Source NAT for advertised routes. Required for site-to-site networking.</source>
         <translation>Deshabilite la fuente NAT para las rutas anunciadas. Requerido para la creación de redes de sitio a sitio.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="94" />
-        <location filename="../pygui/dialogs/node.ui" line="245" />
+        <location filename="../pygui/dialogs/node.ui" line="277" />
         <source>Enable SSH (--ssh)</source>
         <translation>Habilitar SSH (--ssh)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="97" />
-        <location filename="../pygui/dialogs/node.ui" line="242" />
+        <location filename="../pygui/dialogs/node.ui" line="274" />
         <source>Allow remote Tailscale SSH connections to this machine.</source>
         <translation>Permita conexiones SSH remotas de Tailscale a esta máquina.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="104" />
-        <location filename="../pygui/dialogs/node.ui" line="275" />
         <source>Enable DNS Fallback</source>
-        <translation>Habilitar reserva de DNS</translation>
+        <translation type="vanished">Habilitar reserva de DNS</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="107" />
-        <location filename="../pygui/dialogs/node.ui" line="272" />
         <source>Use the cached Emergency IP if the login server domain cannot be resolved.</source>
-        <translation>Utilice la IP de emergencia almacenada en caché si el dominio del servidor de inicio de sesión no se puede resolver.</translation>
+        <translation type="vanished">Utilice la IP de emergencia almacenada en caché si el dominio del servidor de inicio de sesión no se puede resolver.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="114" />
-        <location filename="../pygui/dialogs/node.ui" line="215" />
+        <location filename="../pygui/dialogs/node.ui" line="370" />
         <source>Force Reset (--reset)</source>
         <translation>Forzar reinicio (--reset)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="117" />
-        <location filename="../pygui/dialogs/node.ui" line="212" />
+        <location filename="../pygui/dialogs/node.ui" line="367" />
         <source>Wipe local daemon state (routes, exit nodes) before bringing up this profile.</source>
         <translation>Limpie el estado del demonio local (rutas, nodos de salida) antes de abrir este perfil.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="124" />
-        <location filename="../pygui/dialogs/node.ui" line="265" />
+        <location filename="../pygui/dialogs/node.ui" line="320" />
         <source>Run as Exit Node (--advertise-exit-node)</source>
         <translation>Ejecutar como nodo de salida (--advertise-exit-node)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="127" />
-        <location filename="../pygui/dialogs/node.ui" line="262" />
+        <location filename="../pygui/dialogs/node.ui" line="317" />
         <source>Allows this machine to act as an exit node for the rest of your Tailnet.</source>
         <translation>Permite que esta máquina actúe como un nodo de salida para el resto de su Tailnet.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="134" />
-        <location filename="../pygui/dialogs/node.ui" line="285" />
+        <location filename="../pygui/dialogs/node.ui" line="310" />
         <source>Shields Up (--shields-up)</source>
-        <translation>Escudos arriba (--escudos-arriba)</translation>
+        <translation>Escudo activo (--shields-up)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="137" />
-        <location filename="../pygui/dialogs/node.ui" line="282" />
+        <location filename="../pygui/dialogs/node.ui" line="307" />
         <source>Blocks incoming connections from other devices on your Tailnet for maximum security.</source>
         <translation>Bloquea las conexiones entrantes de otros dispositivos en tu Tailnet para máxima seguridad.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="144" />
-        <location filename="../pygui/dialogs/node.ui" line="255" />
+        <location filename="../pygui/dialogs/node.ui" line="380" />
         <source>Force Reauth (--force-reauth)</source>
         <translation>Forzar nueva autenticación (--force-reauth)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="147" />
-        <location filename="../pygui/dialogs/node.ui" line="252" />
+        <location filename="../pygui/dialogs/node.ui" line="377" />
         <source>Forces the daemon to completely re-authenticate with the control server.</source>
         <translation>Obliga al demonio a volver a autenticarse completamente con el servidor de control.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="162" />
         <location filename="../pygui/dialogs/node.ui" line="174" />
         <source>Subnet Routes :</source>
         <translation>Rutas de subred:</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="169" />
         <location filename="../pygui/dialogs/node.ui" line="35" />
         <source>e.g. 10.0.0.0/24,192.168.1.0/24</source>
         <translation>p.ej. 10.0.0.0/24,192.168.1.0/24</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="172" />
         <location filename="../pygui/dialogs/node.ui" line="32" />
         <source>Expose local subnets to the Tailnet (comma-separated).</source>
         <translation>Exponer subredes locales a Tailnet (separadas por comas).</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="185" />
         <location filename="../pygui/dialogs/node.ui" line="138" />
         <source>Advertise Tags :</source>
-        <translation>Etiquetas publicitarias:</translation>
+        <translation>Etiquetas anunciadas:</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="192" />
         <location filename="../pygui/dialogs/node.ui" line="161" />
         <source>e.g. tag:server,tag:dev</source>
-        <translation>p.ej. etiqueta:servidor,etiqueta:desarrollador</translation>
+        <translation>p. ej.: tag:server,tag:dev</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="195" />
         <location filename="../pygui/dialogs/node.ui" line="158" />
         <source>Assign specific ACL tags to this machine (comma-separated).</source>
         <translation>Asigne etiquetas ACL específicas a esta máquina (separadas por comas).</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="208" />
         <location filename="../pygui/dialogs/node.ui" line="125" />
         <source>Instant Switch Group :</source>
         <translation>Grupo de cambio instantáneo:</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="221" />
-        <location filename="../pygui/dialogs/node.ui" line="203" />
+        <location filename="../pygui/dialogs/node.ui" line="249" />
         <source>Optional Flags :</source>
-        <translation>Banderas opcionales:</translation>
+        <translation>Parámetros opcionales:</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="234" />
         <location filename="../pygui/dialogs/node.ui" line="61" />
         <source>Check profiles to assign them to this Instant Switch group.</source>
         <translation>Verifique los perfiles para asignarlos a este grupo de Instant Switch.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="244" />
         <location filename="../pygui/dialogs/node.ui" line="109" />
         <source>Select an Exit Node to route all your internet traffic through.</source>
         <translation>Seleccione un nodo de salida para enrutar todo su tráfico de Internet.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="248" />
         <location filename="../pygui/dialogs/node.ui" line="151" />
         <source>Custom Hostname :</source>
         <translation>Nombre de host personalizado:</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="248" />
         <location filename="../pygui/dialogs/node.ui" line="184" />
         <source>e.g. my-node-override</source>
-        <translation>p.ej. mi-nodo-anulación</translation>
+        <translation>p. ej.: my-node-override</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="248" />
         <location filename="../pygui/dialogs/node.ui" line="181" />
         <source>Override the machine name shown in the admin console.</source>
         <translation>Anule el nombre de la máquina que se muestra en la consola de administración.</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="258" />
         <location filename="../pygui/dialogs/node.ui" line="74" />
         <source>Emergency IP :</source>
         <translation>IP de emergencia:</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="265" />
         <location filename="../pygui/dialogs/node.ui" line="102" />
         <source>(Auto-Captured when connected)</source>
         <translation>(Captura automática cuando está conectado)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="279" />
-        <location filename="../pygui/dialogs/node.ui" line="313" />
+        <location filename="../pygui/dialogs/node.ui" line="197" />
+        <source>Extra Args :</source>
+        <translation>Argumentos adicionales:</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="204" />
+        <source>Custom flags or arguments passed directly to tailscale up.</source>
+        <translation>Opciones o argumentos personalizados que se pasan directamente a tailscale up.</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="207" />
+        <source>e.g. --operator=admin</source>
+        <translation>p. ej.: --operator=admin</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="220" />
+        <source>Accept Risk :</source>
+        <translation>Aceptar riesgo:</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="227" />
+        <source>Risk acknowledgment flags passed to tailscale up (e.g. lose-ssh, all).</source>
+        <translation>Opciones de aceptación de riesgos que se pasan a tailscale up (p. ej.: lose-ssh, all).</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="230" />
+        <source>e.g. lose-ssh, all</source>
+        <translation>p. ej.: lose-ssh, all</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="284" />
+        <source>Accept subnet routes advertised by other nodes.</source>
+        <translation>Aceptar las rutas de subred anunciadas por otros nodos.</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="287" />
+        <source>Accept Routes (--accept-routes)</source>
+        <translation>Aceptar rutas (--accept-routes)</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="337" />
+        <source>Run Tailscale unattended in background without user session.</source>
+        <translation>Ejecutar Tailscale en segundo plano sin sesión de usuario.</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="340" />
+        <source>Unattended Mode (--unattended)</source>
+        <translation>Modo desatendido (--unattended)</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="347" />
+        <source>Enable Tailscale web client interface on this machine.</source>
+        <translation>Habilitar la interfaz del cliente web de Tailscale en esta máquina.</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="350" />
+        <source>Web Client (--webclient)</source>
+        <translation>Cliente web (--webclient)</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="357" />
+        <source>Advertise this machine as an app connector.</source>
+        <translation>Anunciar esta máquina como conector de aplicaciones.</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="360" />
+        <source>App Connector (--advertise-connector)</source>
+        <translation>Conector de aplicaciones (--advertise-connector)</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="387" />
+        <location filename="../pygui/dialogs/node.ui" line="397" />
+        <location filename="../pygui/dialogs/node.ui" line="420" />
+        <location filename="../pygui/dialogs/node.ui" line="430" />
+        <location filename="../pygui/dialogs/node.ui" line="440" />
+        <location filename="../pygui/dialogs/node.ui" line="450" />
+        <location filename="../pygui/dialogs/node.ui" line="460" />
+        <location filename="../pygui/dialogs/node.ui" line="470" />
+        <location filename="../pygui/dialogs/node.ui" line="480" />
+        <source>color: #ef4444; font-weight: bold;</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="390" />
+        <location filename="../pygui/dialogs/node.ui" line="400" />
+        <location filename="../pygui/dialogs/node.ui" line="423" />
+        <location filename="../pygui/dialogs/node.ui" line="433" />
+        <location filename="../pygui/dialogs/node.ui" line="443" />
+        <location filename="../pygui/dialogs/node.ui" line="453" />
+        <location filename="../pygui/dialogs/node.ui" line="463" />
+        <location filename="../pygui/dialogs/node.ui" line="473" />
+        <location filename="../pygui/dialogs/node.ui" line="483" />
+        <source>False</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="407" />
+        <source>color: #22c55e; font-weight: bold;</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="410" />
+        <source>True</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/node.ui" line="501" />
         <source>Save Settings</source>
         <translation>Guardar configuración</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node - Copy.ui" line="286" />
-        <location filename="../pygui/dialogs/node.ui" line="345" />
+        <location filename="../pygui/dialogs/node.ui" line="539" />
         <source>Cancel</source>
         <translation>Cancelar</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/node.ui" line="316" />
+        <location filename="../pygui/dialogs/node.ui" line="510" />
         <source>QPushButton { 
     background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #22c55e, stop:1 #15803d);
     color: white; font-weight: bold; border-radius: 6px; padding: 6px 20px; border: 1px solid #166534;
@@ -736,7 +990,7 @@ QPushButton:hover {
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../pygui/dialogs/node.ui" line="348" />
+        <location filename="../pygui/dialogs/node.ui" line="545" />
         <source>QPushButton { 
     background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4b5563, stop:1 #1f2937);
     color: white; font-weight: bold; border-radius: 6px; padding: 6px 20px; border: 1px solid #111827;
@@ -807,20 +1061,14 @@ QPushButton:hover {
     <message>
         <location filename="../pygui/dialogs/peer_list.ui" line="179" />
         <source>Close</source>
-        <translation>Cerca</translation>
+        <translation>Cerrar</translation>
     </message>
 </context>
 <context>
     <name>ProgressWidget</name>
     <message>
-        <location filename="../pygui/dialogs/progress.ui" line="5" />
         <source>Progress</source>
-        <translation>Progreso</translation>
-    </message>
-    <message>
-        <location filename="../pygui/dialogs/progress.ui" line="19" />
-        <source>color: #3b8ed0;</source>
-        <translation type="unfinished" />
+        <translation type="vanished">Progreso</translation>
     </message>
 </context>
 <context>
@@ -833,7 +1081,7 @@ QPushButton:hover {
     <message>
         <location filename="../pygui/dialogs/readme.ui" line="71" />
         <source>Close</source>
-        <translation>Cerca</translation>
+        <translation>Cerrar</translation>
     </message>
 </context>
 <context>
@@ -844,67 +1092,82 @@ QPushButton:hover {
         <translation>Ajustes</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="28" />
+        <location filename="../pygui/dialogs/settings.ui" line="30" />
         <source>Enable Auto-connect on startup</source>
         <translation>Habilitar la conexión automática al iniciar</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="35" />
+        <location filename="../pygui/dialogs/settings.ui" line="65" />
         <source>Enable Global App Logs</source>
         <translation>Habilitar registros globales de aplicaciones</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="42" />
+        <location filename="../pygui/dialogs/settings.ui" line="51" />
         <source>Enable Run at startup</source>
         <translation>Habilitar Ejecutar al inicio</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="49" />
+        <location filename="../pygui/dialogs/settings.ui" line="44" />
         <source>Enable Advanced Features</source>
         <translation>Habilitar funciones avanzadas</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="56" />
+        <location filename="../pygui/dialogs/settings.ui" line="58" />
         <source>Enable Experimental Local API</source>
         <translation>Habilitar API local experimental</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="63" />
+        <location filename="../pygui/dialogs/settings.ui" line="37" />
         <source>Allow Self-Signed / Insecure SSL</source>
         <translation>Permitir SSL autofirmado/inseguro</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="70" />
+        <location filename="../pygui/dialogs/settings.ui" line="72" />
         <source>Enable Global Emergency DNS Fallback</source>
         <translation>Habilitar el respaldo de DNS de emergencia global</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="86" />
+        <location filename="../pygui/dialogs/settings.ui" line="79" />
+        <source>Screen Reader Environment Check Toggle</source>
+        <translation>Alternar comprobación del entorno del lector de pantalla</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/settings.ui" line="82" />
+        <source>Checks whether Orca (Linux) or Speech / Media components (Windows N) are active on startup, providing terminal remediation commands if missing.</source>
+        <translation>Comprueba si Orca (Linux) o los componentes Speech / Media (Windows N) están activos al iniciar y proporciona comandos de remediación si faltan.</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/settings.ui" line="85" />
+        <source>Check Screen Reader / AT on Startup</source>
+        <translation>Comprobar el lector de pantalla / AT al iniciar</translation>
+    </message>
+    <message>
+        <location filename="../pygui/dialogs/settings.ui" line="103" />
         <source>Max Profile Limit:</source>
         <translation>Límite máximo de perfil:</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="112" />
+        <location filename="../pygui/dialogs/settings.ui" line="129" />
         <source>Startup Daemon Wait (seconds):</source>
         <translation>Espera del demonio de inicio (segundos):</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="138" />
+        <location filename="../pygui/dialogs/settings.ui" line="155" />
         <source>SSO Login Timeout (seconds):</source>
         <translation>Tiempo de espera de inicio de sesión SSO (segundos):</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="162" />
+        <location filename="../pygui/dialogs/settings.ui" line="179" />
         <source>Path : </source>
-        <translation>Camino :</translation>
+        <translation>Ruta: </translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="169" />
+        <location filename="../pygui/dialogs/settings.ui" line="186" />
         <source>(loading...)</source>
         <translation>(cargando...)</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="194" />
+        <location filename="../pygui/dialogs/settings.ui" line="211" />
         <source>
              QPushButton {
                  background-color: transparent;
@@ -925,59 +1188,55 @@ QPushButton:hover {
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="213" />
+        <location filename="../pygui/dialogs/settings.ui" line="230" />
         <source>📁</source>
         <translation />
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="229" />
+        <location filename="../pygui/dialogs/settings.ui" line="246" />
         <source>Display Language (Requires Restart):</source>
         <translation>Idioma de visualización (requiere reinicio):</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="237" />
+        <location filename="../pygui/dialogs/settings.ui" line="254" />
         <source>English</source>
         <translation>Inglés</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="240" />
         <source>en_US</source>
-        <translation>es_US</translation>
+        <translation type="vanished">en_US</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="245" />
+        <location filename="../pygui/dialogs/settings.ui" line="259" />
         <source>Arabic</source>
         <translation>árabe</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="248" />
         <source>ar_SA</source>
-        <translation>ar_SA</translation>
+        <translation type="vanished">ar_SA</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="253" />
+        <location filename="../pygui/dialogs/settings.ui" line="264" />
         <source>French</source>
         <translation>Francés</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="256" />
         <source>fr_FR</source>
-        <translation>fr_FR</translation>
+        <translation type="vanished">fr_FR</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="261" />
+        <location filename="../pygui/dialogs/settings.ui" line="269" />
         <source>Spanish</source>
         <translation>Español</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="264" />
         <source>es_ES</source>
-        <translation>es_ES</translation>
+        <translation type="vanished">es_ES</translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/settings.ui" line="291" />
+        <location filename="../pygui/dialogs/settings.ui" line="298" />
         <source>Save &amp;&amp; Close</source>
-        <translation>Guardar &amp;&amp; Cerrar</translation>
+        <translation>Guardar y cerrar</translation>
     </message>
 </context>
 <context>
@@ -985,7 +1244,7 @@ QPushButton:hover {
     <message>
         <location filename="../pygui/windows/tab_widget.ui" line="25" />
         <source>TAILSCALE VPN URL    :</source>
-        <translation>URL de VPN A ESCALA TAIL:</translation>
+        <translation>URL TAILSCALE VPN :</translation>
     </message>
     <message>
         <location filename="../pygui/windows/tab_widget.ui" line="41" />
@@ -995,7 +1254,7 @@ QPushButton:hover {
     <message>
         <location filename="../pygui/windows/tab_widget.ui" line="44" />
         <source>https://vpn.example.com</source>
-        <translation>https://vpn.ejemplo.com</translation>
+        <translation>https://vpn.example.com</translation>
     </message>
     <message>
         <location filename="../pygui/windows/tab_widget.ui" line="58" />
@@ -1003,52 +1262,67 @@ QPushButton:hover {
         <translation>🔴 Desconectado</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="65" />
+        <location filename="../pygui/windows/tab_widget.ui" line="61" />
+        <source>VPN Status: Disconnected</source>
+        <translation>Estado de la VPN: desconectado</translation>
+    </message>
+    <message>
+        <location filename="../pygui/windows/tab_widget.ui" line="64" />
+        <source>Current VPN connection status is Disconnected. Both textual and visual indicators are present.</source>
+        <translation>El estado actual de la conexión VPN es «desconectado». Hay indicadores tanto textuales como visuales.</translation>
+    </message>
+    <message>
+        <location filename="../pygui/windows/tab_widget.ui" line="71" />
         <source>Configure authentication server and API keys</source>
         <translation>Configurar el servidor de autenticación y las claves API</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="68" />
+        <location filename="../pygui/windows/tab_widget.ui" line="74" />
         <source>Change Credentials Button</source>
         <translation>Botón Cambiar credenciales</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="80" />
+        <location filename="../pygui/windows/tab_widget.ui" line="90" />
         <source>Change Credentials</source>
         <translation>Cambiar credenciales</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="92" />
+        <location filename="../pygui/windows/tab_widget.ui" line="102" />
         <source>Initiate or disconnect the secure VPN session</source>
         <translation>Iniciar o desconectar la sesión VPN segura</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="95" />
+        <location filename="../pygui/windows/tab_widget.ui" line="105" />
         <source>VPN Connection Button</source>
         <translation>Botón de conexión VPN</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="110" />
+        <location filename="../pygui/windows/tab_widget.ui" line="124" />
+        <source>Ctrl+Return</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../pygui/windows/tab_widget.ui" line="133" />
         <source>Connect</source>
         <translation>Conectar</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="133" />
+        <location filename="../pygui/windows/tab_widget.ui" line="156" />
         <source>View session transfer details and daily history logs</source>
         <translation>Ver detalles de transferencia de sesión y registros históricos diarios</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="136" />
+        <location filename="../pygui/windows/tab_widget.ui" line="159" />
         <source>Show Traffic Stats Button</source>
         <translation>Botón Mostrar estadísticas de tráfico</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="148" />
+        <location filename="../pygui/windows/tab_widget.ui" line="175" />
         <source>Show Traffic Stats</source>
         <translation>Mostrar estadísticas de tráfico</translation>
     </message>
     <message>
-        <location filename="../pygui/windows/tab_widget.ui" line="163" />
+        <location filename="../pygui/windows/tab_widget.ui" line="190" />
         <source>Traffic: Sent 0 B / Received 0 B</source>
         <translation>Tráfico: Enviado 0 B / Recibido 0 B</translation>
     </message>
@@ -1078,7 +1352,7 @@ QPushButton:hover {
     <message>
         <location filename="../pygui/dialogs/traffic.ui" line="76" />
         <source>Checking...</source>
-        <translation>De cheques...</translation>
+        <translation>Comprobando...</translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/traffic.ui" line="83" />
@@ -1095,7 +1369,7 @@ QPushButton:hover {
     <message>
         <location filename="../pygui/dialogs/traffic.ui" line="102" />
         <source>Tailscale IP:</source>
-        <translation>IP de escala trasera:</translation>
+        <translation>IP Tailscale:</translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/traffic.ui" line="121" />
@@ -1145,12 +1419,27 @@ QPushButton:hover {
     <message>
         <location filename="../pygui/dialogs/traffic.ui" line="238" />
         <source>Received</source>
-        <translation>Recibió</translation>
+        <translation>Recibido</translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/traffic.ui" line="267" />
         <source>Close</source>
-        <translation>Cerca</translation>
+        <translation>Cerrar</translation>
+    </message>
+</context>
+<context>
+    <name>main</name>
+    <message>
+        <location filename="../main.py" line="109" />
+        <source>Already Running</source>
+        <translation>Ya se está ejecutando</translation>
+    </message>
+    <message>
+        <location filename="../main.py" line="110" />
+        <source>An instance of Tailscale Client Pro is already running.
+Please check your task manager or system tray.</source>
+        <translation>Ya hay una instancia de Tailscale Client Pro en ejecución.
+Compruebe el administrador de tareas o la bandeja del sistema.</translation>
     </message>
 </context>
 </TS>

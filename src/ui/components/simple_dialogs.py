@@ -115,7 +115,7 @@ class AboutDialog(BaseUiDialog):
             lbl_name.setAccessibleName("Application Name")
             lbl_name.setAccessibleDescription("The name of the desktop VPN client software.")
         if lbl_version: 
-            lbl_version.setText(f"Version {APP_VERSION}")
+            lbl_version.setText(f"Version {APP_VERSION} Pro")
             lbl_version.setAccessibleName("Application Version")
             lbl_version.setAccessibleDescription("Software release version.")
         if lbl_copyright: 

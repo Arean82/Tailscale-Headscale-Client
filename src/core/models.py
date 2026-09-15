@@ -51,7 +51,7 @@ class AppSettings:
     global_dns_fallback: bool = False
     max_tabs: int = 5
     last_profile: str | None = None
-    use_local_api: bool = True
+    use_local_api: bool = False  # opt-in: "Enable Experimental Local API" in Settings
     sso_timeout: int = 120
     language: str = "en_US"
     enable_tray_switcher: bool = False

@@ -8,57 +8,10 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from src.core.manager import Manager
-from src.core.tailscale import TailscaleManager, get_tailscale_path
+from src.core.tailscale import TailscaleManager
 from src.ui.main_window import MainWindow
 from src.utils.dns_fallback import run_cli_if_requested
 from src.utils.logger import manage_sys_streams, setup_logger
-
-
-def is_daemon_running(logger):
-    import subprocess
-    try:
-        startupinfo = None
-        creationflags = 0
-        if sys.platform == "win32":
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            creationflags = subprocess.CREATE_NO_WINDOW
-
-        result = subprocess.run(
-            [get_tailscale_path(), "status", "--json"],
-            capture_output=True,
-            text=True,
-            startupinfo=startupinfo,
-            creationflags=creationflags,
-            check=False,
-            shell=False,
-        )
-        if result.returncode == 0:
-            return True
-        return not (
-            "failed to connect" in result.stderr.lower()
-            or "tailscaled may not be running" in result.stderr.lower()
-        )
-    except (subprocess.SubprocessError, OSError) as e:
-        logger.error(f"Error checking tailscaled daemon: {e}")
-        return False
-
-def start_daemon_service(logger):
-    import shutil
-    import subprocess
-    try:
-        if sys.platform == "win32":
-            subprocess.Popen(
-                [shutil.which("net") or "net", "start", "Tailscale"],
-                creationflags=subprocess.CREATE_NO_WINDOW,
-                shell=False,
-            )
-        elif sys.platform.startswith("linux"):
-            subprocess.Popen([shutil.which("systemctl") or "systemctl", "start", "tailscaled"], shell=False)
-        elif sys.platform == "darwin":
-            subprocess.Popen([shutil.which("launchctl") or "launchctl", "start", "com.tailscale.tailscaled"], shell=False)
-    except (subprocess.SubprocessError, OSError) as e:
-        logger.error(f"Failed to start daemon service: {e}")
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()

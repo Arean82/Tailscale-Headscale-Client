@@ -167,7 +167,7 @@ sequenceDiagram
 
 ### IPC & Status Polling Mechanism:
 1. **Interactive Commands (`tailscale up`, `switch`, `logout`)**: Handled asynchronously via streaming `QProcess` in `TailscaleExecutor`. Never blocks the Qt GUI event loop.
-2. **Telemetry & Fast Status Queries**: Polled through the LocalAPI socket (`/localapi/v0/status` over Named Pipe on Windows, Unix domain socket on Linux/macOS) with a 2-second timeout, gracefully falling back to non-blocking `tailscale status --json` executed on the dedicated `_BlockingWorker` thread.
+2. **Telemetry & Status Queries**: Fetched with non-blocking `tailscale status --json` on the dedicated `_BlockingWorker` thread — this is the default path. When **"Enable Experimental Local API"** is ticked in Settings (opt-in, off by default), the LocalAPI socket (`/localapi/v0/status` over Named Pipe on Windows, Unix domain socket on Linux/macOS) is attempted first with a 2-second timeout, and the CLI is used as the fallback. A refused pipe (HTTP 401/403 — e.g. a non-elevated Windows session, since that pipe is administrators-only) is reported as such and falls back to the CLI.
 
 ---
 

@@ -1,0 +1,54 @@
+# Quality gates: unit tests, lint and static typing on every push/PR.
+#
+# These are the same commands verified locally; ruff.toml, mypy.ini, pyrefly.toml
+# and requirements.txt at the repository root define what they enforce.
+
+name: Quality Gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Tests, Lint & Types (Python 3.12)
+    runs-on: ubuntu-latest
+    env:
+      # Qt runs without a display in CI
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Install headless Qt runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libegl1 libxkbcommon0 libdbus-1-3 libfontconfig1
+
+      - name: Unit tests (pytest)
+        run: python -m pytest tests/ -q
+
+      - name: Lint (ruff)
+        run: python -m ruff check src/ main.py tests/ scripts/
+
+      - name: Static typing (mypy)
+        run: python -m mypy src/ main.py

@@ -16,9 +16,14 @@
 - **Pyrefly Type & Diagnostic Remediations**:
   - `src/core/tailscale.py`: Restored `QProcess` in the top-level PySide6 imports to resolve the `unknown-name: QProcess` diagnostic in `start_service()`.
   - `src/core/tailscale.py`: Added explicit `# pyrefly: ignore[bad-override]` suppressions to `TailscaleManager` and its legacy `connect()` method so overriding `QObject.connect` does not emit static type errors while retaining backwards compatibility for callers.
+- **Elimination of Dead Code & Stubs (Zero-Stub Directive)**:
+  - Removed orphaned blocking routines `is_daemon_running()` and `start_daemon_service()` from [`main.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/main.py), which were superseded by non-blocking Qt async daemon probing and `QProcess.startDetached` in `MainWindow` and `TailscaleManager`.
+  - Removed uninstantiated prototype dialog `src/ui/components/progress_dialog.py` and its asset `pygui/dialogs/progress.ui`.
+  - Reconciled [`Docs/ACCESSIBILITY_COMPLIANCE.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/ACCESSIBILITY_COMPLIANCE.md) to reference exclusively active production dialogs.
 - **Continuous Quality Assurance**:
-  - All 47 pytest test cases passing cleanly (`47 passed in 6.15s`).
-  - Mypy static analysis fully clean across all 30 source files.
+  - All 62 pytest test cases passing cleanly (`62 passed in 4.78s`).
+  - Mypy static analysis fully clean across all 29 source files (`Success: no issues found in 29 source files`).
+  - Ruff linter reporting `All checks passed!`.
 
 ---
 

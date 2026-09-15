@@ -3,11 +3,17 @@ cd "$(dirname "$0")/.."
 
 mkdir -p locales
 
+# pyside6-lupdate does not recurse into directories for Python sources: passing
+# `src` yields zero strings. The .py files must be listed explicitly or every
+# self.tr() string in the code is silently absent from the catalogs.
+PY_FILES=$(find src -name '*.py' | sort)
+SOURCES="pygui $PY_FILES main.py"
+
 echo "Extracting strings to .ts files..."
-pyside6-lupdate pygui src -ts locales/en_US.ts
-pyside6-lupdate pygui src -ts locales/ar_SA.ts
-pyside6-lupdate pygui src -ts locales/fr_FR.ts
-pyside6-lupdate pygui src -ts locales/es_ES.ts
+pyside6-lupdate $SOURCES -ts locales/en_US.ts
+pyside6-lupdate $SOURCES -ts locales/ar_SA.ts
+pyside6-lupdate $SOURCES -ts locales/fr_FR.ts
+pyside6-lupdate $SOURCES -ts locales/es_ES.ts
 
 echo ""
 echo "Running Auto-Translation AI..."
