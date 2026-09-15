@@ -9,7 +9,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from PySide6.QtCore import QCoreApplication, QObject, Signal
 
-_app = QCoreApplication.instance() or QCoreApplication([])
+if QCoreApplication.instance() is None:
+    QCoreApplication([])
 
 
 class FakeExecutor(QObject):

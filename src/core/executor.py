@@ -118,14 +118,12 @@ class _BlockingWorker(QObject):
 
     @Slot(bool)
     def run_status(self, use_local_api: bool) -> None:
-        payload = {"connected": False, "text": "Disconnected", "ips": [], "raw_data": {}}
         if use_local_api:
             try:
                 from src.utils.local_api import query_local_api
                 data = query_local_api(timeout=2.0)
                 connected, text, ips = status_from_json(data)
-                payload = {"connected": connected, "text": text, "ips": ips, "raw_data": data}
-                self.status_ready.emit(payload)
+                self.status_ready.emit({"connected": connected, "text": text, "ips": ips, "raw_data": data})
                 return
             except (RuntimeError, OSError, ValueError) as e:
                 # Local API unavailable; fall through to the CLI on this thread

@@ -1,6 +1,7 @@
 # src/utils/local_api.py
 # This is the local API utility for the application.
 
+import contextlib
 import json
 import os
 import socket
@@ -11,8 +12,9 @@ import threading
 DEFAULT_TIMEOUT = 5.0
 
 
+@contextlib.contextmanager
 def _open_pipe_bounded(pipe_path, timeout):
-    """Opens the Windows named pipe with a hard timeout.
+    """Opens the Windows named pipe with a hard timeout and deterministic closure.
 
     A blocking open() on a named pipe waits until the server accepts the
     connection; if tailscaled is hung this would block forever. The open runs
@@ -23,8 +25,7 @@ def _open_pipe_bounded(pipe_path, timeout):
 
     def _open():
         try:
-            # The returned handle is context-managed by the caller ('with ...')
-            result["f"] = open(pipe_path, "r+b", buffering=0)  # noqa: SIM115
+            result["f"] = open(pipe_path, "r+b", buffering=0)
         except OSError as e:
             result["e"] = e
 
@@ -32,7 +33,12 @@ def _open_pipe_bounded(pipe_path, timeout):
     opener.start()
     opener.join(timeout)
     if "f" in result:
-        return result["f"]
+        handle = result["f"]
+        try:
+            yield handle
+        finally:
+            handle.close()
+        return
     if "e" in result:
         raise result["e"]
     raise TimeoutError(f"Named pipe open timed out after {timeout}s")

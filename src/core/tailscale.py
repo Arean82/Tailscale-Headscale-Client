@@ -13,7 +13,7 @@ import os
 import sys
 import webbrowser
 
-from PySide6.QtCore import QObject, QProcess, Signal
+from PySide6.QtCore import QObject, Signal
 
 from .executor import (  # noqa: F401  (re-exported for UI imports)
     TailscaleExecutor,
