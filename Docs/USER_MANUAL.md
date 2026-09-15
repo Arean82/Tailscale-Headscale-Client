@@ -1,9 +1,10 @@
 # Tailscale & Headscale Client: Comprehensive User Manual 📖🌐
 **Simple, Step-by-Step Guide for Everyday Users, Field Engineers, Remote Workers & IT Admins**
 
-**Document ID:** THC-DOC-USR-2026.1  
+**Document ID:** THC-DOC-USR-5.0  
 **Target Audience:** All Skill Levels (Complete Beginner to Advanced Network Engineer)  
 **Tone:** Plain-English, Step-by-Step, Enterprise Certified  
+**Software Release:** 5.0.0  
 
 ---
 
@@ -24,7 +25,7 @@ Think of **Tailscale** like a secure, invisible extension cord that connects you
 | **Everyday Remote Worker** | Accessing company files, intranets, and remote desktop | Click **Connect** in morning, forget about it all day, click **Disconnect** when done. |
 | **Field Engineer / IT Admin** | Managing servers, SSH access, remote diagnostics | Switch between multiple client Tailnets/Headscale instances, monitor peer latencies. |
 | **Privacy & Security Conscious User** | Encrypting public Wi-Fi traffic | Route all internet traffic through a trusted home or cloud **Exit Node**. |
-| **Designer / Developer** | Direct peer-to-peer file sharing | Right-click any team member's machine and send files at wire speed with **Taildrop**. |
+| **DevOps / SysAdmin** | Fleet administration & network observability | Inspect mesh peer statuses, latency, direct vs DERP relaying, and manage subnet routing. |
 
 ---
 
@@ -37,7 +38,7 @@ flowchart TD
     classDef action fill:#022c22,stroke:#10b981,stroke-width:2px,color:#ecfdf5;
 
     subgraph Top_Bar ["1️⃣ Profile & Global Control Bar"]
-        P_SEL["Active Profile Dropdown<br><i>[Office Headscale ▼]</i>"]:::top
+        P_SEL["Active Profile Tabs<br><i>[Office Headscale | Home Tailnet]</i>"]:::top
         BTN_CONN["Primary State Action<br><b>[🟢 Connect] / [🔴 Disconnect]</b>"]:::action
     end
 
@@ -67,7 +68,7 @@ Connecting takes just one click:
 
 1. Open the **Tailscale & Headscale Client** from your Start Menu, Applications folder, or system tray.
 2. In the top-right corner, check the large status button:
-   - If it says **`Connect`**, click it! (Keyboard shortcut: <kbd>Ctrl</kbd>+<kbd>C</kbd> or <kbd>Cmd</kbd>+<kbd>C</kbd>).
+   - If it says **`Connect`**, click it! (Keyboard shortcut: <kbd>Ctrl</kbd>+<kbd>Return</kbd>).
 3. **If using official Tailscale:**
    - Your browser opens to `login.tailscale.com`.
    - Log in using your Google, Microsoft, GitHub, or Apple account.
@@ -90,7 +91,7 @@ sequenceDiagram
     participant Keyring as 🔐 OS Hardware Vault (Keyring)
     participant Tailscale as ⚙️ tailscaled Service
 
-    User->>App: Clicks "+" New Profile Tab or presses Ctrl+N
+    User->>App: Clicks "+" New Profile Tab
     User->>App: Enters Name: "Corporate Headscale", URL: "https://hs.corp.net"
     App->>SQLite: Saves profile network topology & feature flags
     App->>Keyring: Stores auth key into OS vault under auth_key_<UUIDv4>
@@ -102,7 +103,7 @@ sequenceDiagram
 ```
 
 #### Steps to Add a New Profile:
-1. Click the **`➕`** tab button or press <kbd>Ctrl</kbd>+<kbd>N</kbd>.
+1. Click the **`➕`** tab button in the tab bar or select **`Profile`** $\to$ **`Add New Profile`**.
 2. Enter a unique name for the environment (e.g. `Office Work`, `Home Server`, `Client Lab`).
 3. Set your credentials:
    * **Login Server URL:**
@@ -115,7 +116,6 @@ sequenceDiagram
 5. **Switching Profiles**: Simply click the profile's tab in the top tab bar. The client handles the background handover cleanly without leaking credentials!
 
 ---
-
 
 ### 3. Routing All Internet Through an Exit Node (Public Wi-Fi Protection) 🛡️
 
@@ -149,47 +149,36 @@ flowchart LR
 
 ---
 
-### 4. Sending Files with Taildrop (Blazing-Fast Direct Transfer) 📦
+### 4. Managing Node Preferences & Application Settings ⚙️
 
-Forget slow upload links or email attachment limits. **Taildrop** sends files directly between devices at your network's maximum physical speed!
-
-1. In the **Peers Table**, find the computer or phone you want to send a file to.
-2. **Right-click** on that peer's row.
-3. Click **`Send File via Taildrop...`**.
-4. Choose the file from your computer and click Open.
-5. A transfer bar shows progress. Once done, the file arrives in the recipient's **Downloads** folder.
-6. **Receiving files:** Any file sent to you will trigger an OS desktop notification and appear in your user `Downloads/Taildrop` directory automatically.
-
----
-
-### 5. Managing Your Own Node Settings ⚙️
-
-Click the **`Settings`** button in the dashboard or press <kbd>Ctrl</kbd>+<kbd>,</kbd> to open node preferences:
+Click the **`Settings`** menu item under **File** $\to$ **Settings** or press <kbd>Ctrl</kbd>+<kbd>,</kbd> to open preferences:
 
 | Setting | What It Does | Recommended State |
 | :--- | :--- | :--- |
-| **Run on System Startup** | Automatically starts the client minimized in the system tray when your PC boots. | ✅ **Enabled** |
-| **Minimize to Tray on Close** | Keeps VPN active in the background when you click the window 'X'. | ✅ **Enabled** |
-| **Accept Subnet Routes** | Allows your machine to reach internal subnets advertised by gateway nodes (e.g. `192.168.1.0/24`). | ✅ **Enabled** |
-| **Allow Inbound Connections** | Permits other authorized machines in your Tailnet to connect to your local services. | Based on security policy |
-| **Shields Up (Stealth Mode)** | Completely blocks all incoming connection attempts from other peers. | Enable on untrusted public Wi-Fi |
+| **Run on System Startup** | Automatically starts the client when your PC boots. | Optional |
+| **Auto-Connect at Launch** | Automatically initiates VPN tunnel connection when application starts. | Optional |
+| **Enable Logs** | Writes debug and operational logs to disk in the application directory. | ✅ **Enabled** |
+| **Advanced Features** | Enables granular routing, subnet advertisement, exit node settings, and peer dialog. | ✅ **Enabled** |
+| **Allow Insecure SSL** | Permits connecting to Headscale servers using self-signed or internal CA certificates. | Homelab / Testing |
+| **Global DNS Fallback** | Enables fallback DNS resolution if the Tailnet MagicDNS cannot be reached. | Optional |
+| **Check Screen Reader on Startup** | Validates speech synthesis and assistive technology tools on application launch. | For AT Users |
 
 ---
 
-### 6. Reading Diagnostics & System Logs 🔍
+### 5. Reading Diagnostics & System Logs 🔍
 
 If you ever encounter an issue or IT support asks for logs:
-1. Click **`Tools`** $\to$ **`Log Viewer`** (or press <kbd>Ctrl</kbd>+<kbd>L</kbd>).
-2. The log viewer shows real-time output from the local `tailscaled` service.
+1. Click **`Logs`** $\to$ **`Global Logs`** in the menu bar.
+2. Select any active profile or engine log to open the dedicated **Log Viewer**.
 3. Use the search bar at the top to filter for errors or warnings (e.g. `derp`, `handshake`, `expired`).
 4. Click **`Copy All`** or **`Export Log...`** to save a timestamped diagnostic file for your support team.
 
 ---
 
-### 7. Viewing Software License & Attributions ⚖️
+### 6. Viewing Software License & Attributions ⚖️
 
 To inspect open-source license agreements and copyright terms:
-1. Open the **Help** menu and select **`License Agreement`**.
+1. Open the **Help** menu and select **`View License`**.
 2. The dedicated License Viewer displays the full legal text of the **GNU General Public License v3.0 (GPLv3)**.
 3. The dialog features keyboard-first accessibility: dismiss anytime by pressing <kbd>Esc</kbd>, <kbd>Enter</kbd>, or clicking **`Close`**.
 
@@ -199,24 +188,34 @@ To inspect open-source license agreements and copyright terms:
 
 This software has been certified under **EN 301 549 (Software Clause 11)** and **WCAG 2.1 Level AA**. Every function is 100% operable using only the keyboard or a screen reader (NVDA, JAWS, Windows Narrator, Apple VoiceOver, Orca).
 
+### Verified Global Keyboard Shortcuts
+
 | Key Combination | Action Scope | Operation |
 | :--- | :--- | :--- |
 | <kbd>Ctrl</kbd> + <kbd>Return</kbd> | Main Window / Active Tab | **Connect / Disconnect VPN** toggle |
 | <kbd>Ctrl</kbd> + <kbd>,</kbd> | Application Global | Open **Settings Dialog** |
 | <kbd>Ctrl</kbd> + <kbd>Q</kbd> | Application Global | **Quit / Exit Application** |
 | <kbd>Ctrl</kbd> + <kbd>N</kbd> | Application Global | **Add New Profile** modal |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Application Global | **Remove Selected Profile** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Application Global | **Remove Current Profile** |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Application Global | Open **Peer List Dialog** |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> | Application Global | Open **Diagnostics Dialog** |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Application Global | **Check Screen Reader & AT Setup** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> | Application Global | Open **Network Diagnostics Dialog** |
 | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>A</kbd> | Application Global | Open **Advanced Node Options** |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Application Global | **Check Screen Reader & AT Setup** (Launches interactive accessibility diagnostics) |
 | <kbd>F1</kbd> | Application Global | Open **About Dialog** |
 | <kbd>Shift</kbd> + <kbd>F1</kbd> | Application Global | Open **Documentation & Readme Viewer** |
+
+### Universal Focus Navigation & Dialog Controls
+
+All screens and modal dialogs follow logical Qt `<tabstops>` order with visible focus indicators:
+
+| Key Combination | Context | Operation |
+| :--- | :--- | :--- |
 | <kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd> | All Windows & Dialogs | Step forward/backward through `<tabstops>` focus chain |
-| <kbd>Enter</kbd> / <kbd>Return</kbd> | Modal Dialogs | Execute default primary action |
+| <kbd>Enter</kbd> / <kbd>Return</kbd> | Focused Button or Dialog | Execute focused control or default primary action |
 | <kbd>Esc</kbd> | Modal Dialogs | Instantly close dialog and return focus without keyboard trap |
 | <kbd>Space</kbd> | Focused Button/Checkbox | Activate or toggle focused control |
 | <kbd>Up</kbd> / <kbd>Down</kbd> Arrows | Tables & Lists | Navigate peer items or profile selections |
+| <kbd>Alt</kbd> + Underlined Letter | Menu Bar | Access menus (e.g. <kbd>Alt</kbd>+<kbd>F</kbd> for File, <kbd>Alt</kbd>+<kbd>P</kbd> for Profile, <kbd>Alt</kbd>+<kbd>H</kbd> for Help) |
 
 ---
 
@@ -263,8 +262,8 @@ Windows N editions require the Windows Media Feature Pack to enable voice synthe
 Pre-installed into macOS. Toggle anytime with <kbd>Cmd</kbd> + <kbd>F5</kbd> (or triple-click Touch ID).
 
 ### 4. Optional Startup Verification & Diagnostics Tool
-* **In Settings (<kbd>Ctrl+,</kbd>)**: Toggle **"Check Screen Reader / AT on Startup"** (default: *Disabled*). When enabled, the client inspects whether Orca or speech components are active upon launch and displays remediation guidance if missing.
-* **In Diagnostics (<kbd>Ctrl+Shift+N</kbd>)**: Click **"Check Screen Reader"** at any time to run an instant non-destructive accessibility health check.
+* **In Settings (File → Settings)**: Toggle **"Check Screen Reader / AT on Startup"** (default: *Disabled*). When enabled, the client inspects whether Orca or speech components are active upon launch and displays remediation guidance if missing.
+* **In Network Diagnostics (Advanced → Diagnostics)**: Click **"Check Screen Reader"** at any time to run an instant non-destructive accessibility health check.
 
 ---
 

@@ -1,9 +1,18 @@
 # src/ui/components/node_dialog.py
 
 import json
-from PySide6.QtWidgets import QPushButton, QLineEdit, QComboBox, QListWidget, QListWidgetItem
+
 from PySide6.QtCore import QProcess, Qt
+from PySide6.QtWidgets import (
+    QComboBox,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QPushButton,
+)
+
 from .simple_dialogs import BaseUiDialog
+
 
 class NodeDialog(BaseUiDialog):
     def __init__(self, profile, manager, parent=None):
@@ -51,12 +60,16 @@ class NodeDialog(BaseUiDialog):
         self.chkUnattendedValue = self.ui.findChild(QCheckBox, "chkUnattendedValue")
         self.chkWebclientValue = self.ui.findChild(QCheckBox, "chkWebclientValue")
         self.chkAdvertiseConnectorValue = self.ui.findChild(QCheckBox, "chkAdvertiseConnectorValue")
+        self.lineEditExtraArgs = self.ui.findChild(QLineEdit, "lineEditExtraArgs")
+        self.lineEditAcceptRisk = self.ui.findChild(QLineEdit, "lineEditAcceptRisk")
 
         # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
         accessible_configs = [
             (self.comboBoxExitNode, "Exit Node Selector", "Select a remote peer device to route internet egress traffic through."),
             (self.lineEditRoutes, "Subnet Routes Input", "Comma-separated RFC 1918 subnets to advertise to the Tailnet."),
             (self.lineEditHostname, "Custom Hostname Override", "Overrides the machine name advertised to the coordination server."),
+            (self.lineEditExtraArgs, "Extra Daemon Arguments", "Custom flags or arguments passed directly to tailscale up."),
+            (self.lineEditAcceptRisk, "Risk Acknowledgment Flag", "Risk acknowledgment flags passed to tailscale up (e.g. lose-ssh, all)."),
             (self.lineEditTags, "ACL Tags Input", "Comma-separated ACL tags to assign to this node (e.g. tag:server)."),
             (self.lineEditEmergencyIp, "Emergency Cached IP", "Displays the last known IPv4 address of the node for emergency fallback."),
             (self.listNativeSwitch, "Instant Switch Profile List", "Select multiple compatible profiles for sub-second switching."),
@@ -125,7 +138,7 @@ class NodeDialog(BaseUiDialog):
 
         # Populate listNativeSwitch
         if self.listNativeSwitch:
-            for name, p in self.manager.profiles.items():
+            for name in self.manager.profiles:
                 item = QListWidgetItem(name, self.listNativeSwitch)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
                 
@@ -239,6 +252,9 @@ class NodeDialog(BaseUiDialog):
         if hasattr(self, 'lineEditExtraArgs') and self.lineEditExtraArgs:
             self.lineEditExtraArgs.setText(getattr(self.profile, 'extra_args', ''))
 
+        if hasattr(self, 'lineEditAcceptRisk') and self.lineEditAcceptRisk:
+            self.lineEditAcceptRisk.setText(getattr(self.profile, 'accept_risk', ''))
+
         if self.lineEditTags:
             self.lineEditTags.setText(getattr(self.profile, 'advertise_tags', ""))
             self.lineEditTags.setToolTip("A comma-separated list of ACL tags to advertise for this device (e.g., tag:server, tag:prod).")
@@ -330,10 +346,10 @@ class NodeDialog(BaseUiDialog):
                             if ip:
                                 self.lineEditEmergencyIp.setText(ip)
                                 self.lineEditEmergencyIp.setPlaceholderText("Resolved from live Control URL!")
-                    except Exception as res_err:
+                    except (OSError, ValueError) as res_err:
                         print("DEBUG [node_dialog]: Could not resolve ControlURL IP:", res_err)
                     
-            except Exception as e:
+            except (ValueError, TypeError, AttributeError) as e:
                 print("DEBUG [node_dialog]: Exception parsing prefs:", e)
                 
         self.prefs_proc.finished.connect(on_prefs_finished)
@@ -360,7 +376,7 @@ class NodeDialog(BaseUiDialog):
                 
                 # Parse exit nodes and map their subnet routes
                 peers = data.get("Peer") or {}
-                for peer_id, peer_info in peers.items():
+                for peer_info in peers.values():
                     # Parse primary subnet routes advertised by peer
                     allowed_ips = peer_info.get("AllowedIPs") or []
                     subnets = [ip for ip in allowed_ips if "/" in ip and not ip.endswith("/32") and not ip.endswith("/128")]
@@ -379,7 +395,7 @@ class NodeDialog(BaseUiDialog):
                         active_system_exit_node = target_name
 
                 # Deduplicate and sort exit nodes
-                exit_nodes = sorted(list(set(exit_nodes)))
+                exit_nodes = sorted(set(exit_nodes))
                 
                 if self.comboBoxExitNode:
                     self.comboBoxExitNode.blockSignals(True)
@@ -418,7 +434,7 @@ class NodeDialog(BaseUiDialog):
                         self.lineEditHostname.setText(ts_hostname)
                         self.lineEditHostname.setPlaceholderText("Detected from active connection!")
 
-            except Exception as e:
+            except (ValueError, TypeError, AttributeError) as e:
                 print("DEBUG [node_dialog]: Exception parsing status:", e)
                 
         self.status_proc.finished.connect(on_finished)
@@ -474,6 +490,8 @@ class NodeDialog(BaseUiDialog):
         self.profile.advertise_connector = self.chkAdvertiseConnector.isChecked() if hasattr(self, 'chkAdvertiseConnector') and self.chkAdvertiseConnector else False
         if hasattr(self, 'lineEditExtraArgs') and self.lineEditExtraArgs:
             self.profile.extra_args = self.lineEditExtraArgs.text().strip()
+        if hasattr(self, 'lineEditAcceptRisk') and self.lineEditAcceptRisk:
+            self.profile.accept_risk = self.lineEditAcceptRisk.text().strip()
 
         # Save checked profiles
         if self.listNativeSwitch:

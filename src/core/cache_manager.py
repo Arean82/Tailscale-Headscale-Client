@@ -1,10 +1,11 @@
 # src/core/cache_manager.py
 # This is the cache manager for the application.
 
-import os
 import json
+import os
 import time
-from typing import Any, Optional
+from typing import Any
+
 
 class CacheManager:
     def __init__(self, cache_file: str, expiry_seconds: int = 60):
@@ -16,9 +17,9 @@ class CacheManager:
     def load_cache(self):
         if os.path.exists(self.cache_file):
             try:
-                with open(self.cache_file, "r") as f:
+                with open(self.cache_file) as f:
                     self.data = json.load(f)
-            except Exception:
+            except (OSError, ValueError):
                 self.data = {}
 
     def save_cache(self):
@@ -29,7 +30,7 @@ class CacheManager:
             # Ephemeral filesystem or read-only volume; ignore cache write failure
             return
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         if key in self.data:
             entry = self.data[key]
             if time.time() - entry["timestamp"] < self.expiry_seconds:

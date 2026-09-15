@@ -1,13 +1,31 @@
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import unittest
-from src.core.models import AppSettings, Profile, AppState
+
 from src.core.cache_manager import CacheManager
-from src.utils.crypto import CryptoManager
-from src.utils.a11y_checker import check_screen_reader_environment, A11yCheckResult
+from src.core.models import AppSettings, AppState, Profile
+from src.utils.a11y_checker import A11yCheckResult, check_screen_reader_environment
+from src.utils.crypto import (
+    decrypt_legacy_key,
+    delete_profile_secret,
+    get_profile_secret,
+    set_secret_backend,
+    store_profile_secret,
+)
+
 
 class TestClientCore(unittest.TestCase):
+
+    def setUp(self):
+        # Hermetic mock secret store backend so tests never pollute the OS Keyring
+        self._test_vault = {}
+        set_secret_backend(self._test_vault)
+
+    def tearDown(self):
+        set_secret_backend(None)
 
     def test_app_settings_defaults(self):
         settings = AppSettings()
@@ -45,16 +63,53 @@ class TestClientCore(unittest.TestCase):
             if os.path.exists(cache_path):
                 os.remove(cache_path)
 
-    def test_crypto_manager(self):
-        test_key_file = os.path.join('temp_data', 'test_secret.key')
-        os.makedirs('temp_data', exist_ok=True)
+    def test_secret_store_adapter(self):
+        """Candidate 3: SecretStore adapter stores, retrieves, and deletes with explicit return codes."""
+        test_id = "test-profile-uuid-12345"
+        secret = "mock-super-secret-key-999"  # noqa: S105 (test fixture, not a real credential)
+
+        self.assertTrue(store_profile_secret(test_id, secret))
+        self.assertEqual(get_profile_secret(test_id), secret)
+
+        # Updating secret
+        updated_secret = "mock-super-secret-key-updated"  # noqa: S105 (test fixture, not a real credential)
+        self.assertTrue(store_profile_secret(test_id, updated_secret))
+        self.assertEqual(get_profile_secret(test_id), updated_secret)
+
+        # Deleting secret
+        self.assertTrue(delete_profile_secret(test_id))
+        self.assertEqual(get_profile_secret(test_id), "")
+
+    def test_legacy_key_decryption(self):
+        """Candidate 3: Gracefully handles legacy master.key decryption and fallback."""
+        from cryptography.fernet import Fernet
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+        secret = "legacy-raw-auth-key-555"  # noqa: S105 (test fixture, not a real credential)
+        encrypted = fernet.encrypt(secret.encode()).decode()
+
+        test_key_file = os.path.join("temp_data", "test_legacy_master.key")
+        os.makedirs("temp_data", exist_ok=True)
         try:
-            crypto = CryptoManager(key_file=test_key_file)
-            secret = 'super-secret-auth-key-12345'
-            encrypted = crypto.encrypt(secret)
-            self.assertNotEqual(secret, encrypted)
-            decrypted = crypto.decrypt(encrypted)
-            self.assertEqual(secret, decrypted)
+            with open(test_key_file, "wb") as f:
+                f.write(key)
+            decrypted = decrypt_legacy_key(encrypted, test_key_file)
+            self.assertEqual(decrypted, secret)
+
+            # Missing key file returns original text for plaintext values...
+            self.assertEqual(decrypt_legacy_key("plain_text", "non_existent_key_path"), "plain_text")
+            # ...but ciphertext is dropped, never passed through as an auth key
+            self.assertEqual(decrypt_legacy_key(encrypted, "non_existent_key_path"), "")
+
+            # No key path at all: plaintext passes, ciphertext is dropped
+            self.assertEqual(decrypt_legacy_key("plain_text"), "plain_text")
+            self.assertEqual(decrypt_legacy_key(encrypted), "")
+
+            # Plaintext stored alongside a regenerated (wrong) master.key is
+            # recovered as plaintext instead of being lost
+            with open(test_key_file, "wb") as f:
+                f.write(Fernet.generate_key())
+            self.assertEqual(decrypt_legacy_key("plain_text", test_key_file), "plain_text")
         finally:
             if os.path.exists(test_key_file):
                 os.remove(test_key_file)
@@ -75,9 +130,18 @@ class TestClientCore(unittest.TestCase):
         raw = f"Connecting with {sample_token} and --authkey=secretpass999"
         scrubbed = scrub_credentials(raw)
         self.assertNotIn(sample_token, scrubbed)
-        self.assertIn("tskey-auth-[REDACTED]", scrubbed)
+        self.assertIn("tskey-[REDACTED]", scrubbed)
         self.assertNotIn("secretpass999", scrubbed)
         self.assertIn("--authkey=[REDACTED]", scrubbed)
+
+        # All tskey variants and Headscale machine/node key material are masked
+        api_token = "tskey" + "-api-" + "mockapi987654321"
+        machine_key = "mkey:" + "MockMachineKey1234567890"
+        node_key = "nodekey:" + "MockNodeKey0987654321"
+        scrubbed2 = scrub_credentials(f"{api_token} {machine_key} {node_key}")
+        self.assertNotIn("mockapi987654321", scrubbed2)
+        self.assertNotIn("MockMachineKey1234567890", scrubbed2)
+        self.assertNotIn("MockNodeKey0987654321", scrubbed2)
 
     def test_directory_traversal_prevention(self):
         from src.core.manager import Manager
@@ -158,10 +222,15 @@ class TestClientCore(unittest.TestCase):
 
     def test_keyring_profile_secrets(self):
         """Option C: Keyring secret helpers save, retrieve, and delete auth keys by UUID."""
-        from src.utils.crypto import store_profile_secret, get_profile_secret, delete_profile_secret
         import uuid
+
+        from src.utils.crypto import (
+            delete_profile_secret,
+            get_profile_secret,
+            store_profile_secret,
+        )
         test_uuid = str(uuid.uuid4())
-        secret_key = "mock-vault-secret-token-sample-999"
+        secret_key = "mock-vault-secret-token-sample-999"  # noqa: S105 (test fixture, not a real credential)
 
         try:
             store_profile_secret(test_uuid, secret_key)
@@ -201,6 +270,160 @@ class TestClientCore(unittest.TestCase):
             mgr2.remove_profile("Engineering")
             self.assertNotIn("Engineering", mgr2.profiles)
             self.assertEqual(mgr2.db.count_profiles(), 1)
+        finally:
+            if os.path.exists(test_dir):
+                import shutil
+                shutil.rmtree(test_dir, ignore_errors=True)
+
+    def test_profile_uuid_preservation_on_rename(self):
+        """Candidate 4: Renaming a profile preserves its immutable UUIDv4 and Keyring credentials."""
+        from src.core.manager import Manager
+        test_dir = os.path.join("temp_data", "test_rename_uuid")
+        os.makedirs(test_dir, exist_ok=True)
+        try:
+            mgr = Manager(base_dir=test_dir)
+            p = Profile(name="OriginalName", login_server="https://hs.example.com", auth_key="secret-auth-key-111")
+            orig_uuid = p.id
+            mgr.add_profile(p)
+
+            self.assertIn("OriginalName", mgr.profiles)
+            self.assertEqual(mgr.get_profile(orig_uuid).name, "OriginalName")
+
+            # Rename profile
+            success = mgr.rename_profile("OriginalName", "RenamedProfile")
+            self.assertTrue(success)
+            self.assertNotIn("OriginalName", mgr.profiles)
+            self.assertIn("RenamedProfile", mgr.profiles)
+
+            # UUID and Secret must be strictly preserved
+            renamed_p = mgr.profiles["RenamedProfile"]
+            self.assertEqual(renamed_p.id, orig_uuid)
+            self.assertEqual(mgr.get_profile(orig_uuid).name, "RenamedProfile")
+
+            # Verify persistent reload keeps the same UUID and secret
+            mgr_reloaded = Manager(base_dir=test_dir)
+            self.assertIn("RenamedProfile", mgr_reloaded.profiles)
+            self.assertEqual(mgr_reloaded.profiles["RenamedProfile"].id, orig_uuid)
+            self.assertEqual(mgr_reloaded.profiles["RenamedProfile"].auth_key, "secret-auth-key-111")
+        finally:
+            if os.path.exists(test_dir):
+                import shutil
+                shutil.rmtree(test_dir, ignore_errors=True)
+
+    def test_cascade_deletion(self):
+        """Candidate 4: Profile deletion cascades to raw_state and traffic_data tables."""
+        from src.core.db_manager import DatabaseManager
+        test_dir = os.path.join("temp_data", "test_cascade_db")
+        os.makedirs(test_dir, exist_ok=True)
+        try:
+            db = DatabaseManager(test_dir)
+            p = Profile(name="CascadeTest", login_server="https://hs.example.com")
+            db.save_profile(p)
+
+            # Baseline raw_state
+            db.insert_traffic_data("CascadeTest", 1000, 2000)
+            # Subsequent traffic with positive delta
+            db.insert_traffic_data("CascadeTest", 1500, 2800)
+            db.flush_buffer()
+
+            conn = db._create_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM profiles WHERE id = ?", (p.id,))
+            self.assertEqual(cursor.fetchone()[0], 1)
+            cursor.execute("SELECT COUNT(*) FROM raw_state WHERE profile = ?", ("CascadeTest",))
+            self.assertEqual(cursor.fetchone()[0], 1)
+            cursor.execute("SELECT COUNT(*) FROM traffic_data WHERE profile = ?", ("CascadeTest",))
+            self.assertGreater(cursor.fetchone()[0], 0)
+            conn.close()
+
+            # Delete with cascade
+            db.delete_profile(p.id, profile_name="CascadeTest")
+
+            conn = db._create_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM profiles WHERE id = ?", (p.id,))
+            self.assertEqual(cursor.fetchone()[0], 0)
+            cursor.execute("SELECT COUNT(*) FROM raw_state WHERE profile = ?", ("CascadeTest",))
+            self.assertEqual(cursor.fetchone()[0], 0)
+            cursor.execute("SELECT COUNT(*) FROM traffic_data WHERE profile = ?", ("CascadeTest",))
+            self.assertEqual(cursor.fetchone()[0], 0)
+            conn.close()
+        finally:
+            if os.path.exists(test_dir):
+                import shutil
+                shutil.rmtree(test_dir, ignore_errors=True)
+
+    def test_database_migration_ladder(self):
+        """Candidate 5: PRAGMA user_version upgrades legacy tables missing newer columns."""
+        import sqlite3
+
+        from src.core.db_manager import DatabaseManager
+        test_dir = os.path.join("temp_data", "test_migration_ladder")
+        os.makedirs(test_dir, exist_ok=True)
+        db_path = os.path.join(test_dir, "traffic_stats.db")
+        try:
+            # Simulate a prehistoric database (user_version = 0) with only minimal columns
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE profiles (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    login_server TEXT
+                );
+            """)
+            cursor.execute("PRAGMA user_version = 0;")
+            conn.commit()
+            conn.close()
+
+            # Initializing DatabaseManager must trigger _run_migrations()
+            db = DatabaseManager(test_dir)
+            conn = db._create_connection()
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA user_version;")
+            version = cursor.fetchone()[0]
+            self.assertGreaterEqual(version, 1)
+
+            cursor.execute("PRAGMA table_info(profiles);")
+            columns = {col[1] for col in cursor.fetchall()}
+            self.assertIn("extra_args", columns)
+            self.assertIn("enable_dns_fallback", columns)
+            self.assertIn("accept_routes", columns)
+            conn.close()
+        finally:
+            if os.path.exists(test_dir):
+                import shutil
+                shutil.rmtree(test_dir, ignore_errors=True)
+
+    def test_traffic_buffer_thread_safety(self):
+        """Candidate 5: Traffic buffer operations are thread-safe and atomic across flushes."""
+        import threading
+
+        from src.core.db_manager import DatabaseManager
+        test_dir = os.path.join("temp_data", "test_buffer_threads")
+        os.makedirs(test_dir, exist_ok=True)
+        try:
+            db = DatabaseManager(test_dir)
+
+            def worker(profile_id, count):
+                for i in range(count):
+                    db.insert_traffic_data(profile_id, (i + 1) * 100, (i + 1) * 200)
+
+            t1 = threading.Thread(target=worker, args=("ProfileA", 20))
+            t2 = threading.Thread(target=worker, args=("ProfileB", 20))
+            t1.start()
+            t2.start()
+            t1.join()
+            t2.join()
+
+            # Buffer contains values for both profiles without corruption
+            with db._buffer_lock:
+                self.assertIn("ProfileA", db.traffic_buffer)
+                self.assertIn("ProfileB", db.traffic_buffer)
+
+            db.flush_buffer()
+            with db._buffer_lock:
+                self.assertEqual(len(db.traffic_buffer), 0)
         finally:
             if os.path.exists(test_dir):
                 import shutil

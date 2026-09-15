@@ -4,6 +4,7 @@ import sys
 
 try:
     from deep_translator import GoogleTranslator
+    from deep_translator.exceptions import BaseError, RequestError, TooManyRequests
 except ImportError:
     print("Please install deep-translator: pip install deep-translator")
     sys.exit(1)
@@ -11,7 +12,7 @@ except ImportError:
 def translate_markdown(file_path, target_lang):
     print(f"[*] Translating {os.path.basename(file_path)} to '{target_lang}'...")
     
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding='utf-8') as f:
         content = f.read()
 
     translator = GoogleTranslator(source='auto', target=target_lang)
@@ -31,7 +32,7 @@ def translate_markdown(file_path, target_lang):
             continue
             
         # Skip empty lines and structural HTML/badges
-        if not line.strip() or line.startswith('[![') or '<div' in line or '<img' in line or '</div>' in line or line.startswith('---'):
+        if not line.strip() or line.startswith(('[![', '---')) or '<div' in line or '<img' in line or '</div>' in line:
             translated_lines.append(line)
             continue
             
@@ -45,7 +46,7 @@ def translate_markdown(file_path, target_lang):
                 if translated is None:
                     translated = text_to_translate
                 translated_lines.append(f"{heading_marks} {translated}")
-            except Exception as e:
+            except (OSError, BaseError, RequestError, TooManyRequests) as e:
                 print(f"[!] Error translating: {e}")
                 translated_lines.append(line)
             continue
@@ -60,7 +61,7 @@ def translate_markdown(file_path, target_lang):
                 if translated is None:
                     translated = text_to_translate
                 translated_lines.append(f"{prefix} {translated}")
-            except Exception:
+            except (OSError, BaseError, RequestError, TooManyRequests):
                 translated_lines.append(line)
             continue
             
@@ -70,7 +71,7 @@ def translate_markdown(file_path, target_lang):
             if translated is None:
                 translated = line
             translated_lines.append(translated)
-        except Exception:
+        except (OSError, BaseError, RequestError, TooManyRequests):
             translated_lines.append(line)
             
     out_file = file_path.replace('.md', f'_{target_lang}.md')

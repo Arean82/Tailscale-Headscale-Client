@@ -1,9 +1,23 @@
 import re
-from PySide6.QtWidgets import QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QLabel, QMenu, QWidget, QHBoxLayout, QSpacerItem, QSizePolicy
-from PySide6.QtCore import Qt, QTimer, QSize, QProcess
-from PySide6.QtGui import QAction, QGuiApplication, QPainter, QPen, QColor
+
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QAction, QColor, QGuiApplication, QPainter, QPen
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QPushButton,
+    QSizePolicy,
+    QSpacerItem,
+    QTableWidget,
+    QTableWidgetItem,
+    QWidget,
+)
+
 from .simple_dialogs import BaseUiDialog
-from ...core.tailscale import get_tailscale_path
+
 
 class PeerNameBadgeWidget(QWidget):
     def __init__(self, host_name, username="", tags=None, parent=None):
@@ -54,11 +68,12 @@ class PeerNameBadgeWidget(QWidget):
 
 
 class LatencySparklineWidget(QWidget):
-    def __init__(self, parent=None, is_active=True, is_online=True, peer_ip=None):
+    def __init__(self, parent=None, is_active=True, is_online=True, peer_ip=None, ts_manager=None):
         super().__init__(parent)
         self.is_active = is_active
         self.is_online = is_online
         self.peer_ip = peer_ip
+        self.ts_manager = ts_manager
 
         # No baseline values — graph stays empty until real ping data arrives.
         # 0 means "no data yet" and is excluded from rendering.
@@ -71,27 +86,27 @@ class LatencySparklineWidget(QWidget):
 
         if self.is_online and self.peer_ip:
             self.timer = QTimer(self)
-            self.timer.timeout.connect(self._run_ping)
+            self.timer.timeout.connect(self._request_ping)
             self.timer.start(2000)
+            if self.ts_manager is not None:
+                self.ts_manager.diagnostic_ready.connect(self._on_diagnostic_ready)
             # Kick off the first ping immediately instead of waiting 2s
-            QTimer.singleShot(0, self._run_ping)
+            QTimer.singleShot(0, self._request_ping)
 
-    def _run_ping(self):
-        """Spawn a non-blocking tailscale ping against this peer's IP."""
-        if not self.peer_ip:
+    def _request_ping(self):
+        """Ask the executor for a bounded, worker-thread ping (no per-widget
+        QProcess churn)."""
+        if not self.peer_ip or self.ts_manager is None:
             return
-        self.proc = QProcess(self)
-        self.proc.finished.connect(self._on_ping_finished)
-        # --timeout=2s keeps the subprocess short; until=false means it stops
-        # after the first successful reply (matches existing 2s timer cadence).
-        self.proc.start(get_tailscale_path(), ["ping", "--timeout=2s", "--until=false", self.peer_ip])
+        self.ts_manager.request_ping(self.peer_ip)
 
-    def _on_ping_finished(self, exit_code, exit_status):
-        output = self.proc.readAllStandardOutput().data().decode(errors="ignore")
+    def _on_diagnostic_ready(self, op_id, text):
+        if op_id != f"ping:{self.peer_ip}":
+            return
         # Output line looks like:
         #   pong from mailserver-01 via 1.2.3.4:5 in 23ms
         # Pick the first 'in <n>ms' we can find.
-        match = re.search(r'in\s+(\d+)\s*ms', output)
+        match = re.search(r'in\s+(\d+)\s*ms', text)
         if match:
             latency_ms = int(match.group(1))
             self.values.append(latency_ms)
@@ -261,7 +276,7 @@ class PeerListDialog(BaseUiDialog):
         self.tablePeers.setColumnCount(6)
         self.tablePeers.setRowCount(len(peer_dict))
         
-        for idx, (peer_key, peer_info) in enumerate(peer_dict.items()):
+        for idx, peer_info in enumerate(peer_dict.values()):
             dns_name = peer_info.get("DNSName", "").split('.')[0]
             host_name = dns_name or peer_info.get("HostName", "Unknown Device")
             
@@ -322,8 +337,9 @@ class PeerListDialog(BaseUiDialog):
 
             # Create and Bind Real-Time Sparkline Widget to column 5
             # Pass the peer's primary Tailscale IP so the widget can run real
-            # tailscale ping commands instead of showing placeholder data.
-            sparkline = LatencySparklineWidget(self, is_active=active, is_online=online, peer_ip=ip_str if ip_str != "-" else None)
+            # tailscale ping commands (via the executor seam) instead of showing
+            # placeholder data.
+            sparkline = LatencySparklineWidget(self, is_active=active, is_online=online, peer_ip=ip_str if ip_str != "-" else None, ts_manager=self.ts_manager)
             self.tablePeers.setCellWidget(idx, 5, sparkline)
             
         if self.labelPeerCount:

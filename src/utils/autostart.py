@@ -1,16 +1,14 @@
-import sys
 import os
+import sys
+
 
 def set_autostart(enabled: bool):
     """Enable or disable application run at OS startup across Windows, Linux, and macOS."""
     app_name = "TailscaleClientPro"
     exec_path = os.path.abspath(sys.argv[0])
     
-    # If running as python script, we want to launch it with python interpreter
-    if exec_path.endswith(".py"):
-        command = f'"{sys.executable}" "{exec_path}"'
-    else:
-        command = f'"{exec_path}"'
+    # If running as python script, launch it with the python interpreter
+    command = f'"{sys.executable}" "{exec_path}"' if exec_path.endswith(".py") else f'"{exec_path}"'
 
     if sys.platform == "win32":
         import winreg
@@ -59,7 +57,7 @@ Comment=Start Tailscale Client Pro at startup
 
     elif sys.platform == "darwin":
         launch_agents_dir = os.path.expanduser("~/Library/LaunchAgents")
-        plist_file = os.path.join(launch_agents_dir, f"com.tailscale.clientpro.plist")
+        plist_file = os.path.join(launch_agents_dir, "com.tailscale.clientpro.plist")
         
         if enabled:
             os.makedirs(launch_agents_dir, exist_ok=True)

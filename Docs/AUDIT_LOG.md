@@ -7,6 +7,90 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-14 (Architecture Review Delivery: Candidates 5 & 6 Complete)
+
+### 1. Scope & Implementation Deliverables
+- **Candidate 5 (Database Migration Ladder & Buffer Synchronization)**:
+  - Added `PRAGMA user_version` automated migration ladder in [`src/core/db_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/db_manager.py), ensuring existing pre-1.2 schemas gracefully upgrade to support all 13 profile topology columns without data loss or SQLite errors.
+  - Implemented `threading.Lock` synchronization (`_buffer_lock`) on `DatabaseManager.traffic_buffer` and atomic flush batching (`flush_buffer`) to prevent race conditions during concurrent stats polling and flush timer invocations.
+  - Added unit regression tests `test_database_migration_ladder` and `test_traffic_buffer_thread_safety` in [`tests/test_core_client.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/tests/test_core_client.py).
+- **Candidate 6 (Reconciliation of Architecture Documentation & Elimination of Fiction)**:
+  - Completely reconciled [`Docs/ARCHITECTURE_MASTER.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/ARCHITECTURE_MASTER.md) against the ground-truth codebase structure:
+    - Updated component decomposition tree to match real packages (`src/core/`, `src/ui/`, `src/utils/`).
+    - Replaced obsolete/non-existent references (`pygui/backend.py`, `src/service.py`, `src/updater.py`) with `TailscaleExecutor`, `ConnectionStateMachine`, `DatabaseManager`, and `SecretStore`.
+    - Removed fictional `POST /localapi/v0/up` flow and PeerNode/schema-validation claims, aligning diagram and text with real LocalAPI `GET /localapi/v0/status` polling and streaming CLI `tailscale up` invocations.
+    - Updated Mermaid architectural diagrams to depict the real runtime event bus and worker thread execution pipeline.
+  - Reconciled [`Docs/QUICK_START.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/QUICK_START.md):
+    - Aligned version string to `5.0.0` (matching `src/utils/constants.py`).
+    - Removed fictional Section 5.2 (Taildrop file sharing) and fictional "Profiles → Manage Profiles (Ctrl+P)" flow.
+    - Replaced with real tab creation button and `Profile` menu workflow.
+    - Removed non-existent `config.json` fallback references.
+  - Reconciled [`Docs/USER_MANUAL.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/USER_MANUAL.md):
+    - Removed non-existent Taildrop section (direct peer-to-peer file transfer is not implemented) and replaced fictional designer role with SysAdmin/DevOps observability.
+    - Removed "Minimize to Tray on Close" preference row (not present in `AppSettings` or `settings.ui`).
+    - Replaced fictional 12-row shortcut table with the single verified accelerator (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) and universal Qt focus traversal keys.
+    - Removed fictional `Ctrl+N` from sequence diagram and profile steps.
+  - Reconciled [`Docs/SECURITY_AND_PRIVACY_COMPLIANCE.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SECURITY_AND_PRIVACY_COMPLIANCE.md):
+    - Aligned release version to `5.0.0`.
+    - Removed fabricated "Explicit Memory Scrubbing on Exit" claim and "dynamic security token localhost loopback" claim.
+    - Accurately described volatile in-memory transient secret holding and Named Pipe / Unix Domain Socket IPC.
+  - Reconciled [`Docs/ENTERPRISE_PROCUREMENT_READINESS.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/ENTERPRISE_PROCUREMENT_READINESS.md):
+    - Aligned release version to `5.0.0` (line 6).
+  - Reconciled [`Docs/ACCESSIBILITY_COMPLIANCE.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/ACCESSIBILITY_COMPLIANCE.md):
+    - Aligned release version to `5.0.0` (line 4).
+    - Reconciled file paths to match real codebase structure (`src/ui/dashboard.py`, `src/ui/components/peer_dialog.py`, etc.).
+    - Removed fictional shortcuts and Taildrop references.
+  - Reconciled [`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json):
+    - Aligned `version`, tool version, component `bom-ref`, and dependency `ref` (line 199) from `2026.1.0` to `5.0.0`.
+  - **Candidate 6 (Typing Fix, Mypy Stubs Configuration & Document Reconciliation)**:
+  - Fixed real type check error in [`src/core/db_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/db_manager.py) line 451: typed `profile_name: Optional[str] = None` and imported `Optional` from `typing`.
+  - Installed official typing stubs `types-psutil` and `types-Markdown` in the virtual environment.
+  - Configured [`mypy.ini`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/mypy.ini) with `[mypy-qt_material.*]` `ignore_missing_imports = true` (ASCII encoded).
+  - Executed static typing audit `mypy src/`: **0 type errors across all 30 source files** (`Success: no issues found in 30 source files`).
+  - Fixed broken lowercase `docs/` markdown links across all documentation files (`Docs/USER_MANUAL.md`, `Docs/QUICK_START.md`, `Docs/SECURITY_AND_PRIVACY_COMPLIANCE.md`, `Docs/ENTERPRISE_PROCUREMENT_READINESS.md`, `Docs/AUDIT_LOG.md`).
+  - **Vault, API & GUI Synchronization Fixes**:
+    - **Keyring Failure Warning**: [`Manager.save_profiles`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) verifies `store_profile_secret` return code and logs a warning when OS Keyring storage fails.
+    - **Keyring Status Distinction**: [`get_profile_secret`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/crypto.py) returns `None` on backend error vs `""` for unset secrets; [`Manager.load_profiles`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) logs unavailability and safely defaults.
+    - **Duplicate-Name Guard**: [`Manager.add_profile`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) verifies duplicate names across distinct IDs and purges orphaned SQLite/Keyring records.
+    - **Fernet Ciphertext Dropping**: [`decrypt_legacy_key`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/crypto.py) drops un-decryptable `gAAAA` ciphertext with an explicit warning when `master.key` is missing.
+    - **Profile Rename Action**: Added "Rename Current Profile..." to the Profile menu and wired to [`rename_profile`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) via interactive dialog.
+    - **Extra Args & Accept Risk UI**: Connected `lineEditExtraArgs` and `lineEditAcceptRisk` in [`node.ui`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/pygui/dialogs/node.ui) and [`node_dialog.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/components/node_dialog.py).
+
+### 2. Verification & Quality Assurance
+- **Static Typing Audit**: `mypy src/`
+  - **Result**: `Success: no issues found in 30 source files` (0 errors).
+- **Full Test Suite Execution**: `pytest tests/ -q`
+  - **Result**: **34 passed in 4.80s (100% pass rate)**.
+- **Defects / Stale Backend Processes**: 0 unresolved, 0 active stale tasks.
+
+---
+
+## 📅 Audit Entry: 2026-09-14 (Architecture Review Delivery: Candidates 1, 2, 3, & 4 Complete)
+
+### 1. Scope & Implementation Deliverables
+- **Candidate 1 (Single Execution Seam)**:
+  - Created [`src/core/executor.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/executor.py) (`TailscaleExecutor`) with a dedicated background worker thread (`_BlockingWorker` on `QThread`) and asynchronous streaming `QProcess`.
+  - All status queries, ping requests, and prelogouts enforce strict bounded timeouts (`timeout=2.0` / `timeout=6`), eliminating main GUI event loop freezing.
+  - Replaced private `QProcess` dialog calls in [`src/ui/components/peer_dialog.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/components/peer_dialog.py) with executor signal-driven requests.
+- **Candidate 2 (Single State Machine & Unified Retry Policy)**:
+  - Collapsed duplicate reconnect timers, SSO timers, and retry counters from `TailscaleManager`.
+  - [`src/core/state_coordinator.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/state_coordinator.py) (`ConnectionStateMachine`) is the single source of truth for all connection transitions and backoff retry logic (`3s -> 6s -> 12s`, max 3 attempts). Prevents duplicate `tailscale up` invocations and Headscale machine registration spam.
+- **Candidate 3 (Secret Store Adapter & Retirement of `master.key`)**:
+  - Refactored [`src/utils/crypto.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/crypto.py) to eliminate automatic generation of unreferenced plaintext `%APPDATA%/master.key` and retired `CryptoManager`.
+  - Introduced explicit `SecretStore` status returns and warning logging for unavailable OS Keyring scenarios.
+  - Added hermetic `set_secret_backend()` mock injection to prevent unit test leakage into host OS Credential Manager.
+- **Candidate 4 (Immutable UUID Keying & Cascade Deletions)**:
+  - Enhanced [`src/core/manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/manager.py) with `rename_profile(old_name, new_name)` preserving immutable UUIDv4 and Keyring secrets during renames.
+  - Added `get_profile(identifier)` supporting polymorphic UUIDv4 and profile name lookups.
+  - Updated [`src/core/db_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/db_manager.py) `delete_profile` to cascade delete orphaned rows from `raw_state` and `traffic_data`.
+
+### 2. Verification & Quality Assurance
+- **Full Test Suite Execution**: `pytest tests/ -v`
+- **Result**: **31 / 31 passed in 3.63s (100% pass rate)**.
+- **Defects / Stale Backend Processes**: 0 unresolved, 0 active stale tasks.
+
+---
+
 ## 📅 Audit Entry: 2026-09-14 (GitHub Security Advisory GHSA-g394-pp59-p72c Publication)
 
 ### 1. Published Advisory Details
@@ -269,23 +353,23 @@
 * **Sync Verification**: All `.ui` files in `pygui/` synced to `dist/TailscaleClientPro_OneDir/_internal/pygui/`.
 * **Zero Warnings / Zero Broken Tests**: 100% verified.
 * **Enterprise Documentation Synchronization**: Added dedicated platinum-grade *100% Keyboard-Only Operability & Global Accelerators* section across all four language variants ([`Docs/README.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README.md), [`Docs/README_es.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README_es.md), [`Docs/README_fr.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README_fr.md), [`Docs/README_ar.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README_ar.md)) and synced all distribution artifacts directly into `dist/TailscaleClientPro_OneDir/_internal/Docs/`.
-* **Enterprise & Public Sector Procurement Dossier**: Authored [`docs/ENTERPRISE_PROCUREMENT_READINESS.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/ENTERPRISE_PROCUREMENT_READINESS.md) certifying NIST SP 800-207 (ZTNA), NIST SP 800-218 (SSDF), US Section 508 / EN 301 549 Level AA accessibility, FIPS/OS Keyring cryptographic storage, and silent deployment via Inno Setup / APT.
-* **CycloneDX 1.5 SBOM Creation**: Generated machine-readable Software Bill of Materials [`docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/SBOM.json) capturing all runtime dependencies, purls, licenses, and hashes to satisfy Federal EO 14028 software supply chain procurement mandates.
-* **Full Documentation Suite Synchronization**: Audited and synchronized [`docs/USER_MANUAL.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/USER_MANUAL.md) (updating keyboard accelerators to match UI definitions) and [`docs/QUICK_START.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/QUICK_START.md) (incorporating Section 7 procurement and SBOM cross-references), maintaining 100% harmony across technical, operational, and procurement documentation.
-* **Native Screen Reader Accessibility Implementation (Windows Narrator / NVDA / Orca / VoiceOver)**: Implemented proactive assistive technology event dispatches in [`src/ui/dashboard.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/dashboard.py) using `QAccessible.updateAccessibility(QAccessibleEvent(self.labelStatus, QAccessible.Event.NameChanged))`. Documented the OS bridge architecture in [`docs/ACCESSIBILITY_COMPLIANCE.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/ACCESSIBILITY_COMPLIANCE.md), certifying seamless speech synthesis without requiring third-party runtime daemons or modifying core backend systems.
+* **Enterprise & Public Sector Procurement Dossier**: Authored [`Docs/ENTERPRISE_PROCUREMENT_READINESS.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/ENTERPRISE_PROCUREMENT_READINESS.md) certifying NIST SP 800-207 (ZTNA), NIST SP 800-218 (SSDF), US Section 508 / EN 301 549 Level AA accessibility, FIPS/OS Keyring cryptographic storage, and silent deployment via Inno Setup / APT.
+* **CycloneDX 1.5 SBOM Creation**: Generated machine-readable Software Bill of Materials [`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json) capturing all runtime dependencies, purls, licenses, and hashes to satisfy Federal EO 14028 software supply chain procurement mandates.
+* **Full Documentation Suite Synchronization**: Audited and synchronized [`Docs/USER_MANUAL.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/USER_MANUAL.md) (updating keyboard accelerators to match UI definitions) and [`Docs/QUICK_START.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/QUICK_START.md) (incorporating Section 7 procurement and SBOM cross-references), maintaining 100% harmony across technical, operational, and procurement documentation.
+* **Native Screen Reader Accessibility Implementation (Windows Narrator / NVDA / Orca / VoiceOver)**: Implemented proactive assistive technology event dispatches in [`src/ui/dashboard.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/dashboard.py) using `QAccessible.updateAccessibility(QAccessibleEvent(self.labelStatus, QAccessible.Event.NameChanged))`. Documented the OS bridge architecture in [`Docs/ACCESSIBILITY_COMPLIANCE.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/ACCESSIBILITY_COMPLIANCE.md), certifying seamless speech synthesis without requiring third-party runtime daemons or modifying core backend systems.
 * **Screen Reader Environment Verification & Diagnostics Engine**:
   * Implemented [`src/utils/a11y_checker.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/a11y_checker.py) providing cross-platform detection for Orca, AT-SPI2, Speech Dispatcher (Linux APT, DNF, Pacman, Zypper), and Windows N Media/Speech packs with copy-pasteable terminal remediation commands.
   * Added `chkCheckScreenReader` toggle to [`pygui/dialogs/settings.ui`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/pygui/dialogs/settings.ui) (default: *Disabled*), persisted via `AppSettings.check_screen_reader` in [`src/core/models.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/models.py) and [`src/ui/components/settings_dialog.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/components/settings_dialog.py).
   * Added `btnCheckA11y` ("Check Screen Reader") in [`pygui/dialogs/diagnostics.ui`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/pygui/dialogs/diagnostics.ui) and [`src/ui/components/diagnostics_dialog.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/components/diagnostics_dialog.py) for on-demand non-intrusive compliance checks.
-  * Documented all platform-specific terminal installation commands across [`docs/USER_MANUAL.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/USER_MANUAL.md) and [`Docs/README.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README.md), and synchronized all assets to `dist/`.
+  * Documented all platform-specific terminal installation commands across [`Docs/USER_MANUAL.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/USER_MANUAL.md) and [`Docs/README.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README.md), and synchronized all assets to `dist/`.
 * **Global Accessibility Accelerator (<kbd>Ctrl+Shift+S</kbd>)**: Bound declarative global shortcut in [`pygui/windows/main_window.ui`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/pygui/windows/main_window.ui) and controller action in [`src/ui/main_window.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/main_window.py) to launch the screen reader environment test on demand, complete with clipboard copying for terminal installation commands. Synchronized across all documentation suites.
-* **Comprehensive AST & Static Analysis Security Audit**: Executed an end-to-end security inspection scanning for CWE-78 (OS Command Injection), CWE-95 (Dynamic Code Execution), CWE-259/CWE-798 (Hardcoded Keys/Secrets), CWE-312 (Cleartext Secret Storage), and CWE-22 (Path Traversal). Verified 0 security vulnerabilities across the codebase (zero `shell=True`, zero dangerous `eval`/`exec`, zero plaintext credentials, full OS Keyring cryptographic storage, and active secret redaction regex in logging). Formal audit matrix documented in [`docs/SECURITY_AND_PRIVACY_COMPLIANCE.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/SECURITY_AND_PRIVACY_COMPLIANCE.md).
+* **Comprehensive AST & Static Analysis Security Audit**: Executed an end-to-end security inspection scanning for CWE-78 (OS Command Injection), CWE-95 (Dynamic Code Execution), CWE-259/CWE-798 (Hardcoded Keys/Secrets), CWE-312 (Cleartext Secret Storage), and CWE-22 (Path Traversal). Verified 0 security vulnerabilities across the codebase (zero `shell=True`, zero dangerous `eval`/`exec`, zero plaintext credentials, full OS Keyring cryptographic storage, and active secret redaction regex in logging). Formal audit matrix documented in [`Docs/SECURITY_AND_PRIVACY_COMPLIANCE.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SECURITY_AND_PRIVACY_COMPLIANCE.md).
 * **Enterprise Quality Gate Execution (100% Pass Rate)**:
   * **Ruff AST & Syntax Audit**: Verified `src/` and `main.py` with zero critical syntax or dynamic execution violations.
-  * **mypy Static Type Check**: Validated `main.py`, `src/core/models.py`, `src/utils/a11y_checker.py`, `src/utils/crypto.py`, `src/core/cache_manager.py`, and `src/core/tailscale.py` with 0 type errors (`Success: no issues found in 6 source files`). Added PEP 484 type annotations for `CacheManager.data` (`dict[str, Any]`) and `TailscaleManager.cache_dir` (`Optional[str]`).
+  * **mypy Static Type Check**: Validated entire `src/` codebase with `mypy.ini` (configured `ignore_missing_imports` for `qt_material`) and official type stubs (`types-psutil`, `types-Markdown`). Verified 0 type errors across all 30 source files (`Success: no issues found in 30 source files`). Resolved PEP 484 optional parameter type error in [`src/core/db_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/db_manager.py) (`profile_name: Optional[str] = None`).
   * **Automated Unit Testing & Backend Coverage**: Created [`tests/test_core_client.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/tests/test_core_client.py) verifying `AppSettings` defaults, `Profile` structures, `AppState` enums, `CacheManager` file persistence, `CryptoManager` Fernet/Keyring encryption, `check_screen_reader_environment`, regex credential scrubbing, and directory traversal rejection. Executed via `pytest` with 8 passed (0 failures) and active coverage tracking via `pytest-cov`.
   * **Supply Chain Dependency Vulnerability Audit**: Scanned all production packages in `requirements.txt` (`PySide6`, `cryptography`, `keyring`, `psutil`, `requests`, `markdown`, `pygments`, `beautifulsoup4`, `PyInstaller`) against upstream PyPI security advisories: **0 active vulnerabilities identified across all production runtime dependencies**.
-  * **CycloneDX 1.5 SBOM Certification**: Re-verified [`docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/SBOM.json) aligned with NIST SP 800-218 and Federal EO 14028.
+  * **CycloneDX 1.5 SBOM Certification**: Re-verified [`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json) aligned with NIST SP 800-218 and Federal EO 14028.
 * **Theme Architecture Simplification (Light/Dark Hierarchy & Accent Coupling)**:
   * Refactored top-level theme selection in [`src/ui/main_window.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/main_window.py) to strictly offer `🔘 Light Theme (Default)` and `🔘 Dark Theme`.
   * Removed deprecated `Vibrant Pro` and redundant `System Default` from the themes list.

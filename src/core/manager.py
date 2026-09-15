@@ -1,17 +1,18 @@
 import json
+import logging
 import os
 import shutil
-import logging
-from typing import Dict
-from .models import Profile, AppSettings
-from ..utils.crypto import (
-    CryptoManager,
-    store_profile_secret,
-    get_profile_secret,
-    delete_profile_secret
-)
 
-logger = logging.getLogger("Manager")
+from ..utils.crypto import (
+    decrypt_legacy_key,
+    delete_profile_secret,
+    get_profile_secret,
+    store_profile_secret,
+)
+from .models import AppSettings, Profile
+
+# Child of the app logger configured in main.py so records reach app.log
+logger = logging.getLogger("TailscaleClient.Manager")
 
 class Manager:
     """Option C Hybrid Vault Manager:
@@ -26,12 +27,11 @@ class Manager:
         self.data_dir = os.path.join(base_dir, "data")
         self.tab_names_file = os.path.join(self.data_dir, "tab_names.json")
         self.settings_file = os.path.join(self.base_dir, "settings.json")
-        self.crypto = CryptoManager(os.path.join(base_dir, "master.key"))
         
         from .db_manager import DatabaseManager
         self.db = DatabaseManager(base_dir)
         
-        self.profiles: Dict[str, Profile] = {}
+        self.profiles: dict[str, Profile] = {}
         self.settings = AppSettings()
         
         # 1. Load Settings (SQLite with legacy fallback)
@@ -61,10 +61,10 @@ class Manager:
     def _read_file(self, path: str) -> str:
         if os.path.exists(path):
             try:
-                with open(path, "r", encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     return f.read().strip()
-            except Exception:
-                pass
+            except (OSError, UnicodeError) as e:
+                logger.debug(f"Could not read legacy file {path}: {e}")
         return ""
 
     def _check_and_migrate_legacy_data(self):
@@ -72,7 +72,7 @@ class Manager:
         # 1. Settings migration if DB empty but settings.json exists
         if os.path.exists(self.settings_file):
             try:
-                with open(self.settings_file, "r", encoding="utf-8") as f:
+                with open(self.settings_file, encoding="utf-8") as f:
                     data = json.load(f)
                     from dataclasses import fields
                     valid_fields = {field.name for field in fields(AppSettings)}
@@ -80,7 +80,7 @@ class Manager:
                     migrated_settings = AppSettings(**filtered_data)
                     self.db.save_app_settings(migrated_settings)
                     self.settings = migrated_settings
-            except Exception as e:
+            except (ValueError, TypeError, OSError) as e:
                 logger.error(f"Error migrating legacy settings: {e}")
 
         # 2. Profiles migration if SQLite profiles table is empty but tab_names_file exists
@@ -88,14 +88,15 @@ class Manager:
         if db_count == 0 and os.path.exists(self.tab_names_file):
             try:
                 logger.info("Migrating legacy profile text files to SQLite and Keyring...")
-                with open(self.tab_names_file, "r", encoding="utf-8") as f:
+                with open(self.tab_names_file, encoding="utf-8") as f:
                     tab_names = json.load(f)
                     
                 order = 0
-                for tab_id, name in tab_names.items():
+                for name in tab_names.values():
                     try:
                         profile_dir = self._get_tab_dir(name)
-                    except Exception:
+                    except (PermissionError, ValueError) as e:
+                        logger.warning(f"Skipping legacy profile '{name}' (unsafe directory name): {e}")
                         continue
 
                     if not os.path.exists(profile_dir):
@@ -129,7 +130,8 @@ class Manager:
                     accept_risk = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_accept_risk"))
                     extra_args = self._read_file(os.path.join(profile_dir, "Tailscale_VPN_extra_args"))
 
-                    key = self.crypto.decrypt(enc_key)
+                    legacy_master_key = os.path.join(self.base_dir, "master.key")
+                    key = decrypt_legacy_key(enc_key, legacy_master_key)
 
                     migrated_prof = Profile(
                         name=name,
@@ -174,7 +176,7 @@ class Manager:
                     except OSError as err:
                         logger.debug(f"Legacy backup folder move: {err}")
                 logger.info(f"Successfully migrated {order} legacy profiles to Option C Hybrid Vault.")
-            except Exception as e:
+            except (OSError, ValueError, TypeError) as e:
                 logger.error(f"Error executing legacy profiles migration: {e}")
 
     def load_profiles(self):
@@ -183,15 +185,21 @@ class Manager:
         db_profiles = self.db.load_all_profiles()
         for prof in db_profiles:
             # Securely retrieve authentication key from native OS Keyring
-            prof.auth_key = get_profile_secret(prof.id)
+            secret = get_profile_secret(prof.id)
+            if secret is None:
+                logger.warning(f"OS Keyring unavailable; credentials for profile '{prof.name}' could not be retrieved.")
+                prof.auth_key = ""
+            else:
+                prof.auth_key = secret
             self.profiles[prof.name] = prof
 
     def save_profiles(self):
         """Saves all active profiles to SQLite and stores auth keys in OS Keyring."""
-        for order, (name, profile) in enumerate(self.profiles.items()):
+        for order, profile in enumerate(self.profiles.values()):
             self.db.save_profile(profile, tab_order=order)
             if profile.auth_key:
-                store_profile_secret(profile.id, profile.auth_key)
+                if not store_profile_secret(profile.id, profile.auth_key):
+                    logger.warning(f"Failed to persist credentials for profile '{profile.name}' ({profile.id}) to OS Keyring.")
             else:
                 delete_profile_secret(profile.id)
 
@@ -208,8 +216,36 @@ class Manager:
         except OSError as err:
             logger.debug(f"Mirroring settings to legacy JSON: {err}")
 
+    def get_profile(self, identifier: str) -> Profile | None:
+        """Looks up a profile by name or by its immutable UUIDv4."""
+        if not identifier:
+            return None
+        if identifier in self.profiles:
+            return self.profiles[identifier]
+        for prof in self.profiles.values():
+            if prof.id == identifier:
+                return prof
+        return None
+
+    def rename_profile(self, old_name: str, new_name: str) -> bool:
+        """Renames an existing profile while preserving its immutable UUIDv4 and Keyring credentials."""
+        if old_name not in self.profiles:
+            return False
+        if not new_name or (new_name != old_name and new_name in self.profiles):
+            return False
+
+        profile = self.profiles.pop(old_name)
+        profile.name = new_name
+        self.profiles[new_name] = profile
+        self.save_profiles()
+        return True
+
     def add_profile(self, profile: Profile):
         """Adds or updates a profile in the hybrid vault."""
+        if profile.name in self.profiles and self.profiles[profile.name].id != profile.id:
+            old_prof = self.profiles[profile.name]
+            delete_profile_secret(old_prof.id)
+            self.db.delete_profile(old_prof.id, profile_name=old_prof.name)
         self.profiles[profile.name] = profile
         self.save_profiles()
 
@@ -218,7 +254,7 @@ class Manager:
         if name in self.profiles:
             prof = self.profiles[name]
             delete_profile_secret(prof.id)
-            self.db.delete_profile(prof.id)
+            self.db.delete_profile(prof.id, profile_name=prof.name)
             del self.profiles[name]
             self.save_profiles()
 

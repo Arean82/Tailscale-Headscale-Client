@@ -1,16 +1,43 @@
 # src/ui/main_window.py
 
-from PySide6.QtWidgets import QSystemTrayIcon
-import sys
 import os
-from typing import Optional
-from PySide6.QtWidgets import QMainWindow, QWidget, QTabWidget, QMenu, QMessageBox
+import sys
+
+from PySide6.QtCore import QEvent, QFile, QTimer
+from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QShortcut
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, QTimer, QEvent
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtWidgets import (
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QSystemTrayIcon,
+    QTabWidget,
+    QWidget,
+)
+
+from ..core.tailscale import get_tailscale_path
 from .components.log_viewer_dlg import LogViewerDialog
 from .dashboard import DashboardView
-from ..core.tailscale import get_tailscale_path
+
+# Global accelerators exactly as declared in pygui/windows/main_window.ui.
+# The menu bar is rebuilt in Python, so these must be re-applied explicitly
+# or the keyboard shortcuts documented in Docs/ are silently lost.
+GLOBAL_ACCELERATORS = {
+    "actionSettings": "Ctrl+,",
+    "actionExit": "Ctrl+Q",
+    "actionAddProfile": "Ctrl+N",
+    "actionRemoveProfile": "Ctrl+Shift+D",
+    "actionAbout": "F1",
+    "actionReadme": "Shift+F1",
+    "actionAdvanced": "Ctrl+Alt+A",
+    "actionPeerList": "Ctrl+Shift+P",
+    "actionDiagnostics": "Ctrl+Shift+N",
+    "actionCheckA11y": "Ctrl+Shift+S",
+}
+
+# Declared on btn_connect in pygui/windows/tab_widget.ui; bound on the main
+# window so it acts on whichever profile tab is active.
+CONNECT_TOGGLE_SHORTCUT = "Ctrl+Return"
 
 
 class MainWindow(QMainWindow):
@@ -39,6 +66,11 @@ class MainWindow(QMainWindow):
         if self.tabWidget:
             self.tabWidget.setAccessibleName("VPN Profiles Navigation Tabs")
             self.tabWidget.setAccessibleDescription("Switch between configured Headscale and Tailscale network profiles.")
+
+        # Ctrl+Return toggles the visible tab's connection (tab_widget.ui binds
+        # it to btn_connect, which only covers the tab that owns the button).
+        self.connect_shortcut = QShortcut(QKeySequence(CONNECT_TOGGLE_SHORTCUT), self)
+        self.connect_shortcut.activated.connect(self._toggle_active_tab_connection)
         self.setWindowTitle("Tailscale Client Pro")
         self.setAccessibleName("Tailscale Client Pro Main Window")
         self.setAccessibleDescription("Main application window for managing Tailscale and Headscale VPN connections.")
@@ -93,8 +125,8 @@ class MainWindow(QMainWindow):
         self.central_polling_timer.start(3000)
 
     def _setup_tray(self):
-        from PySide6.QtWidgets import QSystemTrayIcon
         from PySide6.QtGui import QIcon
+        from PySide6.QtWidgets import QSystemTrayIcon
         
         self.tray_icon = QSystemTrayIcon(self)
         
@@ -103,12 +135,12 @@ class MainWindow(QMainWindow):
         
         # 2. If not found, fallback to PyInstaller runtime temp or development folder
         if not os.path.exists(icon_path):
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             if hasattr(sys, '_MEIPASS'):
                 icon_path = os.path.join(sys._MEIPASS, "assets", "icon.png")
             else:
-                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                 icon_path = os.path.join(base_dir, "assets", "icon.png")
-                
+
             if not os.path.exists(icon_path):
                 icon_path = os.path.join(base_dir, "icon.png")
                 
@@ -140,8 +172,9 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(5000, safe_retry_show)
 
     def check_daemon_async(self, retry_count=0):
-        from src.utils.local_api import is_local_api_available
         from PySide6.QtCore import QTimer
+
+        from src.utils.local_api import is_local_api_available
         
         is_running = is_local_api_available()
         if is_running:
@@ -158,8 +191,8 @@ class MainWindow(QMainWindow):
             self.show_service_wait_dialog()
 
     def show_service_wait_dialog(self):
-        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar
         from PySide6.QtCore import Qt, QTimer
+        from PySide6.QtWidgets import QDialog, QLabel, QProgressBar, QVBoxLayout
         
         self.ts_manager.start_service()
         
@@ -193,8 +226,9 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'poll_proc') and self.poll_proc is not None:
             return
 
-        from PySide6.QtCore import QProcess
         import time
+
+        from PySide6.QtCore import QProcess
         self.poll_proc = QProcess(self)
         
         def on_poll_finished():
@@ -204,7 +238,7 @@ class MainWindow(QMainWindow):
                     output = self.poll_proc.readAllStandardError().data().decode(errors="ignore").lower() + \
                              self.poll_proc.readAllStandardOutput().data().decode(errors="ignore").lower()
                     is_running = not ("failed to connect" in output or "tailscaled may not be running" in output or self.poll_proc.exitCode() != 0)
-                except Exception:
+                except RuntimeError:
                     is_running = False
                 finally:
                     self.poll_proc.deleteLater()
@@ -253,9 +287,10 @@ class MainWindow(QMainWindow):
         """Soft-restart the GUI to apply translations without killing the VPN daemon."""
         self.is_restarting = True
         import sys
+
         from PySide6.QtCore import QProcess
         from PySide6.QtWidgets import QApplication
-        
+
         # Manually release the single-instance lock right now so the new instance spawns instantly (0ms delay)
         import __main__
         if hasattr(__main__, 'lock_file'):
@@ -292,8 +327,12 @@ class MainWindow(QMainWindow):
             return
 
         # Cleanup empty profile directories
-        for name in self.manager.profiles.keys():
-            profile_dir = self.manager._get_tab_dir(name)
+        for name in self.manager.profiles:
+            try:
+                profile_dir = self.manager._get_tab_dir(name)
+            except (PermissionError, ValueError):
+                # Unsafe legacy profile name; skip cleanup for it
+                continue
             if os.path.exists(profile_dir) and not os.listdir(profile_dir):
                 try:
                     os.rmdir(profile_dir)
@@ -310,15 +349,14 @@ class MainWindow(QMainWindow):
 
     def changeEvent(self, event):
         # Match legacy logic: Hide to tray on minimize (gui/gui_main.py:171-172)
-        if event.type() == QEvent.WindowStateChange:
-            if self.isMinimized():
-                self.hide()
-                self.tray_icon.showMessage(
-                    "Tailscale Client Pro",
-                    "Application minimized to tray.",
-                    QSystemTrayIcon.Information,
-                    2000
-                )
+        if event.type() == QEvent.WindowStateChange and self.isMinimized():
+            self.hide()
+            self.tray_icon.showMessage(
+                "Tailscale Client Pro",
+                "Application minimized to tray.",
+                QSystemTrayIcon.Information,
+                2000
+            )
         super().changeEvent(event)
 
     def _on_tab_changed(self, index):
@@ -347,9 +385,8 @@ class MainWindow(QMainWindow):
             if self.tabWidget.count() > target_idx:
                 self.tabWidget.setCurrentIndex(target_idx)
                 view = self.tabWidget.widget(target_idx)
-                if hasattr(view, "toggle_connection"):
-                    if not self.ts_manager.check_status()[0]:
-                        view.toggle_connection()
+                if hasattr(view, "toggle_connection") and not self.ts_manager.check_status()[0]:
+                    view.toggle_connection()
 
     def ensure_initial_profile(self):
         if not self.manager.profiles:
@@ -389,6 +426,10 @@ class MainWindow(QMainWindow):
         self.actionAddProfile = QAction(self.tr("&Add New Profile"), self)
         self.actionAddProfile.triggered.connect(self.add_profile_clicked)
         profile_menu.addAction(self.actionAddProfile)
+
+        self.actionRenameProfile = QAction(self.tr("Re&name Current Profile..."), self)
+        self.actionRenameProfile.triggered.connect(self.rename_profile_clicked)
+        profile_menu.addAction(self.actionRenameProfile)
         
         self.actionRemoveProfile = QAction(self.tr("&Remove Current Profile"), self)
         self.actionRemoveProfile.triggered.connect(self.remove_profile_clicked)
@@ -506,9 +547,21 @@ class MainWindow(QMainWindow):
         help_menu.addSeparator()
 
         self.actionCheckA11y = QAction(self.tr("Check &Screen Reader Setup..."), self)
-        self.actionCheckA11y.setShortcut("Ctrl+Shift+S")
         self.actionCheckA11y.triggered.connect(self.check_screen_reader_interactive)
         help_menu.addAction(self.actionCheckA11y)
+
+        # Re-apply the accelerators declared in the designer .ui files so the
+        # documented global shortcuts stay functional after the Python rebuild.
+        for action_attr, sequence in GLOBAL_ACCELERATORS.items():
+            action = getattr(self, action_attr, None)
+            if action is not None:
+                action.setShortcut(sequence)
+
+    def _toggle_active_tab_connection(self):
+        """Connects/disconnects the profile shown in the active tab (Ctrl+Return)."""
+        widget = self.tabWidget.currentWidget() if self.tabWidget else None
+        if widget is not None and hasattr(widget, "toggle_connection"):
+            widget.toggle_connection()
 
     def populate_logs_menu(self):
 
@@ -556,8 +609,8 @@ class MainWindow(QMainWindow):
 
     def _show_worker_error(self, message):
         """Displays an interactive premium Dependency Wizard if Tailscale is missing."""
-        from PySide6.QtGui import QDesktopServices
         from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
         
         # Only show the dependency download prompt if Tailscale is actually missing from the system!
         if "not installed" in message.lower() or "not found" in message.lower():
@@ -582,11 +635,10 @@ class MainWindow(QMainWindow):
         """Enable/disable profile actions based on connection status."""
         # Trigger native desktop notification on state change
         if hasattr(self, 'last_status_text'):
-            if self.last_status_text != status_text and self.last_status_text is not None:
-                if hasattr(self, 'tray_icon') and self.tray_icon:
-                    title = "Tailscale Connected" if is_connected else "Tailscale Status"
-                    icon = QSystemTrayIcon.Information if is_connected else QSystemTrayIcon.Warning if "Approval" in status_text else QSystemTrayIcon.Information
-                    self.tray_icon.showMessage(title, f"VPN tunnel status is now {status_text}.", icon, 3000)
+            if self.last_status_text != status_text and self.last_status_text is not None and hasattr(self, 'tray_icon') and self.tray_icon:
+                title = "Tailscale Connected" if is_connected else "Tailscale Status"
+                icon = QSystemTrayIcon.Information if is_connected else QSystemTrayIcon.Warning if "Approval" in status_text else QSystemTrayIcon.Information
+                self.tray_icon.showMessage(title, f"VPN tunnel status is now {status_text}.", icon, 3000)
             self.last_status_text = status_text
 
         can_edit = not is_connected
@@ -628,7 +680,7 @@ class MainWindow(QMainWindow):
         else:
             self.change_theme(mode)
 
-    def set_material_accent(self, accent: Optional[str]):
+    def set_material_accent(self, accent: str | None):
         """Applies a material accent using the current mode ('light' or 'dark'), or restores native QSS if accent is None."""
         self.current_material_accent = accent
         if not accent:
@@ -680,9 +732,9 @@ class MainWindow(QMainWindow):
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         qss_path = os.path.join(base_dir, "assets", "themes", f"{target_theme}.qss")
         try:
-            with open(qss_path, "r", encoding="utf-8") as f:
+            with open(qss_path, encoding="utf-8") as f:
                 style = f.read()
-        except Exception:
+        except OSError:
             style = ""
             
         # Apply style ONLY to the TabWidget
@@ -812,6 +864,40 @@ class MainWindow(QMainWindow):
                 self.manager.remove_profile(name)
                 self.refresh_tabs()
 
+    def rename_profile_clicked(self):
+        if not self.tabWidget:
+            return
+        index = self.tabWidget.currentIndex()
+        if index < 0:
+            return
+        old_name = self.tabWidget.tabText(index)
+        from PySide6.QtWidgets import QInputDialog
+        new_name, ok = QInputDialog.getText(
+            self,
+            self.tr("Rename Profile"),
+            self.tr("Enter new profile name:"),
+            text=old_name
+        )
+        if ok and new_name:
+            new_name = new_name.strip()
+            if not new_name:
+                QMessageBox.warning(self, self.tr("Error"), self.tr("Profile name cannot be empty."))
+                return
+            if new_name == old_name:
+                return
+            if new_name in self.manager.profiles:
+                QMessageBox.warning(self, self.tr("Error"), self.tr("Profile name already exists."))
+                return
+            if self.manager.rename_profile(old_name, new_name):
+                self.refresh_tabs()
+                # Select the renamed tab
+                for i in range(self.tabWidget.count()):
+                    if self.tabWidget.tabText(i) == new_name:
+                        self.tabWidget.setCurrentIndex(i)
+                        break
+            else:
+                QMessageBox.warning(self, self.tr("Error"), self.tr("Failed to rename profile."))
+
     def refresh_tabs(self):
         if not self.tabWidget:
             # Try to find it again just in case
@@ -848,7 +934,7 @@ class MainWindow(QMainWindow):
             try:
                 self.tabWidget.currentChanged.disconnect(self._on_tab_changed)
             except (RuntimeError, TypeError) as sig_err:
-                warnings.warn(f"Tab currentChanged disconnect: {sig_err}", category=RuntimeWarning)
+                warnings.warn(f"Tab currentChanged disconnect: {sig_err}", category=RuntimeWarning, stacklevel=2)
         self.tabWidget.currentChanged.connect(self._on_tab_changed)
 
     def update_advanced_menu_state(self):
@@ -902,7 +988,7 @@ class MainWindow(QMainWindow):
             
             if raw_data:
                 peers = raw_data.get("Peer", {}) or {}
-                for peer_id, peer in peers.items():
+                for peer in peers.values():
                     if peer.get("ExitNodeOption"):
                         name = peer.get("HostName") or peer.get("DNSName", "").split(".")[0]
                         ips = peer.get("TailscaleIPs", [""])
@@ -936,16 +1022,10 @@ class MainWindow(QMainWindow):
         quit_action.triggered.connect(self._force_quit)
 
     def set_tray_exit_node(self, ip):
-        import subprocess
-        import sys
         try:
-            from src.core.tailscale import get_tailscale_path
-            path = get_tailscale_path()
-            cmd = [path, "up", f"--exit-node={ip}"] if ip else [path, "up", "--exit-node="]
-            creation_flags = 0x08000000 if sys.platform == "win32" else 0  # CREATE_NO_WINDOW
-            subprocess.Popen(cmd, creationflags=creation_flags)
+            self.ts_manager.worker.run_command(["up", f"--exit-node={ip}"])
             self.ts_manager.check_status(force=True)
-        except Exception as e:
+        except RuntimeError as e:
             print(f"[DEBUG Tray Switcher] Failed to set exit node: {e}")
 
     def _check_screen_reader_on_startup(self):

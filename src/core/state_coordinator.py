@@ -1,8 +1,11 @@
 # src/core/state_coordinator.py
 
 import time
-from PySide6.QtCore import QObject, Signal, QTimer
+
+from PySide6.QtCore import QObject, QTimer, Signal
+
 from .models import AppState
+
 
 class ConnectionStateMachine(QObject):
     """
@@ -75,10 +78,7 @@ class ConnectionStateMachine(QObject):
             return False
             
         # Guard: If already DISCONNECTED, ignore redundant DISCONNECTED transitions
-        if old_state == AppState.DISCONNECTED and new_state == AppState.DISCONNECTED:
-            return False
-            
-        return True
+        return not (old_state == AppState.DISCONNECTED and new_state == AppState.DISCONNECTED)
 
     def _on_state_exit(self, old_state, new_state):
         """
@@ -112,15 +112,26 @@ class ConnectionStateMachine(QObject):
             # Implement Exponential Backoff Reconnect Policy
             self._handle_reconnect_policy(info_text)
 
+    def on_command_finished(self, exit_code: int):
+        """Single failure entry point: a failed 'tailscale up' while CONNECTING
+        transitions to ERROR, whose entry policy owns the one-and-only retry
+        schedule. (Replaces the manager's former duplicate retry engine.)"""
+        if exit_code != 0 and self._state == AppState.CONNECTING:
+            self.transition_to(AppState.ERROR, f"tailscale up failed (exit code {exit_code})")
+
+    @staticmethod
+    def _retry_delay_ms(attempt: int) -> int:
+        """Exponential backoff schedule: 3s, 6s, 12s."""
+        return (2 ** (attempt - 1)) * 3000
+
     def _handle_reconnect_policy(self, error_msg):
         """
         Defines the reconnect policy using exponential backoff to avoid flood loops.
         """
         if self.last_connect_args and self._retry_count < self._max_retries:
             self._retry_count += 1
-            # Exponential Backoff delay: 3s, 6s, 12s
-            delay = (2 ** (self._retry_count - 1)) * 3000
-            
+            delay = self._retry_delay_ms(self._retry_count)
+
             # Notify of auto reconnect attempt
             self.ts_manager.worker.error_received.emit(
                 f"Connection lost: {error_msg}. "
@@ -135,7 +146,7 @@ class ConnectionStateMachine(QObject):
     def _on_sso_timeout(self):
         """SSO Timeout ownership callback."""
         if self._state == AppState.CONNECTING:
-            self.ts_manager.worker.cleanup()
+            self.ts_manager.worker.cancel()
             self.transition_to(AppState.ERROR, "SSO Login timed out.")
             self.ts_manager.worker.error_received.emit("SSO Login timed out. Please try connecting again.")
 
@@ -144,30 +155,7 @@ class ConnectionStateMachine(QObject):
         if self.last_connect_args:
             # Safeguard: Force state to CONNECTING before retrying
             self.transition_to(AppState.CONNECTING, force=True)
-            self.ts_manager.connect(
-                login_server=self.last_connect_args.get("login_server"),
-                auth_key=self.last_connect_args.get("auth_key"),
-                use_sso=self.last_connect_args.get("use_sso"),
-                profile_name=self.last_connect_args.get("profile_name"),
-                exit_node=self.last_connect_args.get("exit_node"),
-                routes=self.last_connect_args.get("routes"),
-                ssh=self.last_connect_args.get("ssh", False),
-                accept_dns=self.last_connect_args.get("accept_dns", False),
-                allow_lan=self.last_connect_args.get("allow_lan", False),
-                disable_snat=self.last_connect_args.get("disable_snat", False),
-                hostname=self.last_connect_args.get("hostname", None),
-                force_reset=self.last_connect_args.get("force_reset", False),
-                advertise_exit_node=self.last_connect_args.get("advertise_exit_node", False),
-                shields_up=self.last_connect_args.get("shields_up", False),
-                force_reauth=self.last_connect_args.get("force_reauth", False),
-                advertise_tags=self.last_connect_args.get("advertise_tags", ""),
-                accept_routes=self.last_connect_args.get("accept_routes", True),
-                unattended=self.last_connect_args.get("unattended", False),
-                webclient=self.last_connect_args.get("webclient", False),
-                advertise_connector=self.last_connect_args.get("advertise_connector", False),
-                accept_risk=self.last_connect_args.get("accept_risk", ""),
-                extra_args=self.last_connect_args.get("extra_args", "")
-            )
+            self.ts_manager.connect_args(self.last_connect_args)
 
 
 class StateCoordinator(QObject):
@@ -178,22 +166,28 @@ class StateCoordinator(QObject):
     """
     connection_status_changed = Signal(bool, str)
     state_changed = Signal(object)
-    
+    diagnostic_ready = Signal(str, str)
+
     def __init__(self, manager, ts_manager):
         super().__init__()
         self.manager = manager
         self.ts_manager = ts_manager
-        
+
         # Instantiate and coordinate via formal State Machine Transition Controller
         self.state_machine = ConnectionStateMachine(self, ts_manager)
         self.state_machine.state_changed.connect(self._on_state_machine_changed)
-        
+
         # Forward signals from real manager to views
         self.ts_manager.connection_status_changed.connect(self._on_status_changed)
+        self.ts_manager.diagnostic_ready.connect(self.diagnostic_ready)
+
+        # Single failure entry point: executor reports finished -> state machine
+        # owns the one-and-only retry/reconnect policy (Candidate 2)
+        self.ts_manager.executor.finished.connect(self._on_executor_finished)
         
         # Cache status to prevent multiple background processes
         self._cached_status = None
-        self._last_status_query_time = 0
+        self._last_status_query_time: float = 0.0
         self._query_cooldown_seconds = 2.0  # Coalesce queries within 2 seconds
         
         # Self-healing and Observability metrics
@@ -263,23 +257,30 @@ class StateCoordinator(QObject):
         
         # 1. Sleep/Wake Sensor Watchdog
         if (now - self._last_tick_time) > 10.0:
-            # Detected system wakeup! Invalidate cache and trigger reconnect
+            # Detected system wakeup! Invalidate cache and force a fresh
+            # (non-blocking) status fetch on the executor's worker thread.
             self._observability_metrics['reconnect_count'] += 1
             self._cached_status = None
-            QTimer.singleShot(0, self.check_status_sync)
+            self.ts_manager.check_status(force=True)
         self._last_tick_time = now
         
         # 2. WiFi / Network Switch Watchdog
         try:
             import psutil
-            current_adapters = list(psutil.net_if_addrs().keys())
-            if self._last_adapters and self._last_adapters != current_adapters:
-                # Network adapter changed! Clear cache to force clean state refresh
-                self._cached_status = None
-            self._last_adapters = current_adapters
-        except (psutil.Error, OSError):
-            # Adapter inspection failed
-            self._last_adapters = []
+        except ImportError:
+            # psutil unavailable: skip adapter-change detection entirely
+            psutil = None
+
+        if psutil is not None:
+            try:
+                current_adapters = list(psutil.net_if_addrs().keys())
+                if self._last_adapters and self._last_adapters != current_adapters:
+                    # Network adapter changed! Clear cache to force clean state refresh
+                    self._cached_status = None
+                self._last_adapters = current_adapters
+            except (psutil.Error, OSError):
+                # Adapter inspection failed
+                self._last_adapters = []
             
         if self._cached_status is not None and (now - self._last_status_query_time) < self._query_cooldown_seconds:
             return self._cached_status
@@ -297,8 +298,9 @@ class StateCoordinator(QObject):
         
         # PROACTIVE FALLBACK CHECK
         if login_server and profile_name:
-            import urllib.parse
             import socket
+            import urllib.parse
+
             from src.utils.dns_fallback import apply_fallback
             try:
                 parsed = urllib.parse.urlparse(login_server)
@@ -362,31 +364,14 @@ class StateCoordinator(QObject):
         
         # Transition to CONNECTING state via State Machine transition controller
         self.state_machine.transition_to(AppState.CONNECTING, force=True)
-        
-        self.ts_manager.connect(
-            login_server=login_server,
-            auth_key=auth_key,
-            use_sso=use_sso,
-            profile_name=profile_name,
-            exit_node=exit_node,
-            routes=routes,
-            ssh=ssh,
-            accept_dns=accept_dns,
-            allow_lan=allow_lan,
-            disable_snat=disable_snat,
-            hostname=hostname,
-            force_reset=force_reset,
-            advertise_exit_node=advertise_exit_node,
-            shields_up=shields_up,
-            force_reauth=force_reauth,
-            advertise_tags=advertise_tags,
-            accept_routes=accept_routes,
-            unattended=unattended,
-            webclient=webclient,
-            advertise_connector=advertise_connector,
-            accept_risk=accept_risk,
-            extra_args=extra_args
-        )
+
+        self.ts_manager.connect_args(self.state_machine.last_connect_args)
+
+    def _on_executor_finished(self, exit_code, status):
+        """Streaming command completed: refresh status and hand the outcome to
+        the single retry owner (the state machine)."""
+        self.ts_manager.check_status()
+        self.state_machine.on_command_finished(exit_code)
 
     def switch_profile(self, native_profile_name, profile_name=None):
         self._cached_status = None
@@ -403,6 +388,17 @@ class StateCoordinator(QObject):
 
     def get_stats(self):
         return self.ts_manager.get_stats()
+
+    # ---- Diagnostic passthroughs (async via executor worker thread) ----
+
+    def request_ping(self, target):
+        self.ts_manager.request_ping(target)
+
+    def request_netcheck(self):
+        self.ts_manager.request_netcheck()
+
+    def request_version(self):
+        self.ts_manager.request_version()
 
     def _on_status_changed(self, is_connected, status_text):
         self._cached_status = (is_connected, status_text)
@@ -425,26 +421,25 @@ class StateCoordinator(QObject):
         self.connection_status_changed.emit(is_connected, status_text)
 
     def _on_state_machine_changed(self, state):
-        if state == AppState.CONNECTED:
+        if state == AppState.CONNECTED and self.state_machine.last_connect_args:
             # Cache the IP on successful connection
-            if self.state_machine.last_connect_args:
-                profile_name = self.state_machine.last_connect_args.get("profile_name")
-                login_server = self.state_machine.last_connect_args.get("login_server")
-                if profile_name and login_server:
-                    profile = self.manager.profiles.get(profile_name)
-                    if profile:
-                        import urllib.parse
-                        import socket
-                        try:
-                            parsed = urllib.parse.urlparse(login_server)
-                            domain = parsed.hostname
-                            if domain and getattr(profile, 'enable_dns_fallback', False):
-                                ip = socket.gethostbyname(domain)
-                                if ip and getattr(profile, 'last_known_ip', None) != ip:
-                                    profile.last_known_ip = ip
-                                    self.manager.save_profiles()
-                        except (socket.gaierror, socket.herror, ValueError, OSError):
-                            # Non-resolvable domain or URL parse issue
-                            pass
-                            
+            profile_name = self.state_machine.last_connect_args.get("profile_name")
+            login_server = self.state_machine.last_connect_args.get("login_server")
+            if profile_name and login_server:
+                profile = self.manager.profiles.get(profile_name)
+                if profile:
+                    import socket
+                    import urllib.parse
+                    try:
+                        parsed = urllib.parse.urlparse(login_server)
+                        domain = parsed.hostname
+                        if domain and getattr(profile, 'enable_dns_fallback', False):
+                            ip = socket.gethostbyname(domain)
+                            if ip and getattr(profile, 'last_known_ip', None) != ip:
+                                profile.last_known_ip = ip
+                                self.manager.save_profiles()
+                    except (socket.gaierror, socket.herror, ValueError, OSError):
+                        # Non-resolvable domain or URL parse issue
+                        pass
+
         self.state_changed.emit(state)

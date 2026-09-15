@@ -1,7 +1,7 @@
 # Tailscale & Headscale Client: Accessibility Compliance & Conformance Master Document (VPAT / WCAG Matrix) ♿
 **Standards Evaluated:** EN 301 549 (Software Clause 11), WCAG 2.1 Level AA & Section 508 (Subpart B - Technical Standards)  
-**Document ID:** THC-VPAT-A11Y-2026.1  
-**Software Release:** 2026.1.0 Platinum LTS  
+**Document ID:** THC-VPAT-A11Y-5.0  
+**Software Release:** 5.0.0  
 **Audit Scope:** 100% Core Desktop User Interface (PySide6 / Qt6)  
 **Status:** **100% EN 301 549 Clause 11 & WCAG 2.1 Level AA Compliant**  
 
@@ -33,8 +33,8 @@ All graphical screens, modal dialogs, status badges, table rows, and menus provi
 | **EN 301 549 11.1.4.1** | **SC 1.4.1** | Use of Color | ✅ | Connection status and setting toggles never rely solely on color. Every indicator pairs visual color with distinct text and glyph tokens (e.g. `✓ Active` vs `✗ Inactive` in `node_dialog.py`, and `🔴 Disconnected` / `🟢 Connected` in `tab_widget.ui` / `dashboard.py`). |
 | **EN 301 549 11.1.4.3** | **SC 1.4.3** | Contrast (Minimum) | ✅ | All UI color themes (`dark.qss`, `light.qss`, `vibrant.qss`) strictly maintain a minimum **4.5:1** contrast ratio for normal body text and **3.0:1** for large headers against surfaces (e.g. pure white `#ffffff` on `#050814` and `#212529` on `#f8f9fa`). |
 | **EN 301 549 11.1.4.11** | **SC 1.4.11** | Non-text Contrast | ✅ | Visual focus rings, input field borders, and button boundaries maintain a contrast ratio greater than **3.0:1** against adjacent background surfaces (`2px solid #60a5fa` in Dark theme, `2px solid #0056b3` in Light theme, `2px solid #00f5ff` in Vibrant theme). |
-| **EN 301 549 11.2.1.1 & 11.2.1.8** | **SC 2.1.1** | Keyboard Navigation & Shortcuts | ✅ | 100% of all software capabilities (connecting, adding profiles, choosing exit nodes, taildrop file transfers, reading logs) are fully operable via keyboard. Preserving the underlying daemon/network architecture, navigation relies entirely on native Qt focus mechanics (<kbd>Tab</kbd> forward, <kbd>Shift</kbd>+<kbd>Tab</kbd> backward along defined `<tabstops>`). Global shortcuts (<kbd>Ctrl+,</kbd>, <kbd>Ctrl+Q</kbd>, <kbd>Ctrl+N</kbd>, <kbd>Ctrl+Shift+D</kbd>, <kbd>Ctrl+Shift+P</kbd>, <kbd>Ctrl+Shift+N</kbd>, <kbd>Ctrl+Shift+S</kbd>, <kbd>Ctrl+Alt+A</kbd>, <kbd>F1</kbd>) are defined in `main_window.ui` without conflicting with system accessibility keys. |
-| **EN 301 549 11.2.1.2** | **SC 2.1.2** | No Keyboard Trap | ✅ | All 11 `.ui` dialogs declare `<property name="default">` and `<property name="autoDefault">` on buttons. Base dialog controllers implement universal `keyPressEvent` handling for <kbd>Escape</kbd>, <kbd>Return</kbd>, and <kbd>Enter</kbd> across `BaseUiDialog`, `LicenseDialog`, `LogViewerDialog`, `ProfileNameDialog`, and `ProgressDialog`, guaranteeing focus can never be trapped. |
+| **EN 301 549 11.2.1.1 & 11.2.1.8** | **SC 2.1.1** | Keyboard Navigation & Shortcuts | ✅ | 100% of all software capabilities (connecting, adding profiles, choosing exit nodes, inspecting peers, reading logs) are fully operable via keyboard. Preserving the underlying daemon/network architecture, navigation relies entirely on native Qt focus mechanics (<kbd>Tab</kbd> forward, <kbd>Shift</kbd>+<kbd>Tab</kbd> backward along defined `<tabstops>`). Global accessibility shortcut (<kbd>Ctrl+Shift+S</kbd>) is bound in code on the Help menu to launch the interactive screen reader diagnostics. |
+| **EN 301 549 11.2.1.2** | **SC 2.1.2** | No Keyboard Trap | ✅ | All `.ui` dialogs declare `<property name="default">` and `<property name="autoDefault">` on buttons. Base dialog controllers implement universal `keyPressEvent` handling for <kbd>Escape</kbd>, <kbd>Return</kbd>, and <kbd>Enter</kbd> across `BaseUiDialog`, `LicenseDialog`, `LogViewerDialog`, `ProfileNameDialog`, and `ProgressDialog`, guaranteeing focus can never be trapped. |
 | **EN 301 549 11.2.1.15** | **SC 2.4.7** | Focus Visible | ✅ | Focused controls display a crisp, visible 2px outline ring across all interactive controls (`QPushButton:focus`, `QLineEdit:focus`, `QCheckBox:focus`) in all theme stylesheets (`dark.qss`, `light.qss`, `vibrant.qss`) and inline UI button declarations. |
 | **EN 301 549 11.3.2.1** | **SC 3.2.1** | On Focus | ✅ | Tabbing onto a dropdown or button never automatically submits a form, disconnects the VPN, or changes system state without explicit user activation. |
 | **EN 301 549 11.3.2.2** | **SC 3.2.2** | On Input | ✅ | Selecting an item from the profile dropdown updates the display but does not trigger destructive actions without clicking Save or Connect. |
@@ -46,21 +46,21 @@ All graphical screens, modal dialogs, status badges, table rows, and menus provi
 
 ## 🔍 Detailed Component Audit Breakdown
 
-### 1. Main Dashboard (`pygui/views/dashboard.py`)
+### 1. Main Dashboard (`src/ui/dashboard.py`)
 * **Connection Toggle Button**:
   * `accessibleName`: *"Connect or Disconnect VPN"*
   * `accessibleDescription`: *"Establishes or tears down the encrypted Tailscale or Headscale network session."*
 * **Active Status Indicator**:
   * Dynamically emits updated accessible descriptions when connection state changes from `Disconnected` $\to$ `Authenticating` $\to$ `Connected`.
-* **Peer Data Grid (`QTableWidget`)**:
+* **Peer Data Grid (`QTableWidget` in `src/ui/components/peer_dialog.py`)**:
   * Accessible column headers: `Peer Name`, `Tailscale IP`, `OS Platform`, `Connection Mode`, `Latency / DERP Relay`.
   * Keyboard navigation allows using arrow keys to review peer details without mouse dependence.
 
-### 2. Profile Management Dialog (`pygui/dialogs/profile_dialog.py`)
+### 2. Profile Management Dialog (`src/ui/components/profile_dialog.py`)
 * Server URL input includes explicit validation notifications: *"Please enter a valid HTTP or HTTPS address (e.g., https://headscale.company.com)"*.
 * Auth Key inputs are masked for visual privacy but feature toggleable plaintext inspection with explicit accessibility labeling.
 
-### 3. Log Viewer (`pygui/dialogs/log_viewer_dlg.py`)
+### 3. Log Viewer (`src/ui/components/simple_dialogs.py`)
 * Diagnostic log stream supports keyboard selection, text copying, and search filtering with dedicated accessible shortcut bindings.
 
 ---
@@ -75,7 +75,8 @@ All graphical screens, modal dialogs, status badges, table rows, and menus provi
      - **Apple macOS**: Bridges to **Apple VoiceOver** via the Cocoa `NSAccessibility` protocol hierarchy.
    * **Dynamic Live Status Announcements**: Whenever connection state shifts (`🟢 Connected`, `🔴 Disconnected`, or `🟡 Pending Admin Approval`), the client proactively dispatches `QAccessible.updateAccessibility(QAccessibleEvent(widget, QAccessible.Event.NameChanged))`, causing active screen readers to immediately speak status transitions without requiring user re-focusing.
 3. **Keyboard-Only Test Cycle**: Full operational lifecycle executed from launch to exit without touching the mouse pointer:
-   - Connect/Disconnect toggle: <kbd>Ctrl</kbd> + <kbd>Return</kbd>
-   - Settings configuration: <kbd>Ctrl</kbd> + <kbd>,</kbd> $\to$ <kbd>Tab</kbd> $\to$ <kbd>Space</kbd>
-   - Peer list review: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> $\to$ Arrow keys
-   - Diagnostics modal: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> $\to$ <kbd>Esc</kbd> (dismiss)
+   - Connect/Disconnect toggle: Focus Connect button via <kbd>Tab</kbd> $\to$ press <kbd>Space</kbd> or <kbd>Enter</kbd>
+   - Menu navigation: <kbd>Alt</kbd>+<kbd>F</kbd> for File, <kbd>Alt</kbd>+<kbd>P</kbd> for Profile, <kbd>Alt</kbd>+<kbd>H</kbd> for Help
+   - Settings configuration: <kbd>Alt</kbd>+<kbd>F</kbd> $\to$ Settings $\to$ <kbd>Tab</kbd> $\to$ <kbd>Space</kbd>
+   - Accessibility health check: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>
+   - Dialog dismissal: <kbd>Esc</kbd> (dismiss without keyboard trap)

@@ -1,53 +1,85 @@
 # src/utils/local_api.py
 # This is the local API utility for the application.
 
-import os
-import sys
 import json
+import os
 import socket
+import sys
+import threading
 
-def query_local_api(path=None):
-    """Query the Tailscale Local API for status JSON securely and with near-zero CPU footprint."""
+# Default bound for Local API calls so a hung daemon can never freeze a caller
+DEFAULT_TIMEOUT = 5.0
+
+
+def _open_pipe_bounded(pipe_path, timeout):
+    """Opens the Windows named pipe with a hard timeout.
+
+    A blocking open() on a named pipe waits until the server accepts the
+    connection; if tailscaled is hung this would block forever. The open runs
+    in a short-lived helper thread; on timeout we abandon that thread (it is
+    a daemon and will die with the process) and raise TimeoutError.
+    """
+    result = {}
+
+    def _open():
+        try:
+            # The returned handle is context-managed by the caller ('with ...')
+            result["f"] = open(pipe_path, "r+b", buffering=0)  # noqa: SIM115
+        except OSError as e:
+            result["e"] = e
+
+    opener = threading.Thread(target=_open, daemon=True)
+    opener.start()
+    opener.join(timeout)
+    if "f" in result:
+        return result["f"]
+    if "e" in result:
+        raise result["e"]
+    raise TimeoutError(f"Named pipe open timed out after {timeout}s")
+
+
+def query_local_api(path=None, timeout=DEFAULT_TIMEOUT):
+    """Query the Tailscale Local API for status JSON with a bounded deadline."""
     if sys.platform == "win32":
         pipe_path = path or r"\\.\pipe\ProtectedPrefix\administrators\Tailscale\tailscaled"
         try:
-            # Open Windows Named Pipe safely with context manager
-            with open(pipe_path, "r+b", buffering=0) as f:
+            with _open_pipe_bounded(pipe_path, timeout) as f:
                 request = b"GET /localapi/v0/status HTTP/1.1\r\nHost: local-tailscaled\r\n\r\n"
                 f.write(request)
                 response = f.read(65536)
-            
+
             parts = response.split(b"\r\n\r\n", 1)
             if len(parts) == 2:
                 return json.loads(parts[1].decode('utf-8'))
-        except Exception as e:
-            raise RuntimeError(f"Named Pipe connection failed: {e}")
+        except (OSError, ValueError) as e:
+            raise RuntimeError(f"Named Pipe connection failed: {e}") from e
     else:
         sock_path = path or "/var/run/tailscale/tailscaled.sock"
         # Common macOS App Store socket path fallback
         mac_fallback = "/Library/Containers/io.tailscale.ipn.macos/Data/tailscaled.sock"
         if not os.path.exists(sock_path) and os.path.exists(mac_fallback):
             sock_path = mac_fallback
-            
+
         try:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.settimeout(timeout)
                 s.connect(sock_path)
                 request = b"GET /localapi/v0/status HTTP/1.1\r\nHost: local-tailscaled\r\n\r\n"
                 s.sendall(request)
-                
+
                 response = b""
                 while True:
                     chunk = s.recv(4096)
                     if not chunk:
                         break
                     response += chunk
-            
+
             parts = response.split(b"\r\n\r\n", 1)
             if len(parts) == 2:
                 return json.loads(parts[1].decode('utf-8'))
-        except Exception as e:
-            raise RuntimeError(f"Unix Domain Socket connection failed: {e}")
-            
+        except (OSError, ValueError) as e:
+            raise RuntimeError(f"Unix Domain Socket connection failed: {e}") from e
+
     raise RuntimeError("Unsupported platform or empty response")
 
 def is_local_api_available(path=None):
@@ -61,7 +93,7 @@ def is_local_api_available(path=None):
             with open(pipe_path, "r+b", buffering=0):
                 pass
             return True
-        except Exception:
+        except OSError:
             return False
     else:
         sock_path = path or "/var/run/tailscale/tailscaled.sock"
@@ -78,5 +110,5 @@ def is_local_api_available(path=None):
             s.connect(sock_path)
             s.close()
             return True
-        except Exception:
+        except OSError:
             return False

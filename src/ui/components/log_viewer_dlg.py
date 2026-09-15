@@ -1,9 +1,17 @@
 import os
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QMessageBox, QPushButton, QLineEdit, QTextBrowser
-from PySide6.QtGui import QTextCharFormat, QColor, QTextCursor
-from PySide6.QtCore import Qt
+
+from PySide6.QtCore import QFile, Qt
+from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile
+from PySide6.QtWidgets import (
+    QDialog,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTextBrowser,
+    QVBoxLayout,
+)
+
 
 class LogViewerDialog(QDialog):
     def __init__(self, log_path, display_name, parent=None):
@@ -103,7 +111,7 @@ class LogViewerDialog(QDialog):
         show_debug = self.btnDebug.isChecked() if self.btnDebug else True
 
         try:
-            with open(self.log_file, "r", encoding="utf-8", errors="ignore") as f:
+            with open(self.log_file, encoding="utf-8", errors="ignore") as f:
                 lines = f.readlines()
                 
             tail_lines = lines[-1000:] if len(lines) > 1000 else lines
@@ -132,7 +140,7 @@ class LogViewerDialog(QDialog):
                     
                     cursor.insertText(line, fmt)
             cursor.endEditBlock()
-        except Exception as e:
+        except OSError as e:
             cursor.insertText(f"Failed to read log: {e}")
 
         self.textBrowser.moveCursor(QTextCursor.End)
@@ -152,11 +160,12 @@ class LogViewerDialog(QDialog):
             try:
                 open(self.log_file, "w").close()
                 self._read_content()
-            except Exception as e:
+            except OSError as e:
                 QMessageBox.critical(self, "Error", str(e))
 
     def _export_logs(self):
         import zipfile
+
         from PySide6.QtWidgets import QFileDialog
         
         save_path, _ = QFileDialog.getSaveFileName(self, "Export Logs", os.path.expanduser("~/TailscaleClientPro_Logs.zip"), "ZIP Files (*.zip)")
@@ -168,13 +177,13 @@ class LogViewerDialog(QDialog):
             with zipfile.ZipFile(save_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, _, files in os.walk(log_dir):
                     for file in files:
-                        if file.endswith('.log') or file.endswith('.txt'):
+                        if file.endswith(('.log', '.txt')):
                             full_file_path = os.path.join(root, file)
                             arcname = os.path.relpath(full_file_path, log_dir)
                             zipf.write(full_file_path, arcname)
                             
             QMessageBox.information(self, "Export Successful", f"All logs have been successfully bundled and exported to:\n{save_path}")
-        except Exception as e:
+        except (OSError, zipfile.BadZipFile) as e:
             QMessageBox.critical(self, "Export Failed", f"An error occurred while exporting logs:\n{e}")
 
     def showEvent(self, event):

@@ -1,9 +1,9 @@
 # Tailscale & Headscale Client: Security, Privacy & Cryptographic Architecture 🔒🛡️
 
-**Document ID:** THC-SEC-PRIV-2026.1  
+**Document ID:** THC-SEC-PRIV-5.0  
 **Classification:** Enterprise Security & Cryptographic Evaluation  
 **Security Standard:** Zero-Trust Network Access (ZTNA) / ISO 27001 Aligned  
-**Software Release:** 2026.1.0 Platinum LTS  
+**Software Release:** 5.0.0  
 
 ---
 
@@ -24,11 +24,11 @@ flowchart TD
 
     subgraph Trust_Zone_1 ["💻 User Space Client GUI (Trust Zone 1)"]
         CLIENT["PySide6 Desktop Application Process<br><b>No Root/Administrator Execution Required</b>"]:::app
-        MEM["Volatile Memory Only for Session Tokens<br><i>(Explicit Memory Scrubbing on Exit)</i>"]:::app
+        MEM["Volatile In-Memory Session Tokens<br><i>(Stored transiently, zero plaintext on disk)</i>"]:::app
     end
 
     subgraph Trust_Zone_2 ["⚙️ Local System Daemon IPC (Trust Zone 2)"]
-        SOCKET["Protected Pipe / Loopback LocalAPI<br><b>Security-token Authenticated</b>"]:::boundary
+        SOCKET["Protected Pipe / Unix Socket LocalAPI<br><b>IPC-Restricted Local Endpoint</b>"]:::boundary
         DAEMON["tailscaled Background Service"]:::boundary
     end
 
@@ -62,7 +62,7 @@ Legacy architectures suffered from file fragmentation (maintaining 20+ plaintext
 | **macOS** | Apple Keychain Services | Secure Enclave hardware protection & AES-256 |
 
 ### 2.2 Memory Hygiene
-Tokens are fetched into volatile memory on-demand only during connection handshake dispatches and scrubbed from disk, minimizing risk from memory and process dumping attacks.
+Tokens are fetched into memory on-demand only during connection handshake dispatches and never persisted to plaintext files on disk, minimizing risk from process and filesystem inspection attacks.
 
 ---
 
@@ -70,8 +70,8 @@ Tokens are fetched into volatile memory on-demand only during connection handsha
 
 Communication between the desktop client and the background `tailscaled` service uses local IPC:
 
-* **Windows**: Named Pipe IPC (`\\.\pipe\ProtectedPrefix\Administrators\Tailscale\tailscaled`) or localhost HTTP authenticated with a dynamic security token generated per-session by the daemon.
-* **Linux / macOS**: Dedicated Unix Domain Socket (`/var/run/tailscale/tailscaled.sock`). Group access permissions prevent non-whitelisted users from executing privileged networking operations.
+* **Windows**: Named Pipe IPC (`\\.\pipe\ProtectedPrefix\Administrators\Tailscale\tailscaled`).
+* **Linux / macOS**: Dedicated Unix Domain Socket (`/var/run/tailscale/tailscaled.sock` or `/var/run/tailscaled.socket`). Group access permissions and socket ownership prevent non-whitelisted users from executing privileged networking operations.
 * **Safe Subprocess Execution**: Any CLI invocations use structured argument vectors (e.g. `["tailscale", "up", ...]`) rather than shell strings (`shell=False`), completely preventing shell injection vulnerabilities.
 
 ---
@@ -116,7 +116,7 @@ Communication between the desktop client and the background `tailscaled` service
 | **CWE-391** | Empty Exception Handling | Converted all bare and empty `except:` handlers to explicit exception subclasses (`OSError`, `socket.gaierror`, `psutil.NoSuchProcess`) with deterministic control flow, eliminating silent exception masking. | **PASSED (Zero Risk)** |
 | **CWE-456** | Uninitialized Variable Lifecycle | Verified variable scoping across GUI poller callbacks (e.g., `is_running`). Pre-initialized variables and safe decoding ensure immunity to `UnboundLocalError`. | **PASSED (Zero Risk)** |
 | **CWE-404 / CWE-775** | Resource / File Handle Leakage | Refactored Windows Named Pipe and Unix socket communication to deterministic Python context managers (`with open(...) as f:`, `with socket.socket(...) as s:`). | **PASSED (Zero Risk)** |
-| **Supply Chain** | Vulnerable Third-Party Components | Full Software Bill of Materials (SBOM) verified via CycloneDX 1.5 format ([`docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/SBOM.json)) conforming to NIST SP 800-218 and US Executive Order 14028. | **PASSED (Zero Risk)** |
+| **Supply Chain** | Vulnerable Third-Party Components | Full Software Bill of Materials (SBOM) verified via CycloneDX 1.5 format ([`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json)) conforming to NIST SP 800-218 and US Executive Order 14028. | **PASSED (Zero Risk)** |
 
 ---
 
@@ -138,12 +138,10 @@ Every applicable test, linter, type check, dependency audit, and cryptographic v
 | :--- | :--- | :--- | :---: | :--- |
 | **GitHub CodeQL SAST** | CodeQL (`security-extended` & `security-and-quality`) | Entire repository |  **PASSED** | **0 open alerts**. Remediated all 96 CWE, code quality, and exception handling recommendations. |
 | **Flake8 Lint & Quality Check** | `flake8` | `src/`, `tests/`, `main.py`, `scripts/` |  **PASSED** | 0 critical errors, 0 undefined variables, 0 unclosed resources, 0 bare excepts. |
-| **mypy Type Check** | `mypy` static type checker | `main.py`, `src/core/`, `src/utils/` |  **PASSED** | 0 type errors across core data models, caches, and utilities (`Success: no issues found`). |
+| **mypy Type Check** | `mypy` static type checker | `src/` (30 source files) |  **PASSED** | 0 type errors across all 30 source files (`Success: no issues found in 30 source files`). |
 | **Backend / Core Engine Tests** | `unittest` / `pytest` | [`tests/test_core_client.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/tests/test_core_client.py) |  **PASSED** | **12 passed in 1.65s (100% pass rate)**. Option C SQLite persistence, OS Keyring vaulting, credential scrubbing, and screen reader accessibility verified. |
 | **Code Test Coverage** | `pytest-cov` / `coverage` | `src/core`, `src/utils` |  **PASSED** | Code coverage tracking active across core models, caching layers, encryption vaults, and accessibility bridges. |
 | **Python Dependency Scan** | PyPI Advisory Vulnerability API | `requirements.txt` |  **PASSED** | Verified all production packages (`PySide6`, `cryptography`, `keyring`, `psutil`, `requests`, `markdown`, `pygments`, `beautifulsoup4`, `PyInstaller`). 0 active production CVEs. |
 | **Security Tests (CWE Matrix)** | AST & Regex Static Scan | Entire repository |  **PASSED** | Zero command injections, zero dynamic eval calls, zero leaked secrets or auth tokens. |
-| **Generate CycloneDX SBOM** | CycloneDX 1.5 Spec | [`docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/docs/SBOM.json) |  **PASSED** | Machine-readable bill of materials compliant with US EO 14028 and NIST SP 800-218. |
+| **Generate CycloneDX SBOM** | CycloneDX 1.5 Spec | [`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json) |  **PASSED** | Machine-readable bill of materials compliant with US EO 14028 and NIST SP 800-218. |
 | **Quality Gate Summary** | Enterprise Gate Engine | All applicable stages |  **PASSED** | **100% Pass Rate / Platinum Enterprise Quality Certified**. |
-
-

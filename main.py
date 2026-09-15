@@ -1,59 +1,74 @@
 # main.py
 # This is the main entry point for the application.
 
-import sys
-import os
 import multiprocessing
+import os
+import sys
 
 from PySide6.QtWidgets import QApplication
+
 from src.core.manager import Manager
 from src.core.tailscale import TailscaleManager, get_tailscale_path
 from src.ui.main_window import MainWindow
-from src.utils.logger import setup_logger, manage_sys_streams
+from src.utils.dns_fallback import run_cli_if_requested
+from src.utils.logger import manage_sys_streams, setup_logger
+
 
 def is_daemon_running(logger):
+    import subprocess
     try:
-        import subprocess
         startupinfo = None
         creationflags = 0
         if sys.platform == "win32":
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             creationflags = subprocess.CREATE_NO_WINDOW
-        
+
         result = subprocess.run(
-            [get_tailscale_path(), "status", "--json"], 
-            capture_output=True, 
-            text=True, 
+            [get_tailscale_path(), "status", "--json"],
+            capture_output=True,
+            text=True,
             startupinfo=startupinfo,
-            creationflags=creationflags
+            creationflags=creationflags,
+            check=False,
+            shell=False,
         )
         if result.returncode == 0:
             return True
-        if "failed to connect" in result.stderr.lower() or "tailscaled may not be running" in result.stderr.lower():
-            return False
-        return True
-    except Exception as e:
+        return not (
+            "failed to connect" in result.stderr.lower()
+            or "tailscaled may not be running" in result.stderr.lower()
+        )
+    except (subprocess.SubprocessError, OSError) as e:
         logger.error(f"Error checking tailscaled daemon: {e}")
         return False
 
 def start_daemon_service(logger):
+    import shutil
     import subprocess
     try:
         if sys.platform == "win32":
             subprocess.Popen(
-                ["net", "start", "Tailscale"],
-                creationflags=subprocess.CREATE_NO_WINDOW
+                [shutil.which("net") or "net", "start", "Tailscale"],
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                shell=False,
             )
         elif sys.platform.startswith("linux"):
-            subprocess.Popen(["systemctl", "start", "tailscaled"])
+            subprocess.Popen([shutil.which("systemctl") or "systemctl", "start", "tailscaled"], shell=False)
         elif sys.platform == "darwin":
-            subprocess.Popen(["launchctl", "start", "com.tailscale.tailscaled"])
-    except Exception as e:
+            subprocess.Popen([shutil.which("launchctl") or "launchctl", "start", "com.tailscale.tailscaled"], shell=False)
+    except (subprocess.SubprocessError, OSError) as e:
         logger.error(f"Failed to start daemon service: {e}")
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+
+    # Elevated hosts-file helper: dns_fallback relaunches this executable with
+    # --dns-fallback args when UAC is needed; handle it and exit before the GUI
+    # or the single-instance lock are touched.
+    fallback_exit_code = run_cli_if_requested()
+    if fallback_exit_code is not None:
+        sys.exit(fallback_exit_code)
 
     # 1. Setup App Data & Logger
     if sys.platform == "win32":
@@ -77,10 +92,11 @@ if __name__ == "__main__":
         
         bundled_icon = get_asset_path_early("assets/icon.png")
         persistent_icon = os.path.join(app_dir, "icon.png")
-        if os.path.exists(bundled_icon):
-            if not os.path.exists(persistent_icon) or os.path.getsize(bundled_icon) != os.path.getsize(persistent_icon):
-                shutil.copy2(bundled_icon, persistent_icon)
-    except Exception as e:
+        if os.path.exists(bundled_icon) and (
+            not os.path.exists(persistent_icon) or os.path.getsize(bundled_icon) != os.path.getsize(persistent_icon)
+        ):
+            shutil.copy2(bundled_icon, persistent_icon)
+    except OSError as e:
         logger.error(f"Failed to copy icon to persistent APPDATA: {e}")
 
     # 2. Initialize App & Check Lock

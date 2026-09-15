@@ -185,6 +185,52 @@
            </property>
           </widget>
          </item>
+         <item row="8" column="0">
+          <widget class="QLabel" name="labelExtraArgs">
+           <property name="font">
+            <font>
+             <pointsize>9</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Extra Args :</string>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="1">
+          <widget class="QLineEdit" name="lineEditExtraArgs">
+           <property name="toolTip">
+            <string>Custom flags or arguments passed directly to tailscale up.</string>
+           </property>
+           <property name="placeholderText">
+            <string>e.g. --operator=admin</string>
+           </property>
+          </widget>
+         </item>
+         <item row="9" column="0">
+          <widget class="QLabel" name="labelAcceptRisk">
+           <property name="font">
+            <font>
+             <pointsize>9</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Accept Risk :</string>
+           </property>
+          </widget>
+         </item>
+         <item row="9" column="1">
+          <widget class="QLineEdit" name="lineEditAcceptRisk">
+           <property name="toolTip">
+            <string>Risk acknowledgment flags passed to tailscale up (e.g. lose-ssh, all).</string>
+           </property>
+           <property name="placeholderText">
+            <string>e.g. lose-ssh, all</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
       </layout>
