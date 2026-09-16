@@ -81,5 +81,7 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='TailscaleClientPro_OneDir',
+    # The flavour folder IS the payload folder: a bare run lands in
+    # dist/OneDir/ instead of nesting dist/OneDir/TailscaleClientPro_OneDir/.
+    name='OneDir',
 )

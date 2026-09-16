@@ -2,6 +2,7 @@
 #
 # These are the same commands verified locally; ruff.toml, mypy.ini, pyrefly.toml
 # and requirements.txt at the repository root define what they enforce.
+# build.py is linted and type-checked with the app so the build front-end cannot drift.
 
 name: Quality Gates
 
@@ -48,10 +49,10 @@ jobs:
         run: python -m pytest tests/ -q
 
       - name: Lint (ruff)
-        run: python -m ruff check src/ main.py tests/ scripts/
+        run: python -m ruff check src/ main.py tests/ scripts/ build.py
 
       - name: Static typing (mypy)
-        run: python -m mypy src/ main.py
+        run: python -m mypy src/ main.py build.py
 
   package:
     name: Packaging smoke test (frozen build)
@@ -78,12 +79,12 @@ jobs:
             libgl1 libegl1 libxkbcommon0 libdbus-1-3 libfontconfig1
 
       - name: Build the one-directory bundle (uses the shipped spec)
-        run: python -m PyInstaller TailscaleClient_OneDir.spec --noconfirm
+        run: python -m PyInstaller TailscaleClient_OneDir.spec --noconfirm --distpath dist
 
       - name: Self-test the frozen executable
         run: |
           set -o pipefail
-          "./dist/TailscaleClientPro_OneDir/Tailscale VPN Client Pro" --self-test | tee /tmp/self-test.log
+          "./dist/OneDir/Tailscale VPN Client Pro" --self-test | tee /tmp/self-test.log
 
       - name: Upload the self-test report and the build warnings
         if: always()

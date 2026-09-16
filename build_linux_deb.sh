@@ -45,10 +45,10 @@ chmod 755 build/deb/DEBIAN/postrm
 HAS_ONEDIR=0
 HAS_ONEFILE=0
 
-if [ -d "dist/TailscaleClientPro_OneDir" ]; then
+if [ -f "dist/OneDir/Tailscale VPN Client Pro" ]; then
     HAS_ONEDIR=1
 fi
-if [ -f "dist/Tailscale VPN Client Pro" ]; then
+if [ -f "dist/OneFile/Tailscale VPN Client Pro" ]; then
     HAS_ONEFILE=1
 fi
 
@@ -76,7 +76,7 @@ fi
 
 if [ "$CHOICE" = "1" ]; then
     echo "Packaging OneFile build..."
-    cp "dist/Tailscale VPN Client Pro" build/deb/opt/$APP_NAME/TailscaleClientPro
+    cp "dist/OneFile/Tailscale VPN Client Pro" build/deb/opt/$APP_NAME/TailscaleClientPro
     chmod +x build/deb/opt/$APP_NAME/TailscaleClientPro
     # Copy assets so the desktop launcher can still find the icon file
     if [ -d "assets" ]; then
@@ -84,7 +84,7 @@ if [ "$CHOICE" = "1" ]; then
     fi
 else
     echo "Packaging OneDir build..."
-    cp -r dist/TailscaleClientPro_OneDir/* build/deb/opt/$APP_NAME/
+    cp -r dist/OneDir/* build/deb/opt/$APP_NAME/
     # Rename the inner executable to TailscaleClientPro so launcher & symlink find it perfectly
     if [ -f "build/deb/opt/$APP_NAME/Tailscale VPN Client Pro" ]; then
         mv "build/deb/opt/$APP_NAME/Tailscale VPN Client Pro" "build/deb/opt/$APP_NAME/TailscaleClientPro"
