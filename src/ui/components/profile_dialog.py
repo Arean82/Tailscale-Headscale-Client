@@ -95,15 +95,32 @@ class ProfileDialog(BaseUiDialog):
             index = 1 if is_checked else 0
             self.stackedWidget.setCurrentIndex(index)
 
+    def _validated_url(self, url):
+        """Returns the URL when usable, else warns and returns None.
+
+        The control plane is always reached over HTTP(S); a URL without a
+        scheme would otherwise fail later inside `tailscale up` with a far less
+        actionable message.
+        """
+        if not url:
+            QMessageBox.warning(self, "Missing Data", "VPN URL is required.")
+            return None
+        if not url.lower().startswith(("http://", "https://")):
+            QMessageBox.warning(
+                self, "Invalid URL",
+                "Please enter a valid HTTP or HTTPS address (e.g., https://headscale.company.com)"
+            )
+            return None
+        return url
+
     def get_data(self):
         use_sso = self.chkUseSSO.isChecked() if self.chkUseSSO else False
         enable_fallback = self.chkEnableFallback.isChecked() if self.chkEnableFallback else False
         fallback_ip = self.lineEditFallbackIP.text().strip() if self.lineEditFallbackIP else ""
         
         if use_sso:
-            url = self.url_sso.text().strip() if self.url_sso else ""
-            if not url:
-                QMessageBox.warning(self, "Missing Data", "VPN URL is required.")
+            url = self._validated_url(self.url_sso.text().strip() if self.url_sso else "")
+            if url is None:
                 return None
             return {
                 "name": url,
@@ -114,10 +131,9 @@ class ProfileDialog(BaseUiDialog):
                 "last_known_ip": fallback_ip
             }
         else:
-            url = self.url_auth.text().strip() if self.url_auth else ""
+            url = self._validated_url(self.url_auth.text().strip() if self.url_auth else "")
             key = self.key_entry.text().strip() if self.key_entry else ""
-            if not url:
-                QMessageBox.warning(self, "Missing Data", "VPN URL is required.")
+            if url is None:
                 return None
             return {
                 "name": url,

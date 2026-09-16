@@ -42,8 +42,8 @@ graph TB
     subgraph Core ["🧠 Core Control & State Coordination"]
         SC["StateCoordinator (Deterministic Gatekeeper)"]:::coordNode
         SM["AppState FSM Machine"]:::coordNode
-        TSM["TailscaleProcess (Execution Engine)"]:::coordNode
-        WM["ProcessWatchdog (psutil Reaper)"]:::coordNode
+        TSM["TailscaleExecutor (Async Execution Seam)"]:::coordNode
+        WM["ConnectionStateMachine (State & Retry Owner)"]:::coordNode
     end
 
     subgraph Daemon ["⚙️ Host OS Daemon Interface"]
@@ -64,8 +64,8 @@ graph TB
     SC -->|State Guard| SM
     SC -->|Array Execution| TSM
     TSM -->|IPC Commands| CLI
-    TSM -->|Local Named Pipe| TD
-    TSM -->|Socket Stream| API
+    TSM -->|CLI subprocess (streaming)| TD
+    API -.->|"opt-in: Experimental Local API"| TD
     WM -->|Process Health| TD
     SC -->|Persist Config & Topology| SQL
     TSM -->|Retrieve Keys| KR
@@ -160,9 +160,9 @@ stateDiagram-v2
 
 ## 🔒 هندسة الأمان وحماية البيانات
 
-1. **مخزن آمن دون نصوص واضحة:** يتم تشفير مفاتيح المصادقة والرموز الحساسة وحفظها عبر مخازن النظام الرسمية (`keyring`: Windows Credential Locker و macOS Keychain و Linux Secret Service).
+1. **مخزن بيانات الاعتماد دون نصوص واضحة دائمة:** تُحفظ مفاتيح المصادقة والرموز عبر مخازن النظام الرسمية (`keyring`: Windows Credential Locker و macOS Keychain و Linux Secret Service). وأثناء الاتصال يُخزَّن المفتاح مؤقتًا في ملف محدود الصلاحيات (0600) حتى لا يظهر في سطر أوامر العملية، ويُحذف فور انتهاء الأمر. أما بيانات الطوبولوجيا غير الحساسة (عنوان الخادم والمسارات والعلامات) فتُحفظ في قاعدة بيانات SQLite المحلية.
 2. **الحماية من حقن الأوامر:** تمرر جميع أوامر CLI كمصفوفات مفهرسة بدقة (`subprocess.Popen([cmd, arg1, arg2], shell=False)`) مع حظر تام لتوسيع نصوص Shell.
-3. **مراقب العمليات الصارم (Watchdog):** متابعة مستمرة عبر `psutil` لإنهاء العمليات الفرعية المعلقة فور إغلاق التطبيق أو تبديل الملفات لمنع تضارب المنافذ.
+3. **ملكية مُقيَّدة للعمليات:** يتتبّع المنفّذ عملية CLI التي يبدأها، وينهيها عند الإغلاق ثم يوقف خيط العمل الخاص به، فلا تبقى أي عملية `tailscale` بعد إغلاق التطبيق ولا تعطّل تبديل الملفات الشخصية.
 4. **التراجع الأسي المتزن:** تعتمد إعادة الاتصال التلقائي فترات انتظار تصاعدية (`3s` -> `6s` -> `12s`) لمنع إغراق الخوادم بالطلبات أثناء انقطاع الشبكة.
 5. **دعم شهادات SSL الموقعة ذاتياً:** دعم تشغيل كامل لبيئات الاختبار وخوادم Headscale المغلقة عبر خيار `--insecure-skip-tls-verify=true`.
 

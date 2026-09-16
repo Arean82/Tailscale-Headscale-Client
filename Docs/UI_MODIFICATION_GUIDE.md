@@ -5,7 +5,7 @@
 This document specifies the strict architectural conventions, dimension constraints, UI-to-Controller binding rules, and metadata injection protocols for **Tailscale / Headscale Client Pro**.
 
 > [!IMPORTANT]
-> **Deterministic Layout Policy**: All application dialogs and main panels are configured with explicit, fixed window boundaries (`setFixedSize`) to prevent cross-platform layout clipping, DPI scaling glitches, and uncontrolled responsive drift.
+> **Deterministic Layout Policy**: Application dialogs and main panels are configured with explicit, fixed window boundaries (`setFixedSize`) to prevent cross-platform layout clipping, DPI scaling glitches, and uncontrolled responsive drift. The **Settings dialog is the deliberate exception**: it is resizable (no `setFixedSize`) so longer translations and accessibility font scaling have room.
 
 ---
 
@@ -42,16 +42,17 @@ All window bounds are strictly managed in Python controller constructors or dedi
 | Window / Dialog | Source Controller File | Dimensions (W × H px) | Primary Purpose |
 | :--- | :--- | :--- | :--- |
 | **Main Window** | `src/ui/main_window.py` | `420 × 280` | Primary connection toggle, quick stats, tray hub |
-| **Node Dialog** | `src/ui/components/node_dialog.py` | `620 × 740` | 2-Column Advanced Flags & Live Status Badges |
-| **Readme Studio** | `src/ui/components/simple_dialogs.py` | `1000 × 800` | High-fidelity Markdown documentation viewer |
+| **Node Dialog** | `src/ui/components/node_dialog.py` | `720 × 420` | 2-Column Advanced Flags & Live Status Badges |
+| **Readme Studio** | `src/ui/components/simple_dialogs.py` | `800 × 600` | High-fidelity Markdown documentation viewer |
 | **Log Viewer** | `src/ui/components/log_viewer_dlg.py` | `900 × 650` | Real-time streaming subprocess & daemon logs |
-| **Peers Dialog** | `src/ui/components/peer_dialog.py` | `850 × 480` | Mesh node telemetry table & latency sparklines |
+| **Peers Dialog** | `src/ui/components/peer_dialog.py` | `680 × 480` | Mesh node telemetry table & latency sparklines |
 | **License Dialog**| `src/ui/components/simple_dialogs.py` (`pygui/dialogs/license.ui`) | `700 × 500` | GPLv3 legal disclaimer and attributions |
-| **Traffic Dialog**| `src/ui/components/simple_dialogs.py` | `450 × 500` | Historical throughput and packet statistics |
-| **About Dialog**  | `src/ui/components/simple_dialogs.py` | `360 × 280` | Dynamic build metadata & upstream links |
-| **Settings Dialog**| `src/ui/components/settings_dialog.py` | `340 × 340` | Preferences, theme, language, and startup options |
+| **Traffic Dialog**| `src/ui/components/simple_dialogs.py` | `460 × 560` | Historical throughput and packet statistics |
+| **About Dialog**  | `src/ui/components/simple_dialogs.py` | `300 × 180` | Dynamic build metadata & upstream links |
+| **Diagnostics Dialog** | `src/ui/components/diagnostics_dialog.py` | `580 × 440` | Netcheck output and accessibility self-check |
+| **Settings Dialog**| `src/ui/components/settings_dialog.py` | resizable (`settings.ui` geometry `602 × 285`) | Preferences, theme, language, and startup options |
 | **Add Profile**   | `src/ui/components/profile_name_dialog.py` | `360 × 150` | New environment profile creation modal |
-| **Profile Auth**  | `src/ui/components/profile_dialog.py` | `300 × 200` | Login URL / Auth token entry modal |
+| **Profile Auth**  | `src/ui/components/profile_dialog.py` | `350 × 350` | Login URL / Auth token entry modal |
 
 ---
 
@@ -59,19 +60,21 @@ All window bounds are strictly managed in Python controller constructors or dedi
 
 ### 1. Zero Hardcoding of Application Metadata in `.ui` XML
 **NEVER hardcode version numbers, application names, or copyright strings inside `.ui` XML files.**
-- XML forms must leave labels blank or use generic placeholders.
+- XML forms must leave labels blank or use generic placeholders (e.g. `about.ui` ships empty `labelAppName` / `labelVersion` / `labelCopyright` strings).
 - The Python controller layer dynamically fetches metadata from `src/utils/constants.py`:
   ```python
   from src.utils.constants import APP_NAME, APP_VERSION, APP_COPYRIGHT
-  
-  self.ui.lblVersion.setText(f"Version {APP_VERSION}")
-  self.ui.lblCopyright.setText(APP_COPYRIGHT)
+
+  lbl_version = self.ui.findChild(QLabel, "labelVersion")
+  lbl_version.setText(f"Version {APP_VERSION} Pro")
+  lbl_copyright = self.ui.findChild(QLabel, "labelCopyright")
+  lbl_copyright.setText(APP_COPYRIGHT)
   ```
 
 ### 2. Two-Column Layout Integrity Contract
 In dialogs featuring operational controls and live daemon states (such as `NodeDialog` / `node.ui`):
-- **Column 0**: User-editable interactive controls (e.g. `chkShieldsUp`, `chkSnats`, `chkSsh`).
-- **Column 1**: Read-only status indicator badges (`chkShieldsUpValue`, `chkSnatsValue`, `chkSshValue`) styled dynamically with:
+- **Column 0**: User-editable interactive controls (e.g. `chkShieldsUp`, `chkDisableSNAT`, `chkSSH`).
+- **Column 1**: Read-only status indicator badges (`chkShieldsUpValue`, `chkDisableSNATValue`, `chkSSHValue`) styled dynamically with:
   - Checked / Active: Bold `#22c55e` (Emerald Green) text: **`True`**
   - Unchecked / Inactive: Bold `#ef4444` (Ruby Red) text: **`False`**
 - Do NOT add, rename, or delete widgets without explicit architecture synchronization.

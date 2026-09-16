@@ -7,6 +7,19 @@
 
 ---
 
+## 📅 Audit Entry: 2026-09-16 (Platinum Grade Verification & Logging Streamlining)
+
+### 1. Scope & Implementation Deliverables
+- **Structured Enterprise Logging**:
+  - All unstructured `print()` statements across UI modules (`src/ui/dashboard.py`, `src/ui/main_window.py`, `src/ui/components/node_dialog.py`, `src/ui/components/profile_name_dialog.py`, `src/ui/components/simple_dialogs.py`) have been eliminated and cleanly routed into module loggers (`logger.debug` / `logger.error`).
+  - No raw console output remains in the runtime tree; the only `print()` calls left in the repository are the deliberate human-facing report lines in `src/utils/self_check.py` (the `--self-test` reporter) and the `scripts/` command-line tools.
+- **Continuous Quality Assurance & Verification**:
+  - Ruff Linter: `All checks passed!` (0 lint errors, 0 warnings).
+  - Mypy Static Type Checking: `Success: no issues found in 32 source files` (100% clean; re-verified after the hardening passes).
+  - Pytest Test Suite: `139 passed, 28 subtests passed` (100% pass rate; suite grew from 66 as the audit items gained regression coverage).
+
+---
+
 ## 📅 Audit Entry: 2026-09-15 (CodeQL & Pyrefly Diagnostic Remediation Complete)
 
 ### 1. Scope & Implementation Deliverables
@@ -63,7 +76,7 @@
   - Reconciled [`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json):
     - Aligned `version`, tool version, component `bom-ref`, and dependency `ref` (line 199) from `2026.1.0` to `5.0.0`.
   - **Candidate 6 (Typing Fix, Mypy Stubs Configuration & Document Reconciliation)**:
-  - Fixed real type check error in [`src/core/db_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/db_manager.py) line 451: typed `profile_name: Optional[str] = None` and imported `Optional` from `typing`.
+  - Fixed real type check error in [`src/core/db_manager.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/db_manager.py) line 451: typed the parameter as `profile_name: str | None = None` (PEP 604, matching the file's modern annotation style).
   - Installed official typing stubs `types-psutil` and `types-Markdown` in the virtual environment.
   - Configured [`mypy.ini`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/mypy.ini) with `[mypy-qt_material.*]` `ignore_missing_imports = true` (ASCII encoded).
   - Executed static typing audit `mypy src/`: **0 type errors across all 30 source files** (`Success: no issues found in 30 source files`).
@@ -125,7 +138,7 @@
 - **Severity**: Moderate
 - **CWE IDs**: CWE-775, CWE-400, CWE-754
 - **Affected Releases**: `< 1.2.0`
-- **Patched Releases**: `>= 1.2.0` / `2026.1.0`
+- **Patched Releases**: `>= 1.2.0` / `2026.1.0` *(intentionally mirrors the published GitHub advisory versioning; the in-app release stream is 5.0.0)*
 - **Documentation Updated**: Synchronized [`Docs/SECURITY_ADVISORIES.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SECURITY_ADVISORIES.md).
 
 ---
@@ -142,7 +155,7 @@
 ### 2. Remediated Files
 - [`src/utils/dns_fallback.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/dns_fallback.py) (Alerts #90, #24, #25): Handled `socket.gaierror`, `socket.herror`, and `PermissionError` with clean return values.
 - [`src/ui/main_window.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/main_window.py) (Alerts #91, #92): Replaced `pass` in `rmdir` loop with `continue`, handled tab disconnect cleanly.
-- [`src/core/tailscale.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/tailscale.py) (Alerts #93, #43, #41, #36, #35): Narrowed process watchdog exceptions to `(psutil.NoSuchProcess, psutil.AccessDenied)`, logout to `(subprocess.SubprocessError, OSError)`, and stats to `(KeyError, OSError, psutil.Error)`.
+- [`src/core/tailscale.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/tailscale.py) (Alerts #93, #43, #41, #36, #35): Narrowed the then-present process watchdog exceptions to `(psutil.NoSuchProcess, psutil.AccessDenied)`, logout to `(subprocess.SubprocessError, OSError)`, and stats to `(KeyError, OSError, psutil.Error)`. *(Historical: that watchdog was later removed as part of the executor refactor — process ownership is now handled by killing the tracked CLI child.)*
 - [`src/utils/crypto.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/crypto.py) (Alerts #16–#22): Cleanly handled Keyring operations with non-blocking return flows.
 - [`src/utils/autostart.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/utils/autostart.py) (Alerts #9–#14): Handled OS-specific Registry and plist `OSError` with explicit returns.
 - [`src/core/state_coordinator.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/core/state_coordinator.py) (Alerts #34, #37, #39): Handled adapter inspection errors and socket resolution errors with specific exceptions.
@@ -380,7 +393,7 @@
 * **Zero Warnings / Zero Broken Tests**: 100% verified.
 * **Enterprise Documentation Synchronization**: Added dedicated platinum-grade *100% Keyboard-Only Operability & Global Accelerators* section across all four language variants ([`Docs/README.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README.md), [`Docs/README_es.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README_es.md), [`Docs/README_fr.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README_fr.md), [`Docs/README_ar.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/README_ar.md)) and synced all distribution artifacts directly into `dist/TailscaleClientPro_OneDir/_internal/Docs/`.
 * **Enterprise & Public Sector Procurement Dossier**: Authored [`Docs/ENTERPRISE_PROCUREMENT_READINESS.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/ENTERPRISE_PROCUREMENT_READINESS.md) certifying NIST SP 800-207 (ZTNA), NIST SP 800-218 (SSDF), US Section 508 / EN 301 549 Level AA accessibility, FIPS/OS Keyring cryptographic storage, and silent deployment via Inno Setup / APT.
-* **CycloneDX 1.5 SBOM Creation**: Generated machine-readable Software Bill of Materials [`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json) capturing all runtime dependencies, purls, licenses, and hashes to satisfy Federal EO 14028 software supply chain procurement mandates.
+* **CycloneDX 1.5 SBOM Creation**: Generated machine-readable Software Bill of Materials [`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json) capturing runtime and build-tooling components with purls, versions and licenses (versions verified against the installed environment) to satisfy Federal EO 14028 software supply chain procurement mandates.
 * **Full Documentation Suite Synchronization**: Audited and synchronized [`Docs/USER_MANUAL.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/USER_MANUAL.md) (updating keyboard accelerators to match UI definitions) and [`Docs/QUICK_START.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/QUICK_START.md) (incorporating Section 7 procurement and SBOM cross-references), maintaining 100% harmony across technical, operational, and procurement documentation.
 * **Native Screen Reader Accessibility Implementation (Windows Narrator / NVDA / Orca / VoiceOver)**: Implemented proactive assistive technology event dispatches in [`src/ui/dashboard.py`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/src/ui/dashboard.py) using `QAccessible.updateAccessibility(QAccessibleEvent(self.labelStatus, QAccessible.Event.NameChanged))`. Documented the OS bridge architecture in [`Docs/ACCESSIBILITY_COMPLIANCE.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/ACCESSIBILITY_COMPLIANCE.md), certifying seamless speech synthesis without requiring third-party runtime daemons or modifying core backend systems.
 * **Screen Reader Environment Verification & Diagnostics Engine**:

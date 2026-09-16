@@ -42,8 +42,8 @@ graph TB
     subgraph Core ["🧠 Core Control & State Coordination"]
         SC["StateCoordinator (Deterministic Gatekeeper)"]:::coordNode
         SM["AppState FSM Machine"]:::coordNode
-        TSM["TailscaleProcess (Execution Engine)"]:::coordNode
-        WM["ProcessWatchdog (psutil Reaper)"]:::coordNode
+        TSM["TailscaleExecutor (Async Execution Seam)"]:::coordNode
+        WM["ConnectionStateMachine (State & Retry Owner)"]:::coordNode
     end
 
     subgraph Daemon ["⚙️ Host OS Daemon Interface"]
@@ -64,8 +64,8 @@ graph TB
     SC -->|State Guard| SM
     SC -->|Array Execution| TSM
     TSM -->|IPC Commands| CLI
-    TSM -->|Local Named Pipe| TD
-    TSM -->|Socket Stream| API
+    TSM -->|CLI subprocess (streaming)| TD
+    API -.->|"opt-in: Experimental Local API"| TD
     WM -->|Process Health| TD
     SC -->|Persist Config & Topology| SQL
     TSM -->|Retrieve Keys| KR
@@ -171,9 +171,9 @@ The application communicates natively with platform accessibility trees without 
 
 ## 🔒 Security Architecture & Trust Engineering
 
-1. **Zero-Plaintext Credential Vault:** All machine auth keys, pre-shared tokens, and sensitive URLs are encrypted and stored via platform-native credential managers using the `keyring` standard (Windows Credential Locker, macOS Keychain, Linux Secret Service).
+1. **Credential Vault Without Persistent Plaintext:** Machine auth keys and pre-shared tokens are stored via platform-native credential managers using the `keyring` standard (Windows Credential Locker, macOS Keychain, Linux Secret Service). During a connection the key is additionally staged in a restricted (0600) temp file so it never appears in the process command line, and that file is deleted as soon as the command finishes. Non-secret profile topology (login-server URL, routes, tags) lives in the local SQLite database.
 2. **Subprocess Injection Defense:** All CLI executions pass commands as tokenized argument arrays (`subprocess.Popen([cmd, arg1, arg2], shell=False)`). Shell interpolation is strictly prohibited, neutralizing command injection vectors.
-3. **Automated Process Watchdog:** Process supervision powered by `psutil` actively reaps orphaned daemon tasks upon application exit or profile switching, preventing socket binding collisions.
+3. **Bounded Process Ownership:** The executor tracks the CLI child process it starts, kills it during shutdown and then retires its worker thread, so no `tailscale` process outlives the application or blocks a profile switch.
 4. **Resilient Exponential Backoff:** Reconnection logic implements bounded exponential backoff (`3s` -> `6s` -> `12s`), preventing connection flooding and server DDoS during outages.
 5. **Self-Signed SSL Accommodation:** Isolated homelab deployments with self-hosted Headscale servers support TLS verification bypass via the `--insecure-skip-tls-verify=true` setting.
 

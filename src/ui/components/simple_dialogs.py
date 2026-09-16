@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -14,6 +15,8 @@ from PySide6.QtWidgets import (
     QTextBrowser,
     QVBoxLayout,
 )
+
+logger = logging.getLogger("TailscaleClient.UI.SimpleDialogs")
 
 
 class BaseUiDialog(QDialog):
@@ -122,6 +125,11 @@ class AboutDialog(BaseUiDialog):
             lbl_copyright.setText(APP_COPYRIGHT)
             lbl_copyright.setAccessibleName("Copyright and Authorship")
             lbl_copyright.setAccessibleDescription("Author attributions and license ownership.")
+
+        btn_close = self.ui.findChild(QPushButton, "btnClose")
+        if btn_close:
+            btn_close.setAccessibleName("Close About Dialog Button")
+            btn_close.setAccessibleDescription("Dismisses the About window.")
 
 def get_logical_filename(url):
     import urllib.parse
@@ -232,7 +240,7 @@ class ImageDownloadWorker(QObject):
                             f.write(r.content)
                         self.image_ready.emit()
                 except OSError as e:
-                    print(f"DEBUG: Download failed for {url}: {e}")
+                    logger.debug(f"README badge download failed for {url}: {e}")
 
 class ReadmeDialog(BaseUiDialog):
     def __init__(self, theme="light", parent=None):

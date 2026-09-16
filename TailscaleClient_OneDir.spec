@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+import sys
 
 
 block_cipher = None
@@ -7,7 +8,12 @@ block_cipher = None
 added_files = [
     ('pygui', 'pygui'),
     ('assets', 'assets'),
-    ('Docs', 'Docs'),
+    # Only the localized READMEs the viewer renders: internal documents
+    # (audit log, SBOM, security advisories) stay out of shipped builds.
+    ('Docs/README.md', 'Docs'),
+    ('Docs/README_ar.md', 'Docs'),
+    ('Docs/README_es.md', 'Docs'),
+    ('Docs/README_fr.md', 'Docs'),
     ('LICENSE', '.'),
     ('locales', 'locales'),
 ]
@@ -65,7 +71,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='assets/icon.ico' if os.path.exists('assets/icon.ico') else None,
-    version='version_info.txt',
+    version='version_info.txt' if sys.platform == 'win32' else None,
 )
 coll = COLLECT(
     exe,
@@ -75,5 +81,7 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='TailscaleClientPro_OneDir',
+    # The flavour folder IS the payload folder: a bare run lands in
+    # dist/OneDir/ instead of nesting dist/OneDir/TailscaleClientPro_OneDir/.
+    name='OneDir',
 )

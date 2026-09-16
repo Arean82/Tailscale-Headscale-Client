@@ -6,12 +6,15 @@ import logging
 import os
 import sqlite3
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from .models import AppSettings, Profile
 
-CURRENT_DB_VERSION = 1
+CURRENT_DB_VERSION = 2
+
+#: Traffic rows older than this are discarded at startup (dashboard shows 10 days).
+TRAFFIC_RETENTION_DAYS = 90
 
 
 class DatabaseManager:
@@ -26,15 +29,41 @@ class DatabaseManager:
         self._setup_logging()
         self._create_table()
         self._run_migrations()
+        # Retention runs once per launch: bounded work, and the dashboard only
+        # ever reads the most recent days.
+        self.prune_old_traffic()
 
     def _setup_logging(self):
         log_file = os.path.join(self.log_dir, "db_log.txt")
         self.logger = logging.getLogger("DatabaseManager")
-        if not self.logger.handlers:
-            handler = logging.FileHandler(log_file)
-            handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.INFO)
+
+        # Rebind the handler to *this* instance's directory. Keeping a stale
+        # handler would leave its file locked (Windows) and send a second
+        # instance's records into the previous directory's log.
+        for existing in list(self.logger.handlers):
+            self.logger.removeHandler(existing)
+            try:
+                existing.close()
+            except Exception as e:  # noqa: BLE001 - a handler that cannot close must not break startup
+                self.logger.debug(f"Could not close previous database log handler: {e}")
+
+        handler = logging.FileHandler(log_file)
+        handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(handler)
+        self._log_handler = handler
+
+    def close(self):
+        """Releases the database log file handle.
+
+        Windows refuses to delete a file with an open handle, so this matters
+        when the data directory is removed (uninstall, portable use, tests).
+        """
+        handler = getattr(self, "_log_handler", None)
+        if handler is not None:
+            self.logger.removeHandler(handler)
+            handler.close()
+            self._log_handler = None
 
     def _create_connection(self):
         try:
@@ -169,8 +198,59 @@ class DatabaseManager:
                 cursor.execute("PRAGMA user_version = 1;")
                 conn.commit()
                 self.logger.info("Database schema migration to user_version 1 completed.")
+
+            if current_version < 2:
+                # Migration 2: index the columns the dashboard filters on. Without
+                # it every daily aggregation scans the whole traffic table.
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_traffic_profile_date ON traffic_data(profile, date);"
+                )
+                cursor.execute("PRAGMA user_version = 2;")
+                conn.commit()
+                self.logger.info("Database schema migration to user_version 2 completed.")
         except sqlite3.Error as e:
             self.logger.error(f"Migration failed: {e}")
+        finally:
+            conn.close()
+
+    def prune_old_traffic(self, retention_days: int = TRAFFIC_RETENTION_DAYS) -> int:
+        """Deletes traffic rows older than the retention window.
+
+        traffic_data grows by one row per profile per flush forever, so without
+        pruning the database would expand indefinitely. Returns the row count
+        removed; compacts the file when anything was deleted.
+        """
+        conn = self._create_connection()
+        if not conn:
+            return 0
+        removed = 0
+        try:
+            cutoff = (datetime.now().astimezone() - timedelta(days=retention_days)).strftime("%Y-%m-%d")
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM traffic_data WHERE date < ?;", (cutoff,))
+            removed = cursor.rowcount or 0
+            conn.commit()
+        except sqlite3.Error as e:
+            self.logger.error(f"Error pruning old traffic rows: {e}")
+            return 0
+        finally:
+            conn.close()
+
+        if removed:
+            self.logger.info(f"Pruned {removed} traffic row(s) older than {retention_days} days.")
+            self._compact()
+        return removed
+
+    def _compact(self):
+        """VACUUM after deletions so the file size actually shrinks."""
+        conn = self._create_connection()
+        if not conn:
+            return
+        try:
+            conn.execute("VACUUM;")
+        except sqlite3.Error as e:
+            # VACUUM needs free disk space; a failure must not break startup
+            self.logger.debug(f"VACUUM skipped: {e}")
         finally:
             conn.close()
 

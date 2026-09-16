@@ -10,8 +10,32 @@ from PySide6.QtWidgets import QApplication
 from src.core.manager import Manager
 from src.core.tailscale import TailscaleManager
 from src.ui.main_window import MainWindow
+from src.utils.crash_handler import install as install_crash_handlers
 from src.utils.dns_fallback import run_cli_if_requested
 from src.utils.logger import manage_sys_streams, setup_logger
+
+#: Named mutex the installer detects through AppMutex (see TailscaleClient_Installer.iss)
+SINGLE_INSTANCE_MUTEX = "Arean82.TailscaleClientPro"
+
+_mutex_handle = None
+
+
+def acquire_installer_mutex():
+    """Creates the named mutex Inno Setup's AppMutex looks for.
+
+    Windows-only and best-effort: single-instance enforcement itself is handled
+    by the QLockFile below; this exists so the installer can refuse to replace
+    files while the application is running.
+    """
+    global _mutex_handle  # noqa: PLW0603 - the handle must outlive the call or Windows releases it
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        _mutex_handle = ctypes.windll.kernel32.CreateMutexW(None, False, SINGLE_INSTANCE_MUTEX)
+    except (AttributeError, OSError) as e:
+        logger.debug(f"Could not create the installer-detection mutex: {e}")
+
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
@@ -23,6 +47,13 @@ if __name__ == "__main__":
     if fallback_exit_code is not None:
         sys.exit(fallback_exit_code)
 
+    # Packaging smoke test: validates bundled data and a real DB round-trip
+    # without opening the GUI (used by CI against the frozen executable).
+    if "--self-test" in sys.argv:
+        from src.utils.self_check import main as run_self_test
+
+        sys.exit(run_self_test())
+
     # 1. Setup App Data & Logger
     if sys.platform == "win32":
         app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
@@ -32,7 +63,12 @@ if __name__ == "__main__":
     os.makedirs(app_dir, exist_ok=True)
     log_file = os.path.join(app_dir, "app.log")
     logger = setup_logger("TailscaleClient", log_file)
-    
+
+    # Failures must reach app.log: windowed builds have no console, so an
+    # unhandled exception would otherwise be written nowhere.
+    install_crash_handlers()
+    acquire_installer_mutex()
+
     logger.info("Application starting up (PySide6 Edition)...")
 
     # Copy icon to persistent APPDATA directory for 100% reliable loading (especially on Windows Startup)

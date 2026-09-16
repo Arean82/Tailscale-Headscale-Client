@@ -112,9 +112,40 @@ class _BlockingWorker(QObject):
 
     def __init__(self):
         super().__init__()
+        self._current_proc = None
         self._request_status.connect(self.run_status)
         self._request_cli.connect(self.run_cli)
         self._request_prelogout.connect(self.run_prelogout)
+
+    def _run(self, argv, timeout, text=True):
+        """Runs a CLI command, recording the child so shutdown can cancel it.
+
+        Returns (returncode, stdout, stderr). Popen is used instead of
+        subprocess.run so that cleanup() can kill an in-flight child: otherwise
+        terminating this thread mid-call would leave the tailscale process
+        running with nothing tracking it.
+        """
+        proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                text=text, shell=False, **_popen_kwargs())
+        self._current_proc = proc
+        try:
+            out, err = proc.communicate(timeout=timeout)
+            return proc.returncode, out or "", err or ""
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
+            raise
+        finally:
+            self._current_proc = None
+
+    def cancel_current(self):
+        """Kills the in-flight CLI child, if any (called from the GUI thread)."""
+        proc = self._current_proc
+        if proc is not None and proc.poll() is None:
+            try:
+                proc.kill()
+            except OSError as e:
+                logger.debug(f"Could not kill in-flight CLI child: {e}")
 
     @Slot(bool)
     def run_status(self, use_local_api: bool) -> None:
@@ -130,18 +161,17 @@ class _BlockingWorker(QObject):
                 logger.debug(f"Local API status query failed, falling back to CLI: {e}")
 
         try:
-            result = subprocess.run(
-                [get_tailscale_path(), "status", "--json"],
-                capture_output=True, text=True, timeout=6, check=False, shell=False, **_popen_kwargs()
-            )
+            code, stdout, stderr = self._run([get_tailscale_path(), "status", "--json"], timeout=6)
+            if code != 0:
+                logger.debug(f"status query exited {code}: {stderr.strip()[:120]}")
             try:
-                data = json.loads(result.stdout)
+                data = json.loads(stdout)
             except (ValueError, TypeError):
                 data = {}
             if data:
                 connected, text, ips = status_from_json(data)
             else:
-                connected, text = status_from_text(result.stdout)
+                connected, text = status_from_text(stdout)
                 ips = []
             payload = {"connected": connected, "text": text, "ips": ips, "raw_data": data}
         except subprocess.TimeoutExpired:
@@ -154,11 +184,8 @@ class _BlockingWorker(QObject):
     @Slot(str, list, int)
     def run_cli(self, op_id: str, args: list, timeout: int) -> None:
         try:
-            result = subprocess.run(
-                [get_tailscale_path()] + list(args),
-                capture_output=True, text=True, timeout=timeout, check=False, shell=False, **_popen_kwargs()
-            )
-            self.cli_done.emit(op_id, result.returncode, result.stdout, result.stderr)
+            code, stdout, stderr = self._run([get_tailscale_path()] + list(args), timeout=timeout)
+            self.cli_done.emit(op_id, code, stdout, stderr)
         except subprocess.TimeoutExpired:
             self.cli_done.emit(op_id, -1, "", f"Command timed out after {timeout}s")
         except (subprocess.SubprocessError, OSError) as e:
@@ -171,11 +198,8 @@ class _BlockingWorker(QObject):
         the GUI never blocks on it."""
         ok = False
         try:
-            result = subprocess.run(
-                [get_tailscale_path(), "logout"],
-                capture_output=True, timeout=5, check=False, shell=False, **_popen_kwargs()
-            )
-            ok = result.returncode == 0
+            code, _, _ = self._run([get_tailscale_path(), "logout"], timeout=5)
+            ok = code == 0
         except (subprocess.SubprocessError, OSError) as e:
             logger.warning(f"Pre-connect logout failed (proceeding anyway): {e}")
         self.prelogout_done.emit(ok, connect_args)
@@ -246,6 +270,9 @@ class TailscaleExecutor(QObject):
     def cleanup(self):
         """Full shutdown: stop the streaming process and retire the worker thread."""
         self.cancel()
+        # Kill any in-flight CLI child first, so the worker returns promptly and
+        # no tailscale process is left orphaned if the thread has to be stopped.
+        self._worker.cancel_current()
         self._thread.quit()
         if not self._thread.wait(5000):
             # A bounded blocking call (worst case: netcheck, 30s) is still in

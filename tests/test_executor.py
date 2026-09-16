@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -76,12 +77,26 @@ class StubCoordinator:
         self.manager = SimpleNamespace(settings=SimpleNamespace(sso_timeout=120))
 
 
+_created_managers = []
+
+
 def make_manager(executor=None):
     from src.core.tailscale import TailscaleManager
     tmp = tempfile.mkdtemp()
     mgr = TailscaleManager(cache_dir=tmp, executor=executor)
     mgr._tmp = tmp
+    _created_managers.append(mgr)
     return mgr
+
+
+def tearDownModule():
+    """connect_args() stages the auth key in a temp file; drop any that a test
+    left staged (and their temp dirs) so the suite does not litter %TEMP%."""
+    for mgr in _created_managers:
+        mgr._clear_auth_key_file()
+        if getattr(mgr, "_tmp", None):
+            shutil.rmtree(mgr._tmp, ignore_errors=True)
+    _created_managers.clear()
 
 
 class TestSingleRetryPolicy(unittest.TestCase):

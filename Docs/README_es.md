@@ -42,8 +42,8 @@ graph TB
     subgraph Core ["🧠 Core Control & State Coordination"]
         SC["StateCoordinator (Deterministic Gatekeeper)"]:::coordNode
         SM["AppState FSM Machine"]:::coordNode
-        TSM["TailscaleProcess (Execution Engine)"]:::coordNode
-        WM["ProcessWatchdog (psutil Reaper)"]:::coordNode
+        TSM["TailscaleExecutor (Async Execution Seam)"]:::coordNode
+        WM["ConnectionStateMachine (State & Retry Owner)"]:::coordNode
     end
 
     subgraph Daemon ["⚙️ Host OS Daemon Interface"]
@@ -64,8 +64,8 @@ graph TB
     SC -->|State Guard| SM
     SC -->|Array Execution| TSM
     TSM -->|IPC Commands| CLI
-    TSM -->|Local Named Pipe| TD
-    TSM -->|Socket Stream| API
+    TSM -->|CLI subprocess (streaming)| TD
+    API -.->|"opt-in: Experimental Local API"| TD
     WM -->|Process Health| TD
     SC -->|Persist Config & Topology| SQL
     TSM -->|Retrieve Keys| KR
@@ -160,9 +160,9 @@ El cliente proporciona navegación completa sin restricciones mediante teclado, 
 
 ## 🔒 Arquitectura de Seguridad e Ingeniería de Confianza
 
-1. **Depósito Seguro Sin Texto Plano:** Las claves de máquina, tokens y direcciones sensibles se almacenan en el llavero seguro nativo del sistema operativo mediante `keyring` (Windows Credential Locker, macOS Keychain, Linux Secret Service).
+1. **Depósito de Credenciales Sin Texto Plano Persistente:** Las claves de máquina y los tokens se almacenan en el llavero nativo del sistema operativo mediante `keyring` (Windows Credential Locker, macOS Keychain, Linux Secret Service). Durante la conexión la clave se deposita además en un archivo temporal con permisos restringidos (0600) para que nunca aparezca en la línea de comandos, y se elimina en cuanto el comando termina. La topología no sensible (URL del servidor, rutas, etiquetas) reside en la base de datos SQLite local.
 2. **Defensa contra Inyecciones:** Todas las invocaciones CLI se ejecutan mediante vectores de argumentos estrictos (`subprocess.Popen([cmd, arg1, arg2], shell=False)`), neutralizando cualquier inyección en el shell.
-3. **Supervisor Automático (Watchdog):** Monitoreo continuo vía `psutil` que cierra de manera limpia procesos CLI huérfanos al salir o cambiar de perfil, previniendo conflictos de puertos.
+3. **Propiedad Acotada de Procesos:** El ejecutor rastrea el proceso CLI que inicia, lo termina durante el cierre y después retira su hilo trabajador, de modo que ningún proceso `tailscale` sobrevive a la aplicación ni bloquea un cambio de perfil.
 4. **Retroceso Exponencial Resiliente:** La reconexión automática utiliza pausas progresivas (`3s` -> `6s` -> `12s`) para proteger los servidores contra saturación de tráfico.
 5. **Compatibilidad SSL Autofirmado:** Los despliegues de laboratorio con servidores Headscale autohospedados admiten el modo de prueba segura mediante `--insecure-skip-tls-verify=true`.
 

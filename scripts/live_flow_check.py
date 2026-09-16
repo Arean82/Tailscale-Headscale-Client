@@ -19,6 +19,7 @@ Exit codes: 0 = all checks passed, 1 = one or more checks failed.
 """
 
 import argparse
+import contextlib
 import os
 import shutil
 import sys
@@ -103,6 +104,14 @@ def main():
     manager.diagnostic_ready.connect(lambda op, text: diag_events.append((op, text)))
     manager.executor.finished.connect(lambda code, st: finished_events.append((code, st)))
 
+    # A test harness must not hijack the browser: report auth URLs instead of
+    # launching them (the app itself opens them, and connect() needs the key).
+    auth_urls = []
+    with contextlib.suppress(RuntimeError, TypeError):
+        manager.executor.sso_url_found.disconnect()
+    manager.executor.sso_url_found.connect(lambda url: (auth_urls.append(url),
+                                                        print(f"   auth URL offered by the daemon: {url}", flush=True)))
+
     failures = 0
 
     # ---- Check 1: async status via executor (read-only) ----
@@ -167,6 +176,9 @@ def main():
     connected = wait_for(
         lambda: any(t == "Connected" for _, t in status_events), timeout_ms=30000, desc="'Connected' status")
     cli = cli_state()
+    if not connected and auth_urls:
+        print("   NOTE: the daemon is waiting for interactive authentication at the URL above.\n"
+              "   Set TS_TEST_AUTH_KEY (and --login-server for Headscale) to complete the connect phase unattended.")
     failures += 0 if check("app reached Connected", connected) else 1
     failures += 0 if check("CLI BackendState=Running after connect", cli == "Running", f"cli={cli!r}") else 1
 

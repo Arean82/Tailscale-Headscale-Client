@@ -1,6 +1,7 @@
+import logging
 import os
 
-from PySide6.QtCore import QFile, Qt
+from PySide6.QtCore import QFile, Qt, Signal
 from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
@@ -12,12 +13,39 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ...utils.logger import SignalLogHandler
+
+LEVEL_COLORS = {
+    "error": "#F44336",
+    "warning": "#FFC107",
+    "debug": "#9C27B0",
+    "info": "#4CAF50",
+}
+
+
+def classify_line(line):
+    """Classifies a log line for colouring and filtering. Shared by the file
+    reader and the live stream so both behave identically."""
+    upper = line.upper()
+    if "ERROR" in upper or "CRITICAL" in upper or "EXCEPTION" in upper:
+        return "error"
+    if "WARNING" in upper or "WARN" in upper:
+        return "warning"
+    if "DEBUG" in upper:
+        return "debug"
+    return "info"
+
 
 class LogViewerDialog(QDialog):
+    # Records arriving from the logging system (possibly from worker threads);
+    # Qt queues the emission to this dialog's thread automatically.
+    record_received = Signal(str)
+
     def __init__(self, log_path, display_name, parent=None):
         super().__init__(parent)
         self.log_file = log_path
         self.display_name = display_name
+        self._live_handler = None
         
         self.setWindowTitle(f"Log: {display_name}")
         self.setFixedSize(900, 650)
@@ -82,6 +110,61 @@ class LogViewerDialog(QDialog):
         if self.btnDebug: self.btnDebug.toggled.connect(self._read_content)
 
         self._read_content()
+        self._attach_live_tail()
+
+    # ------------------------------------------------------------------
+    # Live tailing
+    # ------------------------------------------------------------------
+
+    def _attach_live_tail(self):
+        """Stream new records as they are emitted.
+
+        Without this the viewer only reflects what was on disk when it opened
+        (or when Refresh was pressed). Handlers are attached to the app logger,
+        which is the parent of every application/UI logger, matching exactly
+        what the rotating file handler writes.
+        """
+        if self._live_handler is not None:
+            return
+        self.record_received.connect(self._append_live_line)
+        self._live_handler = SignalLogHandler(self.record_received.emit)
+        logging.getLogger("TailscaleClient").addHandler(self._live_handler)
+
+    def _detach_live_tail(self):
+        if self._live_handler is not None:
+            logging.getLogger("TailscaleClient").removeHandler(self._live_handler)
+            self._live_handler = None
+
+    def _level_enabled(self, level):
+        toggle = {
+            "error": self.btnError,
+            "warning": self.btnWarn,
+            "debug": self.btnDebug,
+            "info": self.btnInfo,
+        }[level]
+        return bool(toggle is None or toggle.isChecked())
+
+    def _format_for(self, level):
+        fmt = QTextCharFormat()
+        fmt.setForeground(QColor(LEVEL_COLORS[level]))
+        return fmt
+
+    def _append_live_line(self, line):
+        if not self.textBrowser:
+            return
+        level = classify_line(line)
+        if not self._level_enabled(level):
+            return
+
+        scrollbar = self.textBrowser.verticalScrollBar()
+        follow = scrollbar.value() >= scrollbar.maximum() - 4
+
+        cursor = self.textBrowser.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        cursor.insertText(line + "\n", self._format_for(level))
+        if follow:
+            self.textBrowser.moveCursor(QTextCursor.End)
+            scrollbar.setValue(scrollbar.maximum())
 
     def _read_content(self):
         if not self.textBrowser: return
@@ -91,24 +174,7 @@ class LogViewerDialog(QDialog):
             self.textBrowser.setPlainText(f"[Log file not found: {self.log_file}]")
             return
 
-        # Colour formats
-        fmt_info    = QTextCharFormat()
-        fmt_info.setForeground(QColor("#4CAF50"))
-        fmt_warn    = QTextCharFormat()
-        fmt_warn.setForeground(QColor("#FFC107"))
-        fmt_error   = QTextCharFormat()
-        fmt_error.setForeground(QColor("#F44336"))
-        fmt_debug   = QTextCharFormat()
-        fmt_debug.setForeground(QColor("#9C27B0"))
-        fmt_default = QTextCharFormat()
-        fmt_default.setForeground(QColor("#ffffff"))
-
         cursor = self.textBrowser.textCursor()
-        
-        show_info  = self.btnInfo.isChecked() if self.btnInfo else True
-        show_warn  = self.btnWarn.isChecked() if self.btnWarn else True
-        show_error = self.btnError.isChecked() if self.btnError else True
-        show_debug = self.btnDebug.isChecked() if self.btnDebug else True
 
         try:
             with open(self.log_file, encoding="utf-8", errors="ignore") as f:
@@ -118,27 +184,10 @@ class LogViewerDialog(QDialog):
             
             cursor.beginEditBlock()
             for line in tail_lines:
-                    up = line.upper()
-                    
-                    is_error = "ERROR" in up or "CRITICAL" in up or "EXCEPTION" in up
-                    is_warn  = "WARNING" in up or "WARN" in up
-                    is_debug = "DEBUG" in up
-                    is_info  = "INFO" in up and not (is_error or is_warn or is_debug)
-                    
-                    if not (is_error or is_warn or is_debug or is_info):
-                        is_info = True
-
-                    if is_error and not show_error: continue
-                    if is_warn and not show_warn: continue
-                    if is_debug and not show_debug: continue
-                    if is_info and not show_info: continue
-
-                    if is_error: fmt = fmt_error
-                    elif is_warn: fmt = fmt_warn
-                    elif is_debug: fmt = fmt_debug
-                    else: fmt = fmt_info
-                    
-                    cursor.insertText(line, fmt)
+                    level = classify_line(line)
+                    if not self._level_enabled(level):
+                        continue
+                    cursor.insertText(line, self._format_for(level))
             cursor.endEditBlock()
         except OSError as e:
             cursor.insertText(f"Failed to read log: {e}")
@@ -199,6 +248,11 @@ class LogViewerDialog(QDialog):
                     break
                 parent = parent.parent() if hasattr(parent, "parent") else None
         super().showEvent(event)
+
+    def closeEvent(self, event):
+        """Stop streaming before the dialog goes away (no dangling handlers)."""
+        self._detach_live_tail()
+        super().closeEvent(event)
 
     def keyPressEvent(self, event):
         """Ensure Escape dismisses LogViewerDialog (EN 301 549 11.2.1.2 - No Keyboard Trap)."""

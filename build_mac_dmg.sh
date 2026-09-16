@@ -9,7 +9,7 @@ echo "=== Starting macOS Build Process ==="
 
 # 1. Clean previous builds
 echo "Cleaning up old build/dist files..."
-rm -rf build/ dist/*.app dist/*.dmg
+rm -rf build/ dist/OneDir/*.app dist/*.app dist/*.dmg
 
 # 2. Run PyInstaller
 echo "Compiling application with PyInstaller..."
@@ -20,12 +20,17 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-if [ ! -d "dist/$APP_BUNDLE" ]; then
-    echo "ERROR: App bundle 'dist/$APP_BUNDLE' was not created!"
+APP_PATH="dist/OneDir/$APP_BUNDLE"
+if [ ! -d "$APP_PATH" ]; then
+    APP_PATH="dist/$APP_BUNDLE"
+fi
+if [ ! -d "$APP_PATH" ]; then
+    echo "ERROR: App bundle not found (expected dist/OneDir/$APP_BUNDLE from build.py,
+       or dist/$APP_BUNDLE from a bare PyInstaller run)."
     exit 1
 fi
 
-echo "Compilation successful! App bundle created at dist/$APP_BUNDLE"
+echo "Compilation successful! App bundle created at $APP_PATH"
 
 # 3. Create DMG Installer with Applications Shortcut
 echo "Packaging App bundle into a .dmg installer with Applications shortcut..."
@@ -36,7 +41,7 @@ DMG_TEMP="build/dmg_temp"
 mkdir -p "$DMG_TEMP"
 
 # Copy the app bundle to the temp directory
-cp -R "dist/$APP_BUNDLE" "$DMG_TEMP/"
+cp -R "$APP_PATH" "$DMG_TEMP/"
 
 # Create a symbolic link to /Applications for standard drag-and-drop installation
 ln -s /Applications "$DMG_TEMP/Applications"

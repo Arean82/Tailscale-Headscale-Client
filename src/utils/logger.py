@@ -6,6 +6,31 @@ from logging.handlers import RotatingFileHandler
 # This will be set during initialization in main.py
 APP_DIR = None
 
+# Single source for the on-disk line layout, shared by the rotating file handler
+# and the live log stream so both render identically.
+LOG_LINE_FORMAT = '%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+
+
+class SignalLogHandler(logging.Handler):
+    """Forwards formatted records to a sink callback (e.g. a Qt signal emitter).
+
+    Used by the Log Viewer for live tailing; kept Qt-free so it can be unit
+    tested. A failing sink must never break logging, so emit() defers to
+    handleError() instead of raising.
+    """
+
+    def __init__(self, sink, level=logging.DEBUG):
+        super().__init__(level)
+        self._sink = sink
+        self.setFormatter(logging.Formatter(LOG_LINE_FORMAT))
+
+    def emit(self, record):
+        try:
+            self._sink(self.format(record))
+        except Exception:  # noqa: BLE001 - logging must never propagate to the caller
+            self.handleError(record)
+
+
 class ScrubbingFormatter(logging.Formatter):
     def format(self, record):
         orig_msg = record.msg
@@ -21,7 +46,7 @@ def setup_logger(name, log_file, level=logging.DEBUG):
     """Setup a standard logger with rotating file and console output."""
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
     
-    formatter = ScrubbingFormatter('%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
+    formatter = ScrubbingFormatter(LOG_LINE_FORMAT)
     
     # Standard handler
     handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)
@@ -106,17 +131,62 @@ def manage_sys_streams(enabled, logger=None):
         sys.stdout = _console_stream(sys.__stdout__)
         sys.stderr = _console_stream(sys.__stderr__)
 
-def get_profile_logger(profile_name, base_dir):
-    """Dynamically creates a logger for a specific profile connection."""
-    safe_name = "".join(c for c in profile_name if c.isalnum() or c in (' ', '.', '_', '-')).strip().replace(' ', '_')
-    log_dir = os.path.join(base_dir, "GlobalLogs")
-    log_file = os.path.join(log_dir, f"{safe_name}_connection.log")
-    return setup_logger(f"Profile_{safe_name}", log_file)
+# One rotating, scrubbing logger per profile: the connection log must not grow
+# without bound, and it must not persist credentials in clear text (the CLI can
+# echo key material in its output).
+_profile_loggers: dict[str, logging.Logger] = {}
+PROFILE_LOG_MAX_BYTES = 10 * 1024 * 1024
+PROFILE_LOG_BACKUPS = 3
+
 
 def get_global_log_dir(base_dir):
+    """Directory holding the per-profile connection logs."""
     path = os.path.join(base_dir, "GlobalLogs")
     os.makedirs(path, exist_ok=True)
     return path
+
+
+def _app_data_dir():
+    if sys.platform == "win32":
+        return os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
+    return os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
+
+
+def get_profile_logger(profile_name, base_dir=None):
+    """Returns the rotating, scrubbing logger that owns a profile's connection log."""
+    safe_name = "".join(c for c in profile_name if c.isalnum() or c in (' ', '.', '_', '-')).strip().replace(' ', '_')
+    if safe_name in _profile_loggers:
+        return _profile_loggers[safe_name]
+
+    logger = logging.getLogger(f"TailscaleClient.Profile.{safe_name}")
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False  # profile output stays out of app.log
+
+    if not logger.handlers:
+        log_dir = get_global_log_dir(base_dir or _app_data_dir())
+        handler = RotatingFileHandler(
+            os.path.join(log_dir, f"{safe_name}_connection.log"),
+            maxBytes=PROFILE_LOG_MAX_BYTES, backupCount=PROFILE_LOG_BACKUPS,
+        )
+        handler.setFormatter(ScrubbingFormatter(LOG_LINE_FORMAT))
+        logger.addHandler(handler)
+
+    _profile_loggers[safe_name] = logger
+    return logger
+
+
+def write_profile_log(profile_name, data, base_dir=None):
+    """Writes connection output to the profile's log (rotated and redacted)."""
+    if not profile_name or not data:
+        return
+    try:
+        get_profile_logger(profile_name, base_dir).info(data.rstrip())
+    except OSError:
+        # Logging failure should not disrupt main process execution
+        return
+
+# Global instance for easy access
+app_logger = None
 
 def refresh_all_loggers(base_dir, enabled):
     """Refreshes the main loggers and system streams."""
@@ -124,25 +194,6 @@ def refresh_all_loggers(base_dir, enabled):
     logger = setup_logger("TailscaleClient", log_file)
     manage_sys_streams(enabled, logger)
     return logger
-
-def write_profile_log(profile_name, data):
-    """Safely append connection standard output to a profile-specific log file."""
-    try:
-        safe_name = "".join(c for c in profile_name if c.isalnum() or c in (' ', '.', '_', '-')).strip().replace(' ', '_')
-        if sys.platform == "win32":
-            app_dir = os.path.join(os.environ.get('APPDATA', ''), "Tailscale_VPN_Client")
-        else:
-            app_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "Tailscale_VPN_Client")
-        
-        log_dir = os.path.join(app_dir, "GlobalLogs")
-        os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, f"{safe_name}_connection.log")
-        
-        with open(log_file, "a", encoding="utf-8") as f:
-            f.write(data + "\n")
-    except OSError:
-        # Logging failure should not disrupt main process execution
-        return
 
 # Global instance for easy access
 app_logger = None

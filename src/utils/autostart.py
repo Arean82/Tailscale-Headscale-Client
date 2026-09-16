@@ -1,5 +1,8 @@
+import logging
 import os
 import sys
+
+logger = logging.getLogger("TailscaleClient.Autostart")
 
 
 def set_autostart(enabled: bool):
@@ -89,9 +92,40 @@ Comment=Start Tailscale Client Pro at startup
                     f.write(plist_content)
             except OSError:
                 return
+            # Writing the plist alone only takes effect at the next login; load
+            # the agent now so the toggle is immediate (and reload after edits).
+            _launchctl("unload", plist_file)
+            _launchctl("load", plist_file, "-w")
         else:
             if os.path.exists(plist_file):
                 try:
                     os.remove(plist_file)
                 except OSError:
                     return
+            # Stop the already-loaded agent too, otherwise disabling the setting
+            # would leave it running until the next login.
+            _launchctl("unload", plist_file, "-w")
+
+
+def _launchctl(action, plist_file, *extra):
+    """Best-effort launchctl call; failures are logged, never raised."""
+    import subprocess
+
+    attempts = [["launchctl", action] + list(extra) + [plist_file]]  # legacy syntax, still widely supported
+    if hasattr(os, "getuid"):  # POSIX only: the modern syntax needs the gui/<uid> domain
+        modern_action = "bootstrap" if action == "load" else "bootout"
+        attempts.append(["launchctl", modern_action, f"gui/{os.getuid()}", plist_file])
+
+    for index, command in enumerate(attempts):
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, timeout=10, check=False, shell=False)
+        except (OSError, subprocess.SubprocessError) as e:
+            logger.debug(f"launchctl {action} failed: {e}")
+            continue
+        if result.returncode == 0:
+            return True
+        # Only fall through to the modern syntax when the legacy form is rejected
+        if index == 0:
+            logger.debug(f"launchctl {action} (legacy) returned {result.returncode}: {result.stderr.strip()[:120]}")
+    logger.debug(f"launchctl {action} did not succeed for {plist_file}")
+    return False
