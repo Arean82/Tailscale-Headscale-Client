@@ -1,8 +1,11 @@
+import logging
 import os
 
 from PySide6.QtCore import QFile, Qt
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QDialog, QLineEdit, QMessageBox, QPushButton, QVBoxLayout
+
+logger = logging.getLogger("TailscaleClient.UI.ProfileNameDialog")
 
 
 class ProfileNameDialog(QDialog):
@@ -15,7 +18,7 @@ class ProfileNameDialog(QDialog):
         ui_file = QFile(ui_path)
         
         if not ui_file.exists():
-            print(f"Error: Could not find {ui_path}")
+            logger.error(f"Profile name dialog UI file not found: {ui_path}")
             return
             
         ui_file.open(QFile.ReadOnly)

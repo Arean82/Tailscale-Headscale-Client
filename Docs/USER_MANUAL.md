@@ -39,7 +39,7 @@ flowchart TD
 
     subgraph Top_Bar ["1️⃣ Profile & Global Control Bar"]
         P_SEL["Active Profile Tabs<br><i>[Office Headscale | Home Tailnet]</i>"]:::top
-        BTN_CONN["Primary State Action<br><b>[🟢 Connect] / [🔴 Disconnect]</b>"]:::action
+        BTN_CONN["Primary State Action<br><b>[🟢 Connect] / [🔴 Logout]</b>"]:::action
     end
 
     subgraph Status_Panel ["2️⃣ Connection & Node Telemetry Card"]
@@ -73,7 +73,7 @@ Connecting takes just one click:
    - Your browser opens to `login.tailscale.com`.
    - Log in using your Google, Microsoft, GitHub, or Apple account.
    - You will see *"Authentication successful! You can close this tab."*
-4. The client button turns into **`Disconnect`** and the status badge turns **`Connected (Green)`**.
+4. The client button turns into **`Logout`** and the status badge turns **`🟢 Connected`**.
 5. Your computer is now securely linked to your personal mesh network!
 
 ---
@@ -95,7 +95,7 @@ sequenceDiagram
     User->>App: Enters Name: "Corporate Headscale", URL: "https://hs.corp.net"
     App->>SQLite: Saves profile network topology & feature flags
     App->>Keyring: Stores auth key into OS vault under auth_key_<UUIDv4>
-    Keyring-->>App: Credential secured with zero plaintext files
+    Keyring-->>App: Credential secured (staged 0600 temp file only during connect)
     User->>App: Selects "Corporate Headscale" Tab
     App->>Tailscale: Re-authenticates daemon to corporate coordination server
     Tailscale-->>App: New network peer list loaded
@@ -110,10 +110,11 @@ sequenceDiagram
      * Leave default (`https://controlplane.tailscale.com`) for official Tailscale SaaS.
      * Enter your sovereign Headscale server URL (e.g. `https://headscale.mycompany.com`).
    * **Authentication Method:**
-     * **Pre-Auth Key:** Paste your authentication token (e.g. `tskey-auth-...`). The client immediately delegates it to the native OS Credential Vault (`Windows Credential Manager`, `macOS Keychain`, `Linux SecretService`) indexed by an immutable UUIDv4. Zero plaintext secrets touch your disk.
+     * **Pre-Auth Key:** Paste your authentication token (e.g. `tskey-auth-...`). The client stores it in the native OS Credential Vault (`Windows Credential Manager`, `macOS Keychain`, `Linux SecretService`) indexed by an immutable UUIDv4. While a connection is being established the key is briefly staged in a restricted (0600) temporary file so it never appears in the process command line, and that file is removed as soon as the command finishes — the keyring remains the only persistent store.
      * **Web Browser SSO:** Check "Use SSO" for interactive single sign-on browser authorization.
 4. Click **`Save`**.
 5. **Switching Profiles**: Simply click the profile's tab in the top tab bar. The client handles the background handover cleanly without leaking credentials!
+6. **Renaming a Profile**: Use **`Profile`** $	o$ **`Rename Current Profile...`**. The profile keeps its stored credentials (they are keyed by an internal UUID, not by name).
 
 ---
 
@@ -138,14 +139,14 @@ flowchart LR
 ```
 
 #### How to Enable an Exit Node:
-1. Look at the **`Exit Node`** selector dropdown on the main dashboard.
-2. Click the dropdown to see all machines in your network that offer exit routing.
+1. Open **`Advanced`** $	o$ **`Advanced Options...`** for the active profile (this is where routing controls live).
+2. Click the **`Exit Node`** dropdown to see every machine in your network that offers exit routing.
 3. Select your chosen node (e.g., `home-pfsense` or `aws-us-east`).
-4. **Local LAN Access Checkbox:**
-   * ✅ **Checked:** You can still print to local Wi-Fi printers or reach your local smart TV.
-   * ⬜ **Unchecked:** Maximum privacy; absolutely all traffic is routed through the remote node.
-5. Click **`Apply Exit Node`**. You are now browsing securely!
-6. To turn it off, select **`None (Direct)`** and click Apply.
+4. **Local LAN access:**
+   * ✅ **`Allow LAN (--exit-node-allow-lan-access)` checked:** You can still print to local Wi-Fi printers or reach your local smart TV.
+   * ⬜ **Unchecked:** Maximum privacy; all traffic is routed through the remote node.
+5. Click **`Save`**, then use **`Connect`** (or `Logout` followed by `Connect` if a session is already up). You are now browsing securely!
+6. To turn it off, select **`None (Direct Internet)`** and save — either in the same dialog or from the tray menu when *Enable Quick Exit-Node Switcher* is enabled in Settings.
 
 ---
 
@@ -162,6 +163,12 @@ Click the **`Settings`** menu item under **File** $\to$ **Settings** or press <k
 | **Allow Insecure SSL** | Permits connecting to Headscale servers using self-signed or internal CA certificates. | Homelab / Testing |
 | **Global DNS Fallback** | Enables fallback DNS resolution if the Tailnet MagicDNS cannot be reached. | Optional |
 | **Check Screen Reader on Startup** | Validates speech synthesis and assistive technology tools on application launch. | For AT Users |
+| **Enable Experimental Local API** | Talks to `tailscaled` over its local pipe/socket instead of spawning the CLI for status polls. **Off by default**; on Windows the pipe is administrator-only, so a standard user gets a CLI fallback. | Leave off unless benchmarking |
+| **Max Profile Limit** | How many profile tabs you may create. | 5 (or as needed) |
+| **Startup Daemon Wait (seconds)** | How long the client waits for `tailscaled` before offering to start it. | 10 |
+| **SSO Login Timeout (seconds)** | How long an interactive browser sign-in may take before it is abandoned. | 120 |
+| **Display Language (Requires Restart)** | Interface language: English, Arabic, French or Spanish. | Your preference |
+| **Quick Exit-Node Switcher (in the tray)** | Adds an *Exit Node Routing* submenu to the tray icon. | Optional |
 
 ---
 
@@ -170,8 +177,8 @@ Click the **`Settings`** menu item under **File** $\to$ **Settings** or press <k
 If you ever encounter an issue or IT support asks for logs:
 1. Click **`Logs`** $\to$ **`Global Logs`** in the menu bar.
 2. Select any active profile or engine log to open the dedicated **Log Viewer**.
-3. Use the search bar at the top to filter for errors or warnings (e.g. `derp`, `handshake`, `expired`).
-4. Click **`Copy All`** or **`Export Log...`** to save a timestamped diagnostic file for your support team.
+3. Use the search bar at the top to find errors or warnings (e.g. `derp`, `handshake`, `expired`), and the level buttons (`INFO` / `WARN` / `ERROR` / `DEBUG`) to show or hide severity classes.
+4. Click **`Export`** to bundle every log in the folder into a single ZIP archive for your support team. The viewer also live-tails: new entries appear as they are written while the window is open.
 
 ---
 
@@ -272,7 +279,7 @@ Pre-installed into macOS. Toggle anytime with <kbd>Cmd</kbd> + <kbd>F5</kbd> (or
 #### Q: Does Tailscale slow down my internet connection?
 **A:** No! For normal websites (Google, YouTube), your computer connects directly via your standard ISP. Only traffic destined for your private mesh nodes (or when using an Exit Node) goes through the VPN.
 
-#### Q: Why does my status say "Needs Machine Registration"?
+#### Q: Why does my status say "Pending Admin Approval"?
 **A:** When connecting to a self-hosted Headscale server for the first time, your server administrator must approve your machine. Share the machine key shown on your screen with your administrator, who will run `headscale nodes register`.
 
 #### Q: Can I run this client alongside other VPNs?

@@ -100,7 +100,7 @@ The codebase is split into modular layers ensuring clear separation of presentat
 
 ```
 Tailscale-Headscale-Client/
-├── main.py                     # Entry point: elevated CLI routing, high-DPI bootstrapping, single-instance mutex
+├── main.py                     # Entry point: --dns-fallback & --self-test routing, crash handlers, installer mutex, QLockFile
 ├── src/                        # Platform-Agnostic Core & Presentation Engine
 │   ├── core/
 │   │   ├── executor.py         # TailscaleExecutor: unified async seam, QProcess & QThread worker with timeouts
@@ -116,14 +116,19 @@ Tailscale-Headscale-Client/
 │   │   └── components/
 │   │       ├── peer_dialog.py  # Peer table, packet stats, Ping & Netcheck via TailscaleExecutor
 │   │       ├── node_dialog.py  # Exit node picker, advertised routes configuration
-│   │       └── simple_dialogs.py # Modal dialogs (Settings, License, About, Log Viewer)
+│   │       ├── diagnostics_dialog.py # Netcheck runner & accessibility self-check
+│   │       ├── settings_dialog.py    # Preferences (incl. the Experimental Local API toggle)
+│   │       ├── log_viewer_dlg.py     # Live-tailing log viewer with level filters and ZIP export
+│   │       └── simple_dialogs.py     # Modal dialogs (About, License, Readme, Traffic)
 │   └── utils/
 │       ├── crypto.py           # OS Keyring SecretStore adapter (with test mock backend)
+│       ├── crash_handler.py    # sys/threading excepthook + Qt message routing into app.log
+│       ├── self_check.py       # --self-test bundle/database validation used by CI packaging
 │       ├── dns_fallback.py     # Emergency hosts-file pinning with elevated UAC CLI routing
-│       ├── local_api.py        # Tailscale daemon REST LocalAPI client with timeouts
-│       ├── logger.py           # Structured logging & NullWriter console fallback
+│       ├── local_api.py        # Tailscale daemon LocalAPI client (opt-in, timeouts, CLI fallback)
+│       ├── logger.py           # Structured logging, credential scrubbing, NullWriter fallback
 │       ├── a11y_checker.py     # Screen reader assistive technology detector
-│       └── autostart.py        # Platform-specific OS autostart helpers (Registry, launchd)
+│       └── autostart.py        # Platform-specific OS autostart helpers (Registry, launchd w/ launchctl, .desktop)
 └── Docs/                       # System Architecture, Security, and Compliance Specifications
 ```
 
@@ -222,9 +227,9 @@ The client implements full compliance with **EN 301 549 (Software Clause 11)** a
 
 | Platform | Process Detection | Sockets / Paths | Keyring Backend |
 | :--- | :--- | :--- | :--- |
-| **Windows** | `tailscaled.exe` via Windows Service Control Manager | Named pipe `\\.\pipe\ProtectedPrefix\Administrators\Tailscale\tailscaled` | Microsoft Windows Credential Manager (`DPAPI`) |
-| **Linux** | `systemctl is-active tailscaled` | `/var/run/tailscale/tailscaled.sock` | FreeDesktop SecretService / GNOME Keyring / KWallet |
-| **macOS** | CLI path resolution | `/var/run/tailscaled.socket` | Apple Keychain Services |
+| **Windows** | `tailscale status --json` probe (start via `net start Tailscale`) | Named pipe `\\.\pipe\ProtectedPrefix\Administrators\Tailscale\tailscaled` | Microsoft Windows Credential Manager (`DPAPI`) |
+| **Linux** | `tailscale status --json` probe (start via `systemctl start tailscaled`) | `/var/run/tailscale/tailscaled.sock` | FreeDesktop SecretService / GNOME Keyring / KWallet |
+| **macOS** | `tailscale status --json` probe (start via `launchctl start com.tailscale.tailscaled`) | `/var/run/tailscale/tailscaled.sock` (App Store build: `/Library/Containers/io.tailscale.ipn.macos/Data/tailscaled.sock`) | Apple Keychain Services |
 
 ---
 
@@ -249,7 +254,7 @@ flowchart TD
 
     Start["Initiate Daemon Action"]:::start
     Check{"Is Daemon Service Running?"}:::decision
-    TrySocket{"Can Connect to LocalAPI Socket?"}:::decision
+    TrySocket{"Experimental Local API enabled<br>and answering?"}:::decision
     UseSocket["Use Fast HTTP LocalAPI"]:::ok
     TryCLI{"Can Execute tailscale CLI?"}:::decision
     UseCLI["Use Standard Subprocess CLI"]:::ok
@@ -257,12 +262,12 @@ flowchart TD
     FailAlert["Display Actionable Error Alert<br>With Exact Remediation Steps"]:::err
 
     Start --> Check
-    Check -- Yes --> TrySocket
     Check -- No --> PromptStart
-    TrySocket -- Yes --> UseSocket
-    TrySocket -- No --> TryCLI
+    Check -- Yes --> TryCLI
     TryCLI -- Yes --> UseCLI
-    TryCLI -- No --> FailAlert
+    TryCLI -- No --> TrySocket
+    TrySocket -- "Opt-in enabled and answering" --> UseSocket
+    TrySocket -- "Skipped / unreachable" --> FailAlert
 ```
 
 ### 10.1 CodeQL & Automated SAST Quality Gates

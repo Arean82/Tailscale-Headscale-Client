@@ -25,6 +25,10 @@ __all__ = ["TailscaleExecutor", "TailscaleManager", "get_tailscale_path"]
 # Child of the app logger configured in main.py so records reach app.log
 logger = logging.getLogger("TailscaleClient.Tailscale")
 
+#: Prefix/lifetime of the staged pre-auth key file (see TailscaleManager._write_auth_key_file)
+AUTH_KEY_FILE_PREFIX = "tspk_"
+STALE_KEY_MAX_AGE_SECONDS = 3600
+
 
 class TailscaleManager(QObject):
     connection_status_changed = Signal(bool, str)  # (is_connected, status_text)
@@ -43,11 +47,14 @@ class TailscaleManager(QObject):
         self.executor = executor if executor is not None else TailscaleExecutor(self)
         # Compat alias: UI code connects ts_manager.worker.error_received
         self.worker = self.executor
+        self._auth_key_file = None
 
         self.executor.status_ready.connect(self._on_status_ready)
         self.executor.cli_finished.connect(self._on_cli_finished)
         self.executor.prelogout_done.connect(self._on_prelogout_done)
         self.executor.sso_url_found.connect(webbrowser.open)
+        # The staged key is only needed while `tailscale up` runs
+        self.executor.finished.connect(lambda *_: self._clear_auth_key_file())
 
         from .cache_manager import CacheManager
         cache_file = os.path.join(cache_dir, "ts_cache.json") if cache_dir else "ts_cache.json"
@@ -148,9 +155,63 @@ class TailscaleManager(QObject):
         self._launch_up(connect_args)
 
     def _launch_up(self, connect_args):
+        self._clear_auth_key_file()
         args = self._build_up_args(connect_args)
         self._last_server = connect_args.get("login_server")
         self.executor.run_command(args, connect_args.get("profile_name"))
+
+    # ==========================================
+    # Auth key handling
+    # ==========================================
+
+    def _write_auth_key_file(self, auth_key: str) -> str | None:
+        """Stores the pre-auth key in a 0600 temp file and returns its path.
+
+        Passing the key inline (`--auth-key=<key>`) exposes it to every local
+        process that can read the command line (Task Manager/WMI on Windows,
+        /proc on Linux). Tailscale accepts `--auth-key=file:<path>` instead.
+        """
+        import tempfile
+
+        self._sweep_stale_key_files()
+        try:
+            fd, path = tempfile.mkstemp(prefix=AUTH_KEY_FILE_PREFIX, suffix=".key")
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(auth_key.strip())
+            os.chmod(path, 0o600)
+        except OSError as e:
+            logger.warning(f"Could not stage the auth key in a temp file ({e}); passing it inline")
+            return None
+        self._auth_key_file = path
+        return path
+
+    @staticmethod
+    def _sweep_stale_key_files() -> None:
+        """Deletes staged key files left behind by a previous crash.
+
+        Only files older than the age threshold are touched, so a concurrent
+        session's key (or a fresh one) is never removed.
+        """
+        import glob
+        import tempfile
+        import time
+
+        cutoff = time.time() - STALE_KEY_MAX_AGE_SECONDS
+        for stale in glob.glob(os.path.join(tempfile.gettempdir(), f"{AUTH_KEY_FILE_PREFIX}*.key")):
+            try:
+                if os.path.getmtime(stale) < cutoff:
+                    os.remove(stale)
+            except OSError as e:
+                logger.debug(f"Could not remove stale key file {stale}: {e}")
+
+    def _clear_auth_key_file(self) -> None:
+        """Removes the staged key file, if any."""
+        path, self._auth_key_file = getattr(self, "_auth_key_file", None), None
+        if path:
+            try:
+                os.remove(path)
+            except OSError as e:
+                logger.debug(f"Could not remove the staged auth key file: {e}")
 
     def switch_profile(self, native_profile_name, profile_name=None):
         """Instantly switch to a native Tailscale profile."""
@@ -201,6 +262,7 @@ class TailscaleManager(QObject):
 
     def cleanup(self):
         """Cleanly terminate the executor (streaming process + worker thread)."""
+        self._clear_auth_key_file()
         self.executor.cleanup()
 
     def get_stats(self):
@@ -260,7 +322,8 @@ class TailscaleManager(QObject):
         args = ["up", f"--login-server={login_server}"]
 
         if not use_sso and auth_key:
-            args.append(f"--auth-key={auth_key}")
+            key_file = self._write_auth_key_file(auth_key)
+            args.append(f"--auth-key=file:{key_file}" if key_file else f"--auth-key={auth_key}")
 
         # Explicit tri-state / boolean flags to guarantee toggling works predictably
         args.append(f"--accept-routes={'true' if accept_routes else 'false'}")

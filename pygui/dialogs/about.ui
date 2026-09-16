@@ -14,7 +14,7 @@
    <property name="spacing"><number>8</number></property>
    <item>
     <widget class="QLabel" name="labelAppName">
-     <property name="text"><string>TAILSCALE VPN</string></property>
+     <property name="text"><string/></property>
      <property name="font">
       <font><family>Segoe UI</family><pointsize>18</pointsize><bold>true</bold></font>
      </property>
@@ -25,7 +25,7 @@
 
    <item>
     <widget class="QLabel" name="labelVersion">
-     <property name="text"><string>Version 5.0.0 Pro</string></property>
+     <property name="text"><string/></property>
      <property name="font">
       <font><family>Consolas</family><pointsize>10</pointsize></font>
      </property>
@@ -44,7 +44,7 @@ built with Python and Tailscale.</string></property>
 
     <item>
      <widget class="QLabel" name="labelCopyright">
-      <property name="text"><string>Copyright © 2026. All Rights Reserved.</string></property>
+      <property name="text"><string/></property>
       <property name="alignment"><enum>Qt::AlignCenter</enum></property>
      </widget>
     </item>

@@ -1,5 +1,6 @@
 # src/ui/main_window.py
 
+import logging
 import os
 import sys
 
@@ -18,6 +19,8 @@ from PySide6.QtWidgets import (
 from ..core.tailscale import get_tailscale_path
 from .components.log_viewer_dlg import LogViewerDialog
 from .dashboard import DashboardView
+
+logger = logging.getLogger("TailscaleClient.UI.MainWindow")
 
 # Global accelerators exactly as declared in pygui/windows/main_window.ui.
 # The menu bar is rebuilt in Python, so these must be re-applied explicitly
@@ -209,17 +212,25 @@ class MainWindow(QMainWindow):
         self._daemon_probe_proc = proc
 
         def on_finished(*_):
-            output = (proc.readAllStandardError().data().decode(errors="ignore")
-                      + proc.readAllStandardOutput().data().decode(errors="ignore")).lower()
-            running = not ("failed to connect" in output
-                           or "tailscaled may not be running" in output
-                           or proc.exitCode() != 0)
+            callback(self._daemon_probe_result(proc))
             proc.deleteLater()
             self._daemon_probe_proc = None
-            callback(running)
 
         proc.finished.connect(on_finished)
         proc.start(get_tailscale_path(), ["status", "--json"])
+
+    @staticmethod
+    def _daemon_probe_result(proc) -> bool:
+        """True unless the CLI output shows the daemon was unreachable.
+
+        Reads both streams before the caller retires the process; kept as a
+        separate function so the classification is unit-testable.
+        """
+        output = (proc.readAllStandardError().data().decode(errors="ignore")
+                  + proc.readAllStandardOutput().data().decode(errors="ignore")).lower()
+        return not ("failed to connect" in output
+                    or "tailscaled may not be running" in output
+                    or proc.exitCode() != 0)
 
     def show_service_wait_dialog(self):
         from PySide6.QtCore import Qt, QTimer
@@ -374,7 +385,8 @@ class MainWindow(QMainWindow):
         # Final flush of traffic data before exit to prevent data loss
         if hasattr(self.manager, 'db'):
             self.manager.db.flush_buffer()
-            
+            self.manager.db.close()  # release the log handle (Windows file locks)
+
         self.ts_manager.cleanup()
         event.accept()
 
@@ -1003,6 +1015,8 @@ class MainWindow(QMainWindow):
         self.tray_menu.clear()
         
         show_action = self.tray_menu.addAction("Show")
+        show_action.setAccessibleName("Show Application Window")
+        show_action.setAccessibleDescription("Restores and focuses the main application window from the system tray.")
         show_action.triggered.connect(self.showNormal)
         show_action.triggered.connect(self.activateWindow)
         
@@ -1010,6 +1024,8 @@ class MainWindow(QMainWindow):
         
         if self.manager.settings.enable_tray_switcher and self.manager.settings.advanced_features:
             exit_menu = self.tray_menu.addMenu("Exit Node Routing")
+            exit_menu.setAccessibleName("Exit Node Routing Menu")
+            exit_menu.setAccessibleDescription("Chooses which peer routes this machine's internet traffic.")
             
             # Find discovered exit nodes
             status_cache = self.ts_manager.cache.get("status")
@@ -1034,6 +1050,8 @@ class MainWindow(QMainWindow):
             none_action = exit_menu.addAction("None (Direct Internet)")
             none_action.setCheckable(True)
             none_action.setChecked(active_exit_node_ip is None)
+            none_action.setAccessibleName("No Exit Node (Direct Internet)")
+            none_action.setAccessibleDescription("Routes internet traffic directly instead of through a peer.")
             none_action.triggered.connect(lambda: self.set_tray_exit_node(""))
             
             exit_menu.addSeparator()
@@ -1043,13 +1061,20 @@ class MainWindow(QMainWindow):
                     action = exit_menu.addAction(f"{name} ({ip})")
                     action.setCheckable(True)
                     action.setChecked(is_active)
+                    action.setAccessibleName(f"Exit node {name} at {ip}")
+                    action.setAccessibleDescription("Routes all internet traffic through this peer.")
                     action.triggered.connect(lambda checked, target_ip=ip: self.set_tray_exit_node(target_ip))
             else:
-                exit_menu.addAction("No Exit Nodes Discovered").setEnabled(False)
+                unavailable = exit_menu.addAction("No Exit Nodes Discovered")
+                unavailable.setAccessibleName("No exit nodes discovered")
+                unavailable.setAccessibleDescription("No peer on this tailnet currently advertises exit-node routing.")
+                unavailable.setEnabled(False)
                 
             self.tray_menu.addSeparator()
             
         quit_action = self.tray_menu.addAction("Exit")
+        quit_action.setAccessibleName("Exit Application")
+        quit_action.setAccessibleDescription("Shuts the client down.")
         quit_action.triggered.connect(self._force_quit)
 
     def set_tray_exit_node(self, ip):
@@ -1057,7 +1082,7 @@ class MainWindow(QMainWindow):
             self.ts_manager.worker.run_command(["up", f"--exit-node={ip}"])
             self.ts_manager.check_status(force=True)
         except RuntimeError as e:
-            print(f"[DEBUG Tray Switcher] Failed to set exit node: {e}")
+            logger.warning(f"Tray exit-node switch failed for {ip!r}: {e}")
 
     def _check_screen_reader_on_startup(self):
         from src.utils.a11y_checker import check_screen_reader_environment

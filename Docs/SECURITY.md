@@ -21,7 +21,6 @@ graph TB
     subgraph ClientProcess ["🛡️ Client Process Space (Zero-Trust PySide6 Runtime)"]
         GUI["Presentation Layer (Input Validation & Escaping)"]:::boundary
         SC["StateCoordinator (Deterministic State Gatekeeper)"]:::boundary
-        WATCH["Process Watchdog (Orphan & Collision Guard)"]:::isolate
     end
 
     subgraph SecretVault ["🔐 Hardware-Backed Secure Secret Storage"]
@@ -35,16 +34,16 @@ graph TB
 
     GUI -->|Sanitized Flags| SC
     SC -->|Auth Tokens / Pre-Auth Keys| KEY
-    SC -->|Sanitized Structured Commands| CLI
+    SC -->|Staged 0600 Key File + Sanitized Commands| CLI
     CLI -->|Interprocess Communication| TD
-    WATCH -->|Monitors & Terminates Orphans| CLI
+    SC -->|Tracks & Kills Its Own Child| CLI
 ```
 
 ### Key Security Safeguards
-1. **Zero Plaintext Secrets:** Auth keys, pre-authentication tokens, and server credentials are never persisted in plain-text configuration files or cached in readable memory dumps. All secrets are stored exclusively via platform-native credential APIs using the `keyring` library.
+1. **Zero Persistent Plaintext Secrets:** Auth keys and pre-authentication tokens are persisted **only** through platform-native credential APIs (`keyring`): the OS Credential Locker, macOS Keychain or Linux Secret Service. For the duration of a `tailscale up` invocation the key is additionally staged in a `0600` temporary file and passed as `--auth-key=file:<path>` (rather than on the command line, where every local process could read it); that file is deleted as soon as the command finishes and swept on the next staging if a crash left one behind.
 2. **Subprocess Injection Immunity:** All CLI invocations pass parameters as strict tokenized arrays (`subprocess.Popen([cmd, arg1, arg2])`) without shell expansion (`shell=False`), fully neutralizing shell injection vectors.
-3. **Automated Process Cleanup:** The internal `psutil` watchdog guarantees termination of lingering background processes upon application exit, mitigating state poisoning and dangling privileged handles.
-4. **Isolated Memory State:** Network credentials are held transiently in memory only for the duration of the authentication handshake.
+3. **Bounded Process Ownership:** The executor tracks the CLI child process it starts and kills it during shutdown, then retires its worker thread — so no `tailscale` process outlives the application. `psutil` is used for network interface counters and adapter-change detection only; it does not reap foreign processes.
+4. **Transient Command-Line Exposure:** The credential copy handed to the daemon exists only for the duration of the authentication handshake; the profile's persisted copy lives in the OS keyring.
 
 ---
 
@@ -79,7 +78,7 @@ If you discover an actual or potential security vulnerability, **do NOT open a p
 
 ### Preferred Reporting Channels
 1. **GitHub Private Vulnerability Reporting:** Submit a report via the **[GitHub Security Advisories Tab](https://github.com/Arean82/Tailscale-Headscale-Client/security/advisories)** (recommended for end-to-end cryptographic tracking).
-2. **Security Contact:** Email the maintainers directly at **`security@synora.org`** with the subject tag `[SECURITY] Tailscale-Headscale Client Vulnerability`.
+2. **Security Contact:** Email the maintainers directly at **`security@arean82.dev`** with the subject tag `[SECURITY] Tailscale-Headscale Client Vulnerability`.
 
 ### Information to Include
 To expedite validation and mitigation, please provide:

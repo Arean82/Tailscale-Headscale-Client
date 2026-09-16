@@ -30,6 +30,22 @@ class DiagnosticsDialog(BaseUiDialog):
         if self.btnClose:
             self.btnClose.clicked.connect(self.accept)
 
+        # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
+        diag_a11y = [
+            (self.textDiagnostics, "Diagnostics Output Console",
+             "Read-only console showing Tailscale netcheck results and accessibility diagnostics."),
+            (self.btnRunDiagnostics, "Run Netcheck Button",
+             "Runs the Tailscale network diagnostics and prints the report below."),
+            (self.btnCheckA11y, "Check Screen Reader Button",
+             "Verifies that assistive technology components are installed and active."),
+            (self.btnClose, "Close Diagnostics Button",
+             "Dismisses the diagnostics dialog."),
+        ]
+        for widget, name, description in diag_a11y:
+            if widget:
+                widget.setAccessibleName(name)
+                widget.setAccessibleDescription(description)
+
     def _check_a11y(self):
         from ...utils.a11y_checker import check_screen_reader_environment
         res = check_screen_reader_environment()

@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import UTC
 
@@ -5,6 +6,8 @@ from PySide6.QtCore import QFile
 from PySide6.QtGui import QAccessible, QAccessibleEvent
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+
+logger = logging.getLogger("TailscaleClient.UI.Dashboard")
 
 
 class DashboardView(QWidget):
@@ -279,7 +282,7 @@ class DashboardView(QWidget):
                         delta = expiry_dt - now_dt
                         days = delta.days
                         
-                        print(f"[DEBUG Node Expiry] Raw timestamp: {expiry_str} | Parsed naive: {base_time} | Days remaining: {days}")
+                        logger.debug(f"Node key expiry: raw={expiry_str} parsed={base_time} days_remaining={days}")
                         
                         if days < 0:
                             self.labelExpiry.setText("🔴 Node Key Expired!")
@@ -294,13 +297,13 @@ class DashboardView(QWidget):
                             self.labelExpiry.setText(f"Core Auth Session: 🟢 Key Active (Expires in {days} days)")
                             self.labelExpiry.setStyleSheet("color: #10b981; font-weight: bold;")
                     else:
-                        print("[DEBUG Node Expiry] No Expiry timestamp found in Self node.")
+                        logger.debug("Node key expiry: no Expiry timestamp on the Self node")
                         self.labelExpiry.setText("")
                 else:
-                    print("[DEBUG Node Expiry] No raw status data cached yet.")
+                    logger.debug("Node key expiry: no cached status payload yet")
                     self.labelExpiry.setText("")
             except (ValueError, TypeError, AttributeError) as e:
-                print(f"[DEBUG Node Expiry] Parsing failed: {e}")
+                logger.debug(f"Node key expiry parse failed: {e}")
                 self.labelExpiry.setText("")
         elif self.labelExpiry:
             self.labelExpiry.setText("")

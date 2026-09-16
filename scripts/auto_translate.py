@@ -33,14 +33,20 @@ CSS_MARKERS = (
     "color:", "background:", "border:", "font-size:", "padding:", "margin:",
     "transparent", "background-color:", "outline:", "border-radius:", "font-weight:",
 )
-SHORTCUT_RE = re.compile(
-    r"^(?:Ctrl|Alt|Shift|Cmd|Meta|Win|Super)(?:\s*\+\s*\S+)+$|^F\d{1,2}$", re.IGNORECASE
-)
+# Shortcut shapes only. The pattern is deliberately free of nested quantifiers:
+# `(?:\s*\+\s*\S+)+` backtracks exponentially on adversarial input (CodeQL
+# py/redos #103), so spaces are normalised out before matching instead.
+SHORTCUT_RE = re.compile(r"^(?:Ctrl|Alt|Shift|Cmd|Meta|Win|Super)(?:\+[^\s+]+)+$|^F\d{1,2}$", re.IGNORECASE)
 
 BATCH_SIZE = 25
 MAX_RETRIES = 2
 RETRY_SLEEP = 1.0
 MYMEMORY_PAUSE = 0.2  # MyMemory limits characters per day, not requests per second
+
+
+def _looks_like_shortcut(text):
+    """True for accelerator labels such as 'Ctrl+Shift+S', 'Ctrl+,' or 'F1'."""
+    return bool(SHORTCUT_RE.match(text.replace(" ", "")))
 
 
 def is_translatable(text):
@@ -51,7 +57,7 @@ def is_translatable(text):
     lowered = stripped.lower()
     if any(marker in lowered for marker in CSS_MARKERS):
         return False
-    return not SHORTCUT_RE.match(stripped)
+    return not _looks_like_shortcut(stripped)
 
 
 def _google_batch(translator, texts, failures):

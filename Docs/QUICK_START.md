@@ -117,7 +117,7 @@ flowchart TD
 ### 2.2 Software Runtimes
 * **Python**: 3.10, 3.11, 3.12, or 3.13 (Virtual environment recommended).
 * **Tailscale Engine**: Tailscale v1.50+ installed on host machine.
-* **Dependencies**: `PySide6 >= 6.5.0`, `requests >= 2.28.0`, `keyring >= 24.0.0`.
+* **Dependencies**: see `requirements.txt` — `PySide6>=6.6.0,<7`, `qt-material>=2.14,<3`, `cryptography>=42,<50`, `keyring>=24,<26`, `psutil>=5.9,<8`, `requests>=2.31,<3`, `markdown>=3.5,<4`, `pygments>=2.16,<3`, `beautifulsoup4>=4.12,<5`, plus the build/CI toolchain (`PyInstaller`, `mypy`, `ruff`, `pytest`, `types-psutil`, `types-Markdown`).
 
 ---
 
@@ -177,7 +177,7 @@ Execute the application entry point:
 python main.py
 ```
 
-The system will start, detect your host OS, auto-probe the local `tailscaled` daemon socket, load stored profiles from encrypted storage, and display the primary status dashboard.
+The system will start, detect your host OS, probe the local `tailscaled` daemon (via the `tailscale` CLI — or through the LocalAPI if *Enable Experimental Local API* is ticked), load stored profiles from SQLite plus the OS keyring, and display the primary status dashboard.
 
 ---
 
@@ -186,8 +186,8 @@ The system will start, detect your host OS, auto-probe the local `tailscaled` da
 ### Option A: Connecting to Official Tailscale (SaaS)
 
 1. Open the application. If not connected, the status badge will indicate **`Disconnected`** in grey.
-2. Ensure the Active Profile dropdown is set to **`Default`** (or your preferred Tailscale profile).
-3. Click the prominent **`Connect`** button (or press <kbd>Ctrl</kbd>+<kbd>C</kbd>).
+2. Ensure the active profile **tab** is the one you want (e.g. `Default`).
+3. Click the prominent **`Connect`** button (or press <kbd>Ctrl</kbd>+<kbd>Return</kbd>).
 4. Your default web browser will automatically open the secure Tailscale authentication page:
    - Authenticate with your Identity Provider (Google, Microsoft, GitHub, Apple, or SSO).
 5. Once authenticated, the browser window will confirm login, and the Client Dashboard will immediately transition to **`Connected`** with a green badge, populating your IP (`100.x.y.z`), Tailnet domain, and live peer table.
@@ -210,12 +210,13 @@ sequenceDiagram
     User->>UI: Selects "Profile" -> "Add Profile"
     UI->>User: Prompts for Profile Name & Server URL
     User->>UI: Enters "Lab Headscale" & "https://vpn.company.com"
-    UI->>Keyring: Saves Server URL & Scoped Auth Key
+    UI->>SQLite: Saves profile topology (incl. server URL)
+    UI->>Keyring: Saves scoped auth key only
     User->>UI: Clicks "Connect"
     UI->>Daemon: tailscale up --login-server=https://vpn.company.com
     Daemon->>Headscale: Handshake / Registration Request
     Headscale-->>Daemon: Returns Machine Key / Auth URL
-    Daemon-->>UI: Updates Status: "Needs Machine Registration"
+    Daemon-->>UI: Updates Status: "Pending Admin Approval"
     UI->>User: Displays Registration Command / Link
     User->>Headscale: headscale nodes register --user admin --key nodekey:...
     Headscale-->>Daemon: Node Authorized
@@ -241,11 +242,11 @@ sequenceDiagram
 ## 5. Everyday Operational Workflows
 
 ### 5.1 Toggling Exit Nodes (Routing All Internet Traffic)
-* In the main dashboard, locate the **`Exit Node`** dropdown selector.
-* Select a peer advertising an exit route (e.g., `sg-gateway-01`).
-* Check **`Allow Local LAN Access`** if you still wish to access your local printer/router.
-* Click **`Apply Exit Node`**. All outbound traffic is now encrypted and routed through the chosen node.
-* To revert to direct breakout, select **`None (Direct)`** and apply.
+* Open **`Advanced`** $	o$ **`Advanced Options...`** (or enable the tray switcher below).
+* Select the peer advertising an exit route in the **`Exit Node`** dropdown (e.g., `sg-gateway-01`).
+* Tick **`Allow LAN (--exit-node-allow-lan-access)`** if you still wish to reach your local printer/router.
+* Click **`Save`**, then **`Connect`** (or `Logout` then `Connect` if you are already connected). All outbound traffic is now encrypted and routed through the chosen node.
+* To revert to direct breakout, pick **`None (Direct Internet)`** — in the Advanced Options dialog, or from the tray menu when *Enable Quick Exit-Node Switcher* is on.
 
 ### 5.2 Network Peer Discovery & Latency Monitoring
 * Open the **Peer List** via **Advanced** $\to$ **Peer List...** (or via the system menu).

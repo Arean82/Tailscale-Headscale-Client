@@ -1,6 +1,7 @@
 # src/ui/components/node_dialog.py
 
 import json
+import logging
 
 from PySide6.QtCore import QProcess, Qt
 from PySide6.QtWidgets import (
@@ -12,6 +13,8 @@ from PySide6.QtWidgets import (
 )
 
 from .simple_dialogs import BaseUiDialog
+
+logger = logging.getLogger("TailscaleClient.UI.NodeDialog")
 
 
 class NodeDialog(BaseUiDialog):
@@ -347,10 +350,10 @@ class NodeDialog(BaseUiDialog):
                                 self.lineEditEmergencyIp.setText(ip)
                                 self.lineEditEmergencyIp.setPlaceholderText("Resolved from live Control URL!")
                     except (OSError, ValueError) as res_err:
-                        print("DEBUG [node_dialog]: Could not resolve ControlURL IP:", res_err)
+                        logger.debug(f"Could not resolve ControlURL hostname: {res_err}")
                     
             except (ValueError, TypeError, AttributeError) as e:
-                print("DEBUG [node_dialog]: Exception parsing prefs:", e)
+                logger.debug(f"Could not parse tailscale prefs: {e}")
                 
         self.prefs_proc.finished.connect(on_prefs_finished)
         self.prefs_proc.start(get_tailscale_path(), ["debug", "prefs"])
@@ -365,7 +368,7 @@ class NodeDialog(BaseUiDialog):
                 output = self.status_proc.readAllStandardOutput().data().decode().strip()
             except RuntimeError:
                 return
-            print("DEBUG [node_dialog]: tailscale status output length:", len(output))
+            logger.debug(f"tailscale status payload received ({len(output)} bytes)")
             if self.comboBoxExitNode:
                 self.comboBoxExitNode.setPlaceholderText("Select exit node or type custom...")
             
@@ -435,16 +438,24 @@ class NodeDialog(BaseUiDialog):
                         self.lineEditHostname.setPlaceholderText("Detected from active connection!")
 
             except (ValueError, TypeError, AttributeError) as e:
-                print("DEBUG [node_dialog]: Exception parsing status:", e)
+                logger.debug(f"Could not parse tailscale status payload: {e}")
                 
         self.status_proc.finished.connect(on_finished)
-        self.status_proc.errorOccurred.connect(lambda e: print("DEBUG [node_dialog] QProcess errorOccurred:", e))
-        self.status_proc.readyReadStandardError.connect(lambda: print("DEBUG [node_dialog] stderr:", self.status_proc.readAllStandardError().data().decode()))
+        self.status_proc.errorOccurred.connect(self._log_status_proc_error)
+        self.status_proc.readyReadStandardError.connect(self._log_status_proc_stderr)
         
         from src.core.tailscale import get_tailscale_path
         ts_path = get_tailscale_path()
-        print("DEBUG [node_dialog]: Starting QProcess with path:", ts_path)
+        logger.debug(f"Starting exit-node status query with {ts_path!r}")
         self.status_proc.start(ts_path, ["status", "--json"])
+
+    def _log_status_proc_error(self, error):
+        logger.debug(f"Exit-node status process error: {error}")
+
+    def _log_status_proc_stderr(self):
+        text = self.status_proc.readAllStandardError().data().decode(errors="ignore").strip()
+        if text:
+            logger.debug(f"Exit-node status process stderr: {text}")
 
     def _on_exit_node_changed(self, exit_node):
         """Intelligently auto-populate subnet routes when an exit node is selected."""

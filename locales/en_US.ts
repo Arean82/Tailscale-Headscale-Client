@@ -10,29 +10,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pygui/dialogs/about.ui" line="17"/>
-        <source>TAILSCALE VPN</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../pygui/dialogs/about.ui" line="22"/>
         <source>color: #569cd6;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../pygui/dialogs/about.ui" line="28"/>
-        <source>Version 5.0.0 Pro</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/dialogs/about.ui" line="38"/>
         <source>A high-performance VPN client
 built with Python and Tailscale.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../pygui/dialogs/about.ui" line="47"/>
-        <source>Copyright © 2026. All Rights Reserved.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -333,13 +318,13 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="94"/>
-        <location filename="../src/ui/main_window.py" line="443"/>
+        <location filename="../src/ui/main_window.py" line="455"/>
         <source>&amp;File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="49"/>
-        <location filename="../src/ui/main_window.py" line="445"/>
+        <location filename="../src/ui/main_window.py" line="457"/>
         <source>&amp;Settings</source>
         <translation type="unfinished"></translation>
     </message>
@@ -360,7 +345,7 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="57"/>
-        <location filename="../src/ui/main_window.py" line="457"/>
+        <location filename="../src/ui/main_window.py" line="469"/>
         <source>&amp;Add New Profile</source>
         <translation type="unfinished"></translation>
     </message>
@@ -371,7 +356,7 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="61"/>
-        <location filename="../src/ui/main_window.py" line="465"/>
+        <location filename="../src/ui/main_window.py" line="477"/>
         <source>&amp;Remove Current Profile</source>
         <translation type="unfinished"></translation>
     </message>
@@ -392,7 +377,7 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="71"/>
-        <location filename="../src/ui/main_window.py" line="480"/>
+        <location filename="../src/ui/main_window.py" line="492"/>
         <source>&amp;Dark Theme</source>
         <translation type="unfinished"></translation>
     </message>
@@ -403,19 +388,19 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="77"/>
-        <location filename="../src/ui/main_window.py" line="489"/>
+        <location filename="../src/ui/main_window.py" line="501"/>
         <source>&amp;Material</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="80"/>
-        <location filename="../src/ui/main_window.py" line="526"/>
+        <location filename="../src/ui/main_window.py" line="538"/>
         <source>qt-material not installed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="83"/>
-        <location filename="../src/ui/main_window.py" line="566"/>
+        <location filename="../src/ui/main_window.py" line="578"/>
         <source>&amp;About Us</source>
         <translation type="unfinished"></translation>
     </message>
@@ -426,13 +411,13 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="87"/>
-        <location filename="../src/ui/main_window.py" line="570"/>
+        <location filename="../src/ui/main_window.py" line="582"/>
         <source>View &amp;License</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="90"/>
-        <location filename="../src/ui/main_window.py" line="574"/>
+        <location filename="../src/ui/main_window.py" line="586"/>
         <source>&amp;Readme</source>
         <translation type="unfinished"></translation>
     </message>
@@ -448,19 +433,19 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="100"/>
-        <location filename="../src/ui/main_window.py" line="470"/>
+        <location filename="../src/ui/main_window.py" line="482"/>
         <source>&amp;Theme</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="103"/>
-        <location filename="../src/ui/main_window.py" line="542"/>
+        <location filename="../src/ui/main_window.py" line="554"/>
         <source>&amp;Advanced</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="106"/>
-        <location filename="../src/ui/main_window.py" line="543"/>
+        <location filename="../src/ui/main_window.py" line="555"/>
         <source>&amp;Advanced Options...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -471,7 +456,7 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="110"/>
-        <location filename="../src/ui/main_window.py" line="547"/>
+        <location filename="../src/ui/main_window.py" line="559"/>
         <source>&amp;Peer List...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -482,7 +467,7 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="114"/>
-        <location filename="../src/ui/main_window.py" line="551"/>
+        <location filename="../src/ui/main_window.py" line="563"/>
         <source>&amp;Network Diagnostics...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -513,25 +498,25 @@ QPushButton:hover {
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="124"/>
-        <location filename="../src/ui/main_window.py" line="564"/>
+        <location filename="../src/ui/main_window.py" line="576"/>
         <source>&amp;Help</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="127"/>
-        <location filename="../src/ui/main_window.py" line="536"/>
+        <location filename="../src/ui/main_window.py" line="548"/>
         <source>&amp;Logs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="130"/>
-        <location filename="../src/ui/main_window.py" line="537"/>
+        <location filename="../src/ui/main_window.py" line="549"/>
         <source>&amp;Global Logs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../pygui/windows/main_window.ui" line="133"/>
-        <location filename="../src/ui/main_window.py" line="555"/>
+        <location filename="../src/ui/main_window.py" line="567"/>
         <source>Enable Quick &amp;Exit-Node Switcher</source>
         <translation type="unfinished"></translation>
     </message>
@@ -552,74 +537,74 @@ Restart GUI now?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="449"/>
+        <location filename="../src/ui/main_window.py" line="461"/>
         <source>&amp;Exit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="454"/>
+        <location filename="../src/ui/main_window.py" line="466"/>
         <source>&amp;Profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="461"/>
+        <location filename="../src/ui/main_window.py" line="473"/>
         <source>Re&amp;name Current Profile...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="474"/>
+        <location filename="../src/ui/main_window.py" line="486"/>
         <source>&amp;Light Theme (Default)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="493"/>
+        <location filename="../src/ui/main_window.py" line="505"/>
         <source>Default Accent (Standard)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="580"/>
+        <location filename="../src/ui/main_window.py" line="592"/>
         <source>Check &amp;Screen Reader Setup...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="613"/>
+        <location filename="../src/ui/main_window.py" line="625"/>
         <source>No logs found</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="627"/>
+        <location filename="../src/ui/main_window.py" line="639"/>
         <source>No .log files found</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="908"/>
+        <location filename="../src/ui/main_window.py" line="920"/>
         <source>Rename Profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="909"/>
+        <location filename="../src/ui/main_window.py" line="921"/>
         <source>Enter new profile name:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="915"/>
-        <location filename="../src/ui/main_window.py" line="920"/>
-        <location filename="../src/ui/main_window.py" line="930"/>
+        <location filename="../src/ui/main_window.py" line="927"/>
+        <location filename="../src/ui/main_window.py" line="932"/>
+        <location filename="../src/ui/main_window.py" line="942"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="915"/>
+        <location filename="../src/ui/main_window.py" line="927"/>
         <source>Profile name cannot be empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="920"/>
+        <location filename="../src/ui/main_window.py" line="932"/>
         <source>Profile name already exists.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/main_window.py" line="930"/>
+        <location filename="../src/ui/main_window.py" line="942"/>
         <source>Failed to rename profile.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1351,12 +1336,13 @@ QPushButton:hover {
 <context>
     <name>main</name>
     <message>
-        <location filename="../main.py" line="109"/>
+        <location filename="../main.py" line="145"/>
         <source>Already Running</source>
+        <extracomment>Named mutex the installer detects through AppMutex (see TailscaleClient_Installer.iss)</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main.py" line="110"/>
+        <location filename="../main.py" line="146"/>
         <source>An instance of Tailscale Client Pro is already running.
 Please check your task manager or system tray.</source>
         <translation type="unfinished"></translation>

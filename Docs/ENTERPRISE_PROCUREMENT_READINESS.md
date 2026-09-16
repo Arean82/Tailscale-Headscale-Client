@@ -20,9 +20,9 @@ The software enables managed devices to securely authenticate, route, and intera
 | :--- | :--- | :---: | :--- |
 | **Accessibility (Section 508 / EN 301 549)** | US Access Board / EU Directive 2016/2102 | ✅ **100% Compliant** | VPAT Level AA conforming; programmatic semantic roles (`accessibleName`, `accessibleDescription`); 100% keyboard-only operability (<kbd>Ctrl+,</kbd>, <kbd>Ctrl+Return</kbd>, <kbd>Ctrl+Shift+S</kbd>, <kbd>Tab</kbd>/<kbd>Shift+Tab</kbd>); $\ge$ 3.0:1 focus ring contrast; zero keyboard traps; dynamic screen reader diagnostics. |
 | **Software Supply Chain Security** | Executive Order 14028 / NIST SP 800-218 (SSDF) | ✅ **100% Compliant** | Full CycloneDX v1.5 Software Bill of Materials ([`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json)); zero untracked dependencies; deterministic pinned library versions. |
-| **Cryptographic Key Storage & Zero-Plaintext** | FIPS 140-3 Baselines / OS Keyring Standards | ✅ **100% Compliant** | Platform-native secure credential isolation (`keyring`) using DPAPI / Windows Credential Manager, macOS Keychain Services, and FreeDesktop SecretService / Linux KWallet. No unencrypted secrets stored on disk. |
+| **Cryptographic Key Storage & Zero-Plaintext** | FIPS 140-3 Baselines / OS Keyring Standards | ✅ **100% Compliant** | Platform-native secure credential isolation (`keyring`) using DPAPI / Windows Credential Manager, macOS Keychain Services, and FreeDesktop SecretService / Linux KWallet. No secrets stored in plaintext at rest: the OS keyring is the only persistent store (the key is briefly staged in a 0600 temp file during a connect, never on the command line). |
 | **Zero-Trust Network Architecture (ZTNA)** | NIST SP 800-207 / DoD Zero Trust Strategy | ✅ **100% Compliant** | End-to-end WireGuard cryptographic authentication; client-enforced *Shields Up* mode (`--shields-up`); dynamic exit node routing (`--advertise-exit-node`); subnet access control; multi-profile sovereign tenant isolation. |
-| **Process Integrity & Subprocess Defense** | CWE-78 (OS Command Injection Neutralization) | ✅ **100% Compliant** | Zero shell string interpolation (`shell=False` exclusively across all `subprocess.Popen` invocations); automated process supervisor (`psutil`) reaping orphaned daemon processes to prevent socket binding hijacking. |
+| **Process Integrity & Subprocess Defense** | CWE-78 (OS Command Injection Neutralization) | ✅ **100% Compliant** | Zero shell string interpolation (`shell=False` exclusively across all subprocess invocations); the executor tracks the CLI child it spawns, kills it on shutdown and retires its worker thread, so no `tailscale` process outlives the client or blocks a profile switch. |
 | **Software Licensing & Governance** | Open Source Governance & Commercial Re-use | ✅ **GPL v3.0 Verified** | Clean, transparent licensing model with automated SPDX headers and verified compatibility with enterprise runtime distribution policies. |
 
 ---
@@ -52,7 +52,7 @@ graph TD
 
 ### A. United States Federal Standards (Section 508 / NIST)
 | **Software Supply Chain Security** | Executive Order 14028 / NIST SP 800-218 (SSDF) | ✅ **100% Compliant** | Full CycloneDX v1.5 Software Bill of Materials ([`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json)); zero untracked dependencies; deterministic pinned library versions. |
-| **Data At Rest Cryptography** | NIST SP 800-175B / FIPS Validated Hardware Keystores | ✅ **100% Compliant** | Zero plain-text credentials stored on disk; high-entropy tokens are offloaded strictly to OS Keyring (Windows DPAPI, macOS Keychain, Linux Secret Service). |
+| **Data At Rest Cryptography** | NIST SP 800-175B / FIPS Validated Hardware Keystores | ✅ **100% Compliant** | No plain-text credentials persisted; high-entropy tokens are offloaded to the OS Keyring (Windows DPAPI, macOS Keychain, Linux Secret Service), with a 0600 temp file used only for the duration of a `tailscale up` invocation. |
 | **Data In Transit Cryptography** | NSA Suite B Cryptography / TLS 1.3 | ✅ **100% Compliant** | WireGuard Noise Protocol (ChaCha20-Poly1305, Curve25519) combined with mandatory TLS 1.3 control plane handshakes. |
 | **Audit Logging & Continuous Accountability** | NIST SP 800-137 (ISCM) | ✅ **100% Compliant** | Comprehensive system audit log with verified timestamps ([`Docs/AUDIT_LOG.md`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/AUDIT_LOG.md)); zero dangling issues; rigorous automated regression testing. |
 
@@ -108,8 +108,8 @@ flowchart TD
   ```
 * Direct execution prevents shell evaluation, eliminating command chaining (`&`, `|`, `;`), argument injection, and shell escaping exploits.
 
-### 3. Orphan Process Watchdog & Resource Sanitation
-* Background processes are monitored using `psutil`. When the application exits or the operator switches active network profiles, hanging zombie processes and stale sockets are reaped, preventing port binding hijacking and resource exhaustion.
+### 3. Bounded Child-Process Ownership
+* The executor records the CLI child process it starts. On shutdown it kills that child first (`TailscaleExecutor.cleanup` → `_BlockingWorker.cancel_current`), then retires its worker thread — so no `tailscale` process or stale socket outlives the client. `psutil` is used only to read network interface counters and detect adapter changes (Wi-Fi/Ethernet switches), never to terminate foreign processes.
 
 ---
 
@@ -120,16 +120,24 @@ To satisfy Federal EO 14028, NIST SSDF, and modern corporate vendor intake revie
 * **Location:** [`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json)
 * **Specification Version:** CycloneDX 1.5
 * **Component Inventory:**
-  - `PySide6` (v6.8.0) — LGPL-3.0-only
-  - `cryptography` (v43.0.1) — Apache-2.0 / BSD-3-Clause
-  - `keyring` (v24.3.1) — MIT
-  - `psutil` (v6.0.0) — BSD-3-Clause
-  - `requests` (v2.32.3) — Apache-2.0
-  - `markdown` (v3.7) — BSD-3-Clause
-  - `pygments` (v2.18.0) — BSD-2-Clause
-  - `beautifulsoup4` (v4.12.3) — MIT
+  *Runtime (scope: required)*
+  - `PySide6` (v6.11.1) — LGPL-3.0-only
+  - `qt-material` (v2.17) — BSD-2-Clause
+  - `cryptography` (v49.0.0) — Apache-2.0 / BSD-3-Clause
+  - `keyring` (v25.6.0) — MIT
+  - `psutil` (v7.2.2) — BSD-3-Clause
+  - `requests` (v2.34.2) — Apache-2.0
+  - `markdown` (v3.10.2) — BSD-3-Clause
+  - `pygments` (v2.19.1) — BSD-2-Clause
+  - `beautifulsoup4` (v4.14.3) — MIT
+
+  *Build & CI tooling (scope: optional, not shipped)*
+  - `PyInstaller` (v6.6.0) — GPL-2.0-or-later
   - `deep-translator` (v1.11.4) — MIT
-  - `PyInstaller` (v6.10.0) — GPL-2.0-or-later
+  - `ruff` (v0.16.3) — MIT
+  - `mypy` (v2.3.1) — MIT
+  - `pytest` (v9.1.1) — MIT
+  - `types-psutil` / `types-Markdown` — Apache-2.0
 
 ---
 
@@ -144,7 +152,7 @@ The enterprise Inno Setup installer supports silent, unattended automated rollou
 .\TailscaleClientPro_Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /LOG="C:\ProgramData\Logs\TailscaleClientPro_Install.log"
 
 # Silent unattended uninstall:
-"C:\Program Files\Tailscale Client Pro\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+"C:\Program Files\TailscaleClientPro\unins000.exe" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 ```
 
 ### B. Linux Enterprise Distribution (.deb / APT Repositories)

@@ -52,3 +52,45 @@ jobs:
 
       - name: Static typing (mypy)
         run: python -m mypy src/ main.py
+
+  package:
+    name: Packaging smoke test (frozen build)
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Install headless Qt runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libegl1 libxkbcommon0 libdbus-1-3 libfontconfig1
+
+      - name: Build the one-directory bundle (uses the shipped spec)
+        run: python -m PyInstaller TailscaleClient_OneDir.spec --noconfirm
+
+      - name: Self-test the frozen executable
+        run: |
+          set -o pipefail
+          "./dist/TailscaleClientPro_OneDir/Tailscale VPN Client Pro" --self-test | tee /tmp/self-test.log
+
+      - name: Upload the self-test report and the build warnings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaging-self-test
+          path: |
+            /tmp/self-test.log
+            build/TailscaleClient_OneDir/warn-TailscaleClient_OneDir.txt
+          if-no-files-found: ignore
