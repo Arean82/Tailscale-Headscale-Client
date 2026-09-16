@@ -61,6 +61,10 @@ def build_dialogs():
 
 
 class TestDialogAccessibility(unittest.TestCase):
+    def test_import_time_application_is_still_alive(self):
+        """The dialogs below can only be built while the shared QApplication lives."""
+        self.assertIs(QApplication.instance(), _app)
+
     def _audit(self, factory):
         dialog = factory()
         try:

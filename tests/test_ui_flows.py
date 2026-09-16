@@ -21,6 +21,11 @@ from PySide6.QtWidgets import QApplication
 
 _app = QApplication.instance() or QApplication([])
 
+#: Stands in for a pre-auth key. Not credential-shaped on purpose: a tskey-auth-…
+#: literal in the tree trips GitHub secret scanning, and the UI passes this value
+#: straight through to the coordinator, which is faked here anyway.
+PRE_AUTH_VALUE = "fixture-pre-auth-value"
+
 from src.core.models import AppSettings, Profile
 from src.ui.dashboard import DashboardView
 
@@ -83,8 +88,12 @@ def make_view(profile=None, settings=None, cached_status=None, any_connected=Fal
 class TestConnectionToggle(unittest.TestCase):
     """The flow a Headscale user hits first."""
 
+    def test_import_time_application_is_still_alive(self):
+        """DashboardView can only be built while the shared QApplication lives."""
+        self.assertIs(QApplication.instance(), _app)
+
     def test_disconnected_click_connects_with_the_profile_credentials(self):
-        profile = Profile(name="HQ", login_server="https://hs.example.com", auth_key="tskey-auth-abc")
+        profile = Profile(name="HQ", login_server="https://hs.example.com", auth_key=PRE_AUTH_VALUE)
         view, coordinator, _ = make_view(profile)
         view.update_status(False, "Disconnected")
 
@@ -93,7 +102,7 @@ class TestConnectionToggle(unittest.TestCase):
         self.assertEqual([c[0] for c in coordinator.calls], ["connect_vpn"])
         kwargs = coordinator.calls[0][1]
         self.assertEqual(kwargs["login_server"], "https://hs.example.com")
-        self.assertEqual(kwargs["auth_key"], "tskey-auth-abc")
+        self.assertEqual(kwargs["auth_key"], PRE_AUTH_VALUE)
         self.assertEqual(kwargs["profile_name"], "HQ")
         self.assertFalse(kwargs["use_sso"])
 

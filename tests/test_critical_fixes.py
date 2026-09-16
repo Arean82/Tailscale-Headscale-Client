@@ -2,9 +2,12 @@ import os
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import main
 
 
 class TestCriticalBugFixes(unittest.TestCase):
@@ -163,6 +166,49 @@ class TestCriticalBugFixes(unittest.TestCase):
         finally:
             import shutil
             shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+class TestInstallerMutex(unittest.TestCase):
+    """Inno Setup watches AppMutex to refuse replacing files of a running app."""
+
+    def test_non_windows_creates_no_handle(self):
+        with patch.object(main.sys, "platform", "linux"):
+            self.assertIsNone(main.acquire_installer_mutex())
+
+    def test_handle_is_created_once_and_then_reused(self):
+        calls = []
+
+        def create_mutex(*args):
+            calls.append(args)
+            return 4321
+
+        fake_ctypes = SimpleNamespace(
+            windll=SimpleNamespace(kernel32=SimpleNamespace(CreateMutexW=create_mutex)))
+        with patch.object(main, "ctypes", fake_ctypes), \
+                patch.object(main.sys, "platform", "win32"), \
+                patch.object(main, "_mutex_handle", None):
+            first = main.acquire_installer_mutex()
+            second = main.acquire_installer_mutex()
+
+        self.assertEqual(first, 4321, "the handle must reach the caller")
+        self.assertIs(first, second, "a second call must not create a second mutex")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][2], main.SINGLE_INSTANCE_MUTEX,
+                         "the mutex name must match AppMutex in the installer script")
+
+    def test_a_failing_create_leaves_the_app_running(self):
+        """Best-effort by design: no mutex arm on Windows must not be fatal."""
+        class Boom:
+            def __getattr__(self, name):
+                raise AttributeError(name)
+
+        # create=True: the module-level logger only exists once the entry point has
+        # run setup_logger, which it always has by the time this is called.
+        with patch.object(main, "ctypes", SimpleNamespace(windll=Boom())), \
+                patch.object(main.sys, "platform", "win32"), \
+                patch.object(main, "_mutex_handle", None), \
+                patch.object(main, "logger", SimpleNamespace(debug=lambda *_: None), create=True):
+            self.assertIsNone(main.acquire_installer_mutex())
 
 
 if __name__ == "__main__":

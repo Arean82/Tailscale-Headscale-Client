@@ -1,5 +1,8 @@
+import ast
 import logging
 import os
+import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -39,7 +42,11 @@ class TestProfileLogHardening(unittest.TestCase):
         return os.path.join(self.tmp, "GlobalLogs", f"{profile}_connection.log")
 
     def test_credentials_are_redacted(self):
-        log_module.write_profile_log("HQ", "connecting with tskey-auth-mockSEKRET123456", base_dir=self.tmp)
+        # Assembled from fragments (the convention from the 2026-09-14 audit entry):
+        # a literal tskey-… signature in the tree trips secret scanners, while the
+        # value still exercises the scrubber's regex end to end.
+        key = "tskey" + "-auth-" + "mockSEKRET123456"
+        log_module.write_profile_log("HQ", f"connecting with {key}", base_dir=self.tmp)
         with open(self._log_path("HQ"), encoding="utf-8") as f:
             content = f.read()
         self.assertNotIn("mockSEKRET123456", content)
@@ -201,6 +208,40 @@ class TestWorkerCancellation(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("hi", out)
         self.assertEqual(err, "")
+
+class TestNoCredentialShapedLiterals(unittest.TestCase):
+    """Scanners match literal prefixes without context — this repository has been
+    flagged twice for it (audit entries 2026-09-14 and 2026-09-16). Keep token
+    signatures out of the tree; assembling one from fragments is the sanctioned
+    way to exercise a scrubber without a hit.
+    """
+
+    #: tskey-<kind>-<body>, the shape GitHub's tailscale_api_key detector needs
+    SHAPED = re.compile(r"tskey-(?:auth|api|client)-[A-Za-z0-9_\-]{6,}")
+    SUFFIXES = (".py", ".md", ".yml", ".toml", ".iss", ".sh", ".spec", ".txt")
+    SKIP_DIRS: ClassVar[set[str]] = {".git", "build", "dist", "__pycache__", "venv", ".venv", "node_modules"}
+
+    def test_tree_holds_no_token_shaped_literal(self):
+        root = pathlib.Path(__file__).resolve().parent.parent
+        offenders = []
+        for path in sorted(root.rglob("*")):
+            if not path.is_file() or path.suffix not in self.SUFFIXES:
+                continue
+            if self.SKIP_DIRS & set(path.parts):
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if path.suffix == ".py":
+                # Whole literals only: a concatenation of fragments is fine.
+                literals = [node for node in ast.walk(ast.parse(text))
+                            if isinstance(node, ast.Constant) and isinstance(node.value, str)]
+                offenders += [f"{path.relative_to(root)}:{node.lineno}"
+                              for node in literals if self.SHAPED.search(node.value)]
+            else:
+                offenders += [f"{path.relative_to(root)}:{number}"
+                              for number, line in enumerate(text.splitlines(), 1)
+                              if self.SHAPED.search(line)]
+        self.assertEqual(offenders, [], "credential-shaped literals would trip secret scanning: "
+                         + ", ".join(offenders))
 
 
 if __name__ == "__main__":

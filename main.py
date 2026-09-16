@@ -1,6 +1,7 @@
 # main.py
 # This is the main entry point for the application.
 
+import ctypes
 import multiprocessing
 import os
 import sys
@@ -25,16 +26,17 @@ def acquire_installer_mutex():
 
     Windows-only and best-effort: single-instance enforcement itself is handled
     by the QLockFile below; this exists so the installer can refuse to replace
-    files while the application is running.
+    files while the application is running. Idempotent, and returns the handle so
+    the caller can hold it for as long as the mutex must exist.
     """
     global _mutex_handle  # noqa: PLW0603 - the handle must outlive the call or Windows releases it
-    if sys.platform != "win32":
-        return
+    if sys.platform != "win32" or _mutex_handle is not None:
+        return _mutex_handle
     try:
-        import ctypes
         _mutex_handle = ctypes.windll.kernel32.CreateMutexW(None, False, SINGLE_INSTANCE_MUTEX)
     except (AttributeError, OSError) as e:
         logger.debug(f"Could not create the installer-detection mutex: {e}")
+    return _mutex_handle
 
 
 if __name__ == "__main__":
@@ -93,7 +95,6 @@ if __name__ == "__main__":
     if sys.platform == "win32":
         app.setStyle("WindowsVista") 
         try:
-            import ctypes
             myappid = 'arean82.tailscale.headscale.client.pro'
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         except (AttributeError, OSError):
