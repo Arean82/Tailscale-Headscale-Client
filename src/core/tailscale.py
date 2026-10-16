@@ -20,7 +20,7 @@ from .executor import (
     get_tailscale_path,
 )
 
-__all__ = ["TailscaleExecutor", "TailscaleManager", "get_tailscale_path"]
+__all__ = ["TailscaleExecutor", "TailscaleManager", "get_active_session_details", "get_tailscale_path"]
 
 # Child of the app logger configured in main.py so records reach app.log
 logger = logging.getLogger("TailscaleClient.Tailscale")
@@ -253,10 +253,23 @@ class TailscaleManager(QObject):
 
     def start_service(self):
         """Try to start Tailscale service if not running (detached, non-blocking)."""
+        import shutil
         if sys.platform == "win32":
             QProcess.startDetached("net", ["start", "Tailscale"])
         elif sys.platform.startswith("linux"):
-            QProcess.startDetached("systemctl", ["start", "tailscaled"])
+            try:
+                import subprocess
+                systemctl_bin = shutil.which("systemctl") or "systemctl"
+                res = subprocess.run([systemctl_bin, "is-active", "--quiet", "tailscaled"], check=False)
+                if res.returncode == 0:
+                    return
+            except (OSError, subprocess.SubprocessError):
+                pass
+
+            if hasattr(os, "geteuid") and os.geteuid() != 0 and shutil.which("pkexec"):
+                QProcess.startDetached("pkexec", ["systemctl", "start", "tailscaled"])
+            else:
+                QProcess.startDetached("systemctl", ["start", "tailscaled"])
         elif sys.platform == "darwin":
             QProcess.startDetached("launchctl", ["start", "com.tailscale.tailscaled"])
 
@@ -293,6 +306,10 @@ class TailscaleManager(QObject):
         except (KeyError, OSError, psutil.Error):
             return None
         return None
+
+    def get_active_session_details(self):
+        """Introspects the local tailscaled daemon for the active connection parameters."""
+        return get_active_session_details()
 
     def _build_up_args(self, connect_args):
         """Construct a complete, unambiguous argument list for 'tailscale up' with explicit true/false values."""
@@ -370,3 +387,106 @@ class TailscaleManager(QObject):
                 logger.error(f"Error parsing extra flags '{extra_args}': {e}")
 
         return args
+
+
+def get_active_session_details() -> dict | None:
+    """Introspects the local tailscaled daemon for the active connection parameters.
+
+    Returns:
+        dict: {
+            "is_active": bool,
+            "control_url": str,
+            "auth_mode": str,  # 'google' (SSO) or 'authkey'
+            "tailnet_name": str,
+            "user_login": str,
+            "suggested_name": str,
+            "hostname": str,
+            "ips": list[str],
+        }
+        or None if daemon is unreachable.
+    """
+    data = None
+    try:
+        from ..utils.local_api import query_local_api
+        data = query_local_api(timeout=1.5)
+    except (RuntimeError, OSError, ValueError):
+        pass
+
+    if not data:
+        try:
+            import json
+            import subprocess
+
+            from .executor import _popen_kwargs, get_tailscale_path
+            res = subprocess.run([get_tailscale_path(), "status", "--json"],
+                                 capture_output=True, text=True, timeout=2.0, check=False, **_popen_kwargs())
+            if res.returncode == 0 and res.stdout.strip():
+                data = json.loads(res.stdout)
+        except (subprocess.SubprocessError, OSError, ValueError):
+            pass
+
+    if not data:
+        return None
+
+    control_url = ""
+    prefs = None
+    try:
+        from ..utils.local_api import query_local_api_prefs
+        prefs = query_local_api_prefs(timeout=1.5)
+        if isinstance(prefs, dict):
+            control_url = prefs.get("ControlURL") or ""
+    except (RuntimeError, OSError, ValueError):
+        pass
+
+    if not control_url:
+        try:
+            import json
+            import subprocess
+
+            from .executor import _popen_kwargs, get_tailscale_path
+            res = subprocess.run([get_tailscale_path(), "debug", "prefs"],
+                                 capture_output=True, text=True, timeout=2.0, check=False, **_popen_kwargs())
+            if res.returncode == 0 and res.stdout.strip():
+                prefs = json.loads(res.stdout)
+                if isinstance(prefs, dict):
+                    control_url = prefs.get("ControlURL") or ""
+        except (subprocess.SubprocessError, OSError, ValueError):
+            pass
+
+    # If ControlURL was empty in prefs, check if an AuthURL exists (from URL/SSO login)
+    if not control_url and data:
+        auth_url = data.get("AuthURL") or ""
+        if auth_url:
+            from urllib.parse import urlparse
+            parsed = urlparse(auth_url)
+            if parsed.scheme and parsed.netloc:
+                control_url = f"{parsed.scheme}://{parsed.netloc}"
+
+    # We intentionally do NOT fall back to "https://controlplane.tailscale.com".
+    # If no URL is detected from live preferences, leave it empty so the user can review or supply it.
+
+    state = data.get("BackendState", "")
+    is_active = (state == "Running")
+
+    self_node = data.get("Self") or {}
+    user_id = str(self_node.get("UserID", ""))
+    users = data.get("User") or {}
+    user = users.get(user_id) or {}
+
+    user_login = user.get("LoginName", "")
+    tailnet = data.get("CurrentTailnet") or {}
+    tailnet_name = tailnet.get("Name", "") if isinstance(tailnet, dict) else str(tailnet)
+
+    auth_mode = "google" if (user_login or (user_id and user_id != "0")) else "authkey"
+    suggested_name = tailnet_name or user_login or self_node.get("HostName") or "Tailscale"
+
+    return {
+        "is_active": is_active,
+        "control_url": control_url,
+        "auth_mode": auth_mode,
+        "tailnet_name": tailnet_name,
+        "user_login": user_login,
+        "suggested_name": suggested_name,
+        "hostname": self_node.get("HostName", ""),
+        "ips": data.get("TailscaleIPs") or [],
+    }

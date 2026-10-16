@@ -38,7 +38,7 @@ class TestClientCore(unittest.TestCase):
     def test_profile_initialization(self):
         prof = Profile(name='Production')
         self.assertEqual(prof.name, 'Production')
-        self.assertEqual(prof.login_server, 'https://controlplane.tailscale.com')
+        self.assertEqual(prof.login_server, "")
         self.assertEqual(prof.auth_mode, 'auth_key')
         self.assertFalse(prof.auto_connect)
 

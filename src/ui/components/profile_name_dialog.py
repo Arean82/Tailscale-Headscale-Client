@@ -9,7 +9,7 @@ logger = logging.getLogger("TailscaleClient.UI.ProfileNameDialog")
 
 
 class ProfileNameDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, suggested_name=""):
         super().__init__(parent)
         
         loader = QUiLoader()
@@ -43,6 +43,9 @@ class ProfileNameDialog(QDialog):
             if self.line_edit:
                 self.line_edit.setAccessibleName("New Profile Name Input")
                 self.line_edit.setAccessibleDescription("Enter an alphanumeric name for the new network profile.")
+                if suggested_name:
+                    self.line_edit.setText(suggested_name)
+                    self.line_edit.selectAll()
             if self.btn_create:
                 self.btn_create.setAccessibleName("Create Profile Button")
                 self.btn_create.setAccessibleDescription("Validates the entered name and creates the new profile tab.")

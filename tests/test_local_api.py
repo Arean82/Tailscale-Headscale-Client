@@ -135,5 +135,79 @@ class TestBoundedExecution(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 2.5)
 
 
+class TestActiveSessionIntrospection(unittest.TestCase):
+    """Test get_active_session_details() and profile defaults."""
+
+    def test_profile_default_login_server_is_empty(self):
+        from src.core.models import Profile
+        prof = Profile(name="test")
+        self.assertEqual(prof.login_server, "", "Profile login_server must not be hardcoded to a dummy URL")
+
+    def test_prefs_request_constants(self):
+        from src.utils.local_api import (
+            _LOCAL_API_PREFS_REQUEST,
+            _LOCAL_API_PREFS_REQUEST_UNIX,
+            _LOCAL_API_PREFS_REQUEST_WIN,
+        )
+        if sys.platform == "win32":
+            self.assertEqual(_LOCAL_API_PREFS_REQUEST, _LOCAL_API_PREFS_REQUEST_WIN)
+        else:
+            self.assertEqual(_LOCAL_API_PREFS_REQUEST, _LOCAL_API_PREFS_REQUEST_UNIX)
+        self.assertIn(b"/localapi/v0/prefs", _LOCAL_API_PREFS_REQUEST)
+
+    def test_get_active_session_details_headscale(self):
+        from unittest.mock import patch
+
+        from src.core.tailscale import get_active_session_details
+
+        fake_status = {
+            "BackendState": "Running",
+            "Self": {"HostName": "my-host", "UserID": 1},
+            "User": {"1": {"LoginName": "user@headscale.lan"}},
+            "CurrentTailnet": {"Name": "headscale.lan"},
+            "TailscaleIPs": ["100.64.0.5"],
+        }
+        fake_prefs = {
+            "ControlURL": "https://headscale.lan:8080",
+        }
+
+        with patch("src.utils.local_api.query_local_api", return_value=fake_status), \
+             patch("src.utils.local_api.query_local_api_prefs", return_value=fake_prefs):
+            details = get_active_session_details()
+
+        self.assertIsNotNone(details)
+        self.assertTrue(details["is_active"])
+        self.assertEqual(details["control_url"], "https://headscale.lan:8080")
+        self.assertEqual(details["auth_mode"], "google")
+        self.assertEqual(details["tailnet_name"], "headscale.lan")
+        self.assertEqual(details["suggested_name"], "headscale.lan")
+
+    def test_get_active_session_details_no_dummy_fallback(self):
+        from unittest.mock import patch
+
+        from src.core.tailscale import get_active_session_details
+
+        fake_status = {
+            "BackendState": "Running",
+            "Self": {"HostName": "my-host", "UserID": 0},
+            "User": {},
+            "CurrentTailnet": {},
+            "TailscaleIPs": ["100.64.0.10"],
+        }
+        fake_prefs = {
+            "ControlURL": "",
+        }
+
+        with patch("src.utils.local_api.query_local_api", return_value=fake_status), \
+             patch("src.utils.local_api.query_local_api_prefs", return_value=fake_prefs), \
+             patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 1
+            details = get_active_session_details()
+
+        self.assertIsNotNone(details)
+        self.assertEqual(details["control_url"], "", "Should not fall back to dummy controlplane.tailscale.com")
+
+
 if __name__ == "__main__":
     unittest.main()
+

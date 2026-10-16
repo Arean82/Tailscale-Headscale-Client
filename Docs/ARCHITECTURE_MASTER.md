@@ -223,13 +223,19 @@ The client implements full compliance with **EN 301 549 (Software Clause 11)** a
 
 ---
 
-## 8. Cross-Platform Engine Support
+## 8. Cross-Platform Engine Support & Daemon Introspection
 
-| Platform | Process Detection | Sockets / Paths | Keyring Backend |
-| :--- | :--- | :--- | :--- |
-| **Windows** | `tailscale status --json` probe (start via `net start Tailscale`) | Named pipe `\\.\pipe\ProtectedPrefix\Administrators\Tailscale\tailscaled` | Microsoft Windows Credential Manager (`DPAPI`) |
-| **Linux** | `tailscale status --json` probe (start via `systemctl start tailscaled`) | `/var/run/tailscale/tailscaled.sock` | FreeDesktop SecretService / GNOME Keyring / KWallet |
-| **macOS** | `tailscale status --json` probe (start via `launchctl start com.tailscale.tailscaled`) | `/var/run/tailscale/tailscaled.sock` (App Store build: `/Library/Containers/io.tailscale.ipn.macos/Data/tailscaled.sock`) | Apple Keychain Services |
+| Platform | Process & Service Supervision | Sockets / IPC Pipes | HTTP Host Header | Keyring Backend | Elevation Model |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Windows** | `tailscale status --json` (start via `net start Tailscale`) | Named pipe `\\.\pipe\ProtectedPrefix\administrators\Tailscale\tailscaled` | `Host: local-tailscaled` | Microsoft Windows Credential Locker (`DPAPI`) | UAC `ShellExecuteW("runas")` |
+| **Linux** | `systemctl is-active tailscaled` / probe (start via `systemctl start tailscaled`) | `/var/run/tailscale/tailscaled.sock` (fallback `/run/tailscale/tailscaled.sock`) | `Host: local-tailscaled.sock` | FreeDesktop SecretService / GNOME Keyring / KWallet | Polkit (`pkexec`) / Non-blocking POSIX fallback |
+| **macOS** | `launchctl` service supervisor (`com.tailscale.tailscaled`) | `/var/run/tailscale/tailscaled.sock` (App Store: `/Library/Containers/io.tailscale.ipn.macos/Data/tailscaled.sock`) | `Host: local-tailscaled.sock` | Apple Keychain Services | `osascript` administrator privileges |
+
+### 8.1 Live Daemon Session Discovery & Zero Dummy URL Fallbacks
+The client incorporates dynamic runtime introspection via `get_active_session_details()`:
+* **Preference Inspection (`/localapi/v0/prefs`)**: Directly polls daemon preferences over the local socket or named pipe to read `ControlURL`. If the host is connected to a self-hosted Headscale controller (e.g. `https://headscale.company.com`), that exact URL is extracted.
+* **SSO & URL Login Detection**: Detects interactive web auth URLs (`AuthURL`) and user authentication records (`User.LoginName`). If an active user session exists, `auth_mode` is automatically set to `google` (browser SSO).
+* **Zero Dummy Substitution**: All arbitrary defaults to `https://controlplane.tailscale.com` have been eliminated across model definitions, SQLite persistence, and diagnostic dialogs. When no control URL is detected, the field remains empty, prompting the user for explicit input.
 
 ---
 
@@ -275,5 +281,5 @@ To ensure zero operational degradation and eliminate runtime exceptions:
 * **Deterministic Resource Management (`py/file-not-closed`)**: Windows Named Pipes and Unix domain sockets operate under strict Python context managers (`with open(...) as f:`), guaranteeing immediate OS handle reclamation under all crash and interrupt scenarios.
 * **Granular Exception Subclasses (`py/empty-except`)**: Replaced untyped `except:` and broad `except Exception:` blocks with specific error subclasses (`OSError`, `socket.gaierror`, `psutil.NoSuchProcess`, `RuntimeError`), ensuring critical OS termination signals (`SIGINT`, `SystemExit`) pass cleanly.
 * **Exhaustive Variable Initialization (`py/uninitialized-local-variable`, `py/multiple-definition`)**: Every asynchronous event loop callback pre-initializes state flags and eliminates dead stores, preventing `UnboundLocalError` across daemon polling cycles.
-* **Continuous SAST Integration**: GitHub Actions workflow ([`.github/workflows/codeql.yml`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/.github/workflows/codeql.yml)) runs weekly and on every pull request using `security-extended` and `security-and-quality` rulesets.
+* **Continuous SAST Integration**: GitHub Actions workflow ([`.github/workflows/codeql.yml`](../.github/workflows/codeql.yml)) runs weekly and on every pull request using `security-extended` and `security-and-quality` rulesets.
 

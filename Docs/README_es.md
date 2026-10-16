@@ -165,6 +165,9 @@ El cliente proporciona navegación completa sin restricciones mediante teclado, 
 3. **Propiedad Acotada de Procesos:** El ejecutor rastrea el proceso CLI que inicia, lo termina durante el cierre y después retira su hilo trabajador, de modo que ningún proceso `tailscale` sobrevive a la aplicación ni bloquea un cambio de perfil.
 4. **Retroceso Exponencial Resiliente:** La reconexión automática utiliza pausas progresivas (`3s` -> `6s` -> `12s`) para proteger los servidores contra saturación de tráfico.
 5. **Compatibilidad SSL Autofirmado:** Los despliegues de laboratorio con servidores Headscale autohospedados admiten el modo de prueba segura mediante `--insecure-skip-tls-verify=true`.
+6. **Cero URLs de Respaldo Falsas y Detección de Sesión Activa:** El cliente inspecciona dinámicamente las preferencias del demonio en ejecución (`/localapi/v0/prefs` y `tailscale debug prefs`) para consultar los parámetros de conexión activos de Headscale o Tailscale (`ControlURL`, `AuthURL`, `User`, `CurrentTailnet`). Se han eliminado por completo las URLs de control SaaS fijas y ficticias (`controlplane.tailscale.com`) en los modelos de perfil, la persistencia SQLite y los diálogos de diagnóstico, garantizando que las implementaciones soberanas de Headscale y los inicios de sesión web/SSO se detecten y muestren con total precisión sin enmascaramiento.
+7. **IPC Multiplataforma y Sockets LocalAPI:** La comunicación con el demonio local se adapta de forma transparente según el sistema operativo: en Linux y macOS se conecta a `/var/run/tailscale/tailscaled.sock` (con respaldo en `/run/tailscale/tailscaled.sock`) mediante sockets de dominio Unix con el encabezado requerido `Host: local-tailscaled.sock`; en Windows se comunica a través del conducto con nombre restringido a administradores `\\.\pipe\ProtectedPrefix\administrators\Tailscale\tailscaled`.
+8. **Mecanismo de Emergencia DNS Multiplataforma:** Si la resolución de nombres DNS falla, el cliente admite la fijación de emergencia mediante la resolución nativa del archivo hosts del sistema operativo: `/etc/hosts` en Linux y macOS (con seguridad sin bloqueo y elevación vía `pkexec`/`osascript`) y `C:\Windows\System32\drivers\etc\hosts` en Windows.
 
 ---
 
@@ -173,7 +176,7 @@ El cliente proporciona navegación completa sin restricciones mediante teclado, 
 | Sistema Operativo | Arquitectura Soportada | Versión Mínima | Gestor de Servicio | Modelo de Privilegios |
 | :--- | :--- | :--- | :--- | :--- |
 | **Windows** | x86_64, ARM64 | Windows 10 (Compilación 19041+) / Windows 11 | Servicio Windows (`Tailscale`) | Usuario Estándar (Servicio Elevado) |
-| **Linux** | x86_64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+ | `systemd` (`tailscaled.service`) | Grupo `tailscale` / ACL Socket |
+| **Linux** | x86_64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+, Arch Linux | `systemd` (`tailscaled.service`) | Grupo `tailscale` / ACL Socket / Polkit |
 | **macOS** | x86_64, Apple Silicon | macOS 11.0 (Big Sur) o superior | `launchd` / `launchctl` | Aislamiento Keychain |
 
 ---
@@ -198,6 +201,12 @@ pip install -r requirements.txt
 
 # 4. Iniciar cliente de desarrollo
 python main.py
+
+# 5. Ejecutar suite de pruebas y compuertas de calidad
+pytest                              # Ejecutar las 155 pruebas unitarias
+python main.py --self-test          # Validar recursos de empaquetado, traducciones y base de datos
+ruff check main.py src/ tests/      # Análisis estático de código y estilo
+mypy src/                           # Verificación estricta de tipos estáticos
 ```
 
 ---

@@ -495,7 +495,7 @@ class DatabaseManager:
                 prof = Profile(
                     id=row[0],
                     name=row[1],
-                    login_server=row[2] or "https://controlplane.tailscale.com",
+                    login_server=row[2] or "",
                     auth_key="",  # Kept empty in DB; populated from native Keyring
                     auth_mode=row[3] or "auth_key",
                     auto_connect=bool(row[4]),

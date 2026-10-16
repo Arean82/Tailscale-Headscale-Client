@@ -15,7 +15,7 @@ class AppState(Enum):
 class Profile:
     name: str
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    login_server: str = "https://controlplane.tailscale.com"
+    login_server: str = ""
     auth_key: str = ""
     auth_mode: str = "auth_key"  # "auth_key" or "sso"
     auto_connect: bool = False

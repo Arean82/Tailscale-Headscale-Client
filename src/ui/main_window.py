@@ -769,6 +769,10 @@ class MainWindow(QMainWindow):
         import sys
         if sys.platform == "win32":
             app.setStyle("WindowsVista")
+        else:
+            from PySide6.QtWidgets import QStyleFactory
+            if "Fusion" in QStyleFactory.keys():  # noqa: SIM118
+                app.setStyle("Fusion")
         app.setPalette(app.style().standardPalette())
 
         # Determine Local Styles dynamically from QSS files
@@ -864,10 +868,21 @@ class MainWindow(QMainWindow):
                               "You can increase this limit in File -> Settings.")
             return False
 
+        # 0. Check for active session details to suggest name and auto-detect server URL / auth mode
+        from ..core.tailscale import get_active_session_details
+        active_session = get_active_session_details()
+        suggested_name = ""
+        detected_url = ""
+        detected_mode = "auth_key"
+        if active_session and active_session.get("is_active"):
+            suggested_name = active_session.get("suggested_name", "")
+            detected_url = active_session.get("control_url", "")
+            detected_mode = active_session.get("auth_mode", "auth_key")
+
         # 1. First Step: Get Profile Name using profile.ui
         from .components.profile_name_dialog import ProfileNameDialog
         
-        name_dialog = ProfileNameDialog(self)
+        name_dialog = ProfileNameDialog(self, suggested_name=suggested_name)
         self._apply_theme_to_dialog(name_dialog)
         
         if name_dialog.exec():
@@ -880,13 +895,30 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Error", "Profile name already exists.")
                 return False
 
-            # Create profile with default values - user can change credentials later
+            # Create profile staging instance with detected or blank details
             from ..core.models import Profile
-            new_profile = Profile(name=profile_name)
-            
-            self.manager.add_profile(new_profile)
-            self.refresh_tabs()
-            return True
+            from .components.profile_dialog import ProfileDialog
+            new_profile = Profile(name=profile_name, login_server=detected_url, auth_mode=detected_mode)
+
+            # Open credentials dialog upfront so the user can verify/edit server URL and auth mode
+            profile_dialog = ProfileDialog(self, new_profile, manager=self.manager)
+            self._apply_theme_to_dialog(profile_dialog)
+            if profile_dialog.exec():
+                data = profile_dialog.get_data()
+                if not data:
+                    return False
+                new_profile.login_server = data["login_server"]
+                new_profile.auth_key = data["auth_key"]
+                new_profile.auth_mode = "google" if data["auth_mode"] == "sso" else data["auth_mode"]
+                new_profile.enable_dns_fallback = data["enable_dns_fallback"]
+                new_profile.last_known_ip = data["last_known_ip"]
+
+                self.manager.add_profile(new_profile)
+                self.refresh_tabs()
+                return True
+            else:
+                # User cancelled profile credentials dialog - do not create empty/dummy profile
+                return False
         return False
 
 

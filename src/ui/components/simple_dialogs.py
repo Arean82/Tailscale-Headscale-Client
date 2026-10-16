@@ -529,7 +529,15 @@ class TrafficDialog(BaseUiDialog):
         # Resolve active profile URL
         if self.labelLoginServer and self.manager:
             profile = self.manager.profiles.get(active_name) if active_name != "Default" else None
-            login_server = profile.login_server if profile else "https://controlplane.tailscale.com"
+            login_server = profile.login_server if (profile and profile.login_server) else ""
+            if not login_server and self.ts_manager:
+                try:
+                    from ...core.tailscale import get_active_session_details
+                    active_info = get_active_session_details()
+                    if active_info and active_info.get("is_active"):
+                        login_server = active_info.get("control_url", "")
+                except (RuntimeError, OSError, ValueError):
+                    pass
             self.labelLoginServer.setText(login_server)
             
         # Fetch Active IP

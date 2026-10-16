@@ -135,7 +135,7 @@ class Manager:
 
                     migrated_prof = Profile(
                         name=name,
-                        login_server=url or "https://controlplane.tailscale.com",
+                        login_server=url,
                         auth_key=key,
                         auth_mode=mode,
                         exit_node=exit_node,

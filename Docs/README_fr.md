@@ -165,6 +165,9 @@ Le client offre une navigation complète et sans contrainte exclusivement au cla
 3. **Propriété Bornée des Processus :** L'exécuteur suit le processus CLI qu'il lance, le termine à l'arrêt puis retire son thread de travail : aucun processus `tailscale` ne survit à l'application ni ne bloque un changement de profil.
 4. **Répétition Exponentielle Résiliente :** La reconnexion automatique applique un échelonnement progressif (`3s` -> `6s` -> `12s`) pour éviter toute surcharge réseau.
 5. **Support SSL Auto-Signé :** Les déploiements en environnement de test avec serveurs Headscale auto-hébergés prennent en charge l'option `--insecure-skip-tls-verify=true`.
+6. **Zéro URL de Repli Fictive & Découverte de Session Active :** Le client inspecte dynamiquement les préférences du démon en cours d'exécution (`/localapi/v0/prefs` et `tailscale debug prefs`) pour interroger les paramètres de connexion actifs de Headscale ou Tailscale (`ControlURL`, `AuthURL`, `User`, `CurrentTailnet`). Toutes les URL de contrôle SaaS codées en dur (`controlplane.tailscale.com`) ont été éliminées des modèles de profils, de la persistance SQLite et des fenêtres de diagnostic, garantissant que les déploiements Headscale souverains et les connexions Web/SSO sont détectés et affichés avec une parfaite exactitude sans aucun masquage.
+7. **IPC Multiplateforme & Sockets LocalAPI :** La communication avec le démon local s'adapte de manière transparente selon le système d'exploitation : sous Linux et macOS, elle cible `/var/run/tailscale/tailscaled.sock` (avec secours sur `/run/tailscale/tailscaled.sock`) via des sockets de domaine Unix avec l'en-tête requis `Host: local-tailscaled.sock` ; sous Windows, elle s'effectue via le canal nommé restreint aux administrateurs `\\.\pipe\ProtectedPrefix\administrators\Tailscale\tailscaled`.
+8. **Mécanisme d'Urgence DNS Multiplateforme :** En cas d'échec de la résolution DNS, le client permet un épinglage d'urgence via la résolution native du fichier hosts du système : `/etc/hosts` sous Linux et macOS (avec sécurité non bloquante et élévation `pkexec`/`osascript`) et `C:\Windows\System32\drivers\etc\hosts` sous Windows.
 
 ---
 
@@ -173,7 +176,7 @@ Le client offre une navigation complète et sans contrainte exclusivement au cla
 | Système d'Exploitation | Architecture Prise en Charge | Version Minimale | Gestionnaire de Service | Modèle de Privilèges |
 | :--- | :--- | :--- | :--- | :--- |
 | **Windows** | x86_64, ARM64 | Windows 10 (Build 19041+) / Windows 11 | Service Windows (`Tailscale`) | Utilisateur Standard (Service Élevé) |
-| **Linux** | x86_64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+ | `systemd` (`tailscaled.service`) | Groupe `tailscale` / ACL Socket |
+| **Linux** | x86_64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+, Arch Linux | `systemd` (`tailscaled.service`) | Groupe `tailscale` / ACL Socket / Polkit |
 | **macOS** | x86_64, Apple Silicon | macOS 11.0 (Big Sur) ou supérieur | `launchd` / `launchctl` | Bac à Sable Trousseau OS |
 
 ---
@@ -198,6 +201,12 @@ pip install -r requirements.txt
 
 # 4. Lancer le client de développement
 python main.py
+
+# 5. Exécuter la suite de tests et les contrôles de qualité
+pytest                              # Exécuter les 155 tests unitaires
+python main.py --self-test          # Valider les ressources de packaging, les traductions et la base de données
+ruff check main.py src/ tests/      # Analyse statique du code et style
+mypy src/                           # Vérification stricte des types statiques
 ```
 
 ---

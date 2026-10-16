@@ -6,11 +6,8 @@ import multiprocessing
 import os
 import sys
 
-from PySide6.QtWidgets import QApplication
-
 from src.core.manager import Manager
 from src.core.tailscale import TailscaleManager
-from src.ui.main_window import MainWindow
 from src.utils.crash_handler import install as install_crash_handlers
 from src.utils.dns_fallback import run_cli_if_requested
 from src.utils.logger import manage_sys_streams, setup_logger
@@ -91,6 +88,10 @@ if __name__ == "__main__":
         logger.error(f"Failed to copy icon to persistent APPDATA: {e}")
 
     # 2. Initialize App & Check Lock
+    from PySide6.QtWidgets import QApplication, QStyleFactory
+
+    from src.ui.main_window import MainWindow
+
     app = QApplication(sys.argv)
     if sys.platform == "win32":
         app.setStyle("WindowsVista") 
@@ -100,6 +101,9 @@ if __name__ == "__main__":
         except (AttributeError, OSError):
             # Shell32 or AppUserModelID not available on non-Windows/wine
             pass
+    else:
+        if "Fusion" in QStyleFactory.keys():  # noqa: SIM118
+            app.setStyle("Fusion")
             
     # Dynamically set app name to match the running .exe name (specified in your .spec file)
     exe_name = os.path.splitext(os.path.basename(sys.executable))[0]

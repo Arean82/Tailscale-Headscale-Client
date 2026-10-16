@@ -12,7 +12,13 @@ from collections.abc import Callable
 # Default bound for Local API calls so a hung daemon can never freeze a caller
 DEFAULT_TIMEOUT = 5.0
 
-_LOCAL_API_REQUEST = b"GET /localapi/v0/status HTTP/1.1\r\nHost: local-tailscaled\r\n\r\n"
+_LOCAL_API_REQUEST_WIN = b"GET /localapi/v0/status HTTP/1.1\r\nHost: local-tailscaled\r\n\r\n"
+_LOCAL_API_REQUEST_UNIX = b"GET /localapi/v0/status HTTP/1.1\r\nHost: local-tailscaled.sock\r\n\r\n"
+_LOCAL_API_REQUEST = _LOCAL_API_REQUEST_WIN if sys.platform == "win32" else _LOCAL_API_REQUEST_UNIX
+
+_LOCAL_API_PREFS_REQUEST_WIN = b"GET /localapi/v0/prefs HTTP/1.1\r\nHost: local-tailscaled\r\n\r\n"
+_LOCAL_API_PREFS_REQUEST_UNIX = b"GET /localapi/v0/prefs HTTP/1.1\r\nHost: local-tailscaled.sock\r\n\r\n"
+_LOCAL_API_PREFS_REQUEST = _LOCAL_API_PREFS_REQUEST_WIN if sys.platform == "win32" else _LOCAL_API_PREFS_REQUEST_UNIX
 
 
 class LocalApiError(RuntimeError):
@@ -180,6 +186,40 @@ def _pipe_request_bounded(pipe_path, request, timeout):
     return _run_bounded(request_once, timeout, "Local API named-pipe request")
 
 
+def _query_local_api_raw(req_bytes: bytes, path=None, timeout=DEFAULT_TIMEOUT):
+    deadline = time.monotonic() + timeout
+
+    if sys.platform == "win32":
+        pipe_path = path or r"\\.\pipe\ProtectedPrefix\administrators\Tailscale\tailscaled"
+        try:
+            status, reason, body = _pipe_request_bounded(pipe_path, req_bytes, timeout)
+        except OSError as e:
+            raise LocalApiError(f"Named Pipe connection failed: {e}") from e
+        return _status_payload(status, reason, body, "Named Pipe")
+    else:
+        sock_path = path or "/var/run/tailscale/tailscaled.sock"
+        # Common macOS App Store and modern Linux /run socket path fallbacks
+        mac_fallback = "/Library/Containers/io.tailscale.ipn.macos/Data/tailscaled.sock"
+        run_fallback = "/run/tailscale/tailscaled.sock"
+        if not os.path.exists(sock_path):
+            if os.path.exists(run_fallback):
+                sock_path = run_fallback
+            elif os.path.exists(mac_fallback):
+                sock_path = mac_fallback
+
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.settimeout(timeout)
+                s.connect(sock_path)
+                s.sendall(req_bytes)
+                status, reason, body = _read_response(s.recv, deadline)
+        except LocalApiError:
+            raise
+        except (OSError, ValueError) as e:
+            raise LocalApiError(f"Unix Domain Socket connection failed: {e}") from e
+        return _status_payload(status, reason, body, "Unix Domain Socket")
+
+
 def query_local_api(path=None, timeout=DEFAULT_TIMEOUT):
     """Query the Tailscale Local API for status JSON with a bounded deadline.
 
@@ -188,33 +228,12 @@ def query_local_api(path=None, timeout=DEFAULT_TIMEOUT):
             (HTTP 401/403) — on Windows the pipe is administrators-only.
         LocalApiError: any other transport, framing or payload failure.
     """
-    deadline = time.monotonic() + timeout
+    return _query_local_api_raw(_LOCAL_API_REQUEST, path=path, timeout=timeout)
 
-    if sys.platform == "win32":
-        pipe_path = path or r"\\.\pipe\ProtectedPrefix\administrators\Tailscale\tailscaled"
-        try:
-            status, reason, body = _pipe_request_bounded(pipe_path, _LOCAL_API_REQUEST, timeout)
-        except OSError as e:
-            raise LocalApiError(f"Named Pipe connection failed: {e}") from e
-        return _status_payload(status, reason, body, "Named Pipe")
-    else:
-        sock_path = path or "/var/run/tailscale/tailscaled.sock"
-        # Common macOS App Store socket path fallback
-        mac_fallback = "/Library/Containers/io.tailscale.ipn.macos/Data/tailscaled.sock"
-        if not os.path.exists(sock_path) and os.path.exists(mac_fallback):
-            sock_path = mac_fallback
 
-        try:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-                s.settimeout(timeout)
-                s.connect(sock_path)
-                s.sendall(_LOCAL_API_REQUEST)
-                status, reason, body = _read_response(s.recv, deadline)
-        except LocalApiError:
-            raise
-        except (OSError, ValueError) as e:
-            raise LocalApiError(f"Unix Domain Socket connection failed: {e}") from e
-        return _status_payload(status, reason, body, "Unix Domain Socket")
+def query_local_api_prefs(path=None, timeout=DEFAULT_TIMEOUT):
+    """Query the Tailscale Local API for ipn.Prefs JSON with a bounded deadline."""
+    return _query_local_api_raw(_LOCAL_API_PREFS_REQUEST, path=path, timeout=timeout)
 
 def is_local_api_available(path=None):
     """Universal, platform-independent check to see if the Tailscale Local API is available.
@@ -236,8 +255,12 @@ def is_local_api_available(path=None):
     else:
         sock_path = path or "/var/run/tailscale/tailscaled.sock"
         mac_fallback = "/Library/Containers/io.tailscale.ipn.macos/Data/tailscaled.sock"
-        if not os.path.exists(sock_path) and os.path.exists(mac_fallback):
-            sock_path = mac_fallback
+        run_fallback = "/run/tailscale/tailscaled.sock"
+        if not os.path.exists(sock_path):
+            if os.path.exists(run_fallback):
+                sock_path = run_fallback
+            elif os.path.exists(mac_fallback):
+                sock_path = mac_fallback
             
         if not os.path.exists(sock_path):
             return False

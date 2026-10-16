@@ -43,7 +43,16 @@ class DashboardView(QWidget):
         
         # 4. Populate with data
         if profile and self.lineEditUrl:
-            self.lineEditUrl.setText(profile.login_server)
+            url_to_show = profile.login_server
+            if not url_to_show:
+                try:
+                    from ..core.tailscale import get_active_session_details
+                    active_info = get_active_session_details()
+                    if active_info and active_info.get("is_active"):
+                        url_to_show = active_info.get("control_url", "")
+                except (RuntimeError, OSError, ValueError) as err:
+                    logger.debug(f"Could not inspect active session for dashboard URL: {err}")
+            self.lineEditUrl.setText(url_to_show)
         
         # Accessibility (EN 301 549 11.2.1.1 / WCAG 1.1.1 Non-text Content)
         if self.lineEditUrl:
@@ -329,7 +338,17 @@ class DashboardView(QWidget):
                 if reply == QMessageBox.No:
                     return
 
-            url = self.lineEditUrl.text() if self.lineEditUrl else "https://controlplane.tailscale.com"
+            url = self.lineEditUrl.text().strip() if self.lineEditUrl else ""
+            if not url and self.profile and self.profile.login_server:
+                url = self.profile.login_server.strip()
+            if not url:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.warning(
+                    self, "Configuration Required",
+                    "Please configure your VPN server URL in 'Change Credentials' before connecting."
+                )
+                return
+
             key = self.profile.auth_key if self.profile else ""
             # Original app uses 'google' for SSO
             is_sso = self.profile.auth_mode == "google" if self.profile else False

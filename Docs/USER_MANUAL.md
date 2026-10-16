@@ -104,17 +104,18 @@ sequenceDiagram
 
 #### Steps to Add a New Profile:
 1. Click the **`➕`** tab button in the tab bar or select **`Profile`** $\to$ **`Add New Profile`**.
-2. Enter a unique name for the environment (e.g. `Office Work`, `Home Server`, `Client Lab`).
-3. Set your credentials:
+2. **Automatic Session Detection**: If a live Tailscale or Headscale session is already active on your system, the client automatically inspects the running daemon preferences (`/localapi/v0/prefs`) and pre-fills your tailnet/user name.
+3. Enter or verify the environment profile name (e.g. `Office Work`, `Home Server`, `Client Lab`).
+4. Set or verify your credentials in the credentials dialog:
    * **Login Server URL:**
-     * Leave default (`https://controlplane.tailscale.com`) for official Tailscale SaaS.
-     * Enter your sovereign Headscale server URL (e.g. `https://headscale.mycompany.com`).
+     * Automatically populated with your running server URL if an active session is detected.
+     * Enter your sovereign Headscale server URL (e.g. `https://headscale.mycompany.com`) or coordination endpoint.
    * **Authentication Method:**
-     * **Pre-Auth Key:** Paste your authentication token (e.g. `tskey-auth-...`). The client stores it in the native OS Credential Vault (`Windows Credential Manager`, `macOS Keychain`, `Linux SecretService`) indexed by an immutable UUIDv4. While a connection is being established the key is briefly staged in a restricted (0600) temporary file so it never appears in the process command line, and that file is removed as soon as the command finishes — the keyring remains the only persistent store.
-     * **Web Browser SSO:** Check "Use SSO" for interactive single sign-on browser authorization.
-4. Click **`Save`**.
-5. **Switching Profiles**: Simply click the profile's tab in the top tab bar. The client handles the background handover cleanly without leaking credentials!
-6. **Renaming a Profile**: Use **`Profile`** $	o$ **`Rename Current Profile...`**. The profile keeps its stored credentials (they are keyed by an internal UUID, not by name).
+     * **Web Browser SSO:** Check "Use SSO" for browser-based interactive sign-in (automatically detected if your active session authenticated via web SSO).
+     * **Pre-Auth Key:** Paste your authentication token (e.g. `tskey-auth-...`). The client stores it in the native OS Credential Vault (`Windows Credential Locker`, `macOS Keychain`, `Linux SecretService`) indexed by an immutable UUIDv4. While establishing a connection, the key is briefly staged in a restricted (0600) temporary file and removed immediately after execution.
+5. Click **`Save`**. If you cancel the credentials dialog, creation is safely aborted without creating a blank or dummy profile.
+6. **Switching Profiles**: Simply click the profile's tab in the top tab bar. The client handles the background handover cleanly without leaking credentials!
+7. **Renaming a Profile**: Use **`Profile`** $\to$ **`Rename Current Profile...`**. The profile keeps its stored credentials (they are keyed by an internal UUID, not by name).
 
 ---
 

@@ -176,6 +176,9 @@ The application communicates natively with platform accessibility trees without 
 3. **Bounded Process Ownership:** The executor tracks the CLI child process it starts, kills it during shutdown and then retires its worker thread, so no `tailscale` process outlives the application or blocks a profile switch.
 4. **Resilient Exponential Backoff:** Reconnection logic implements bounded exponential backoff (`3s` -> `6s` -> `12s`), preventing connection flooding and server DDoS during outages.
 5. **Self-Signed SSL Accommodation:** Isolated homelab deployments with self-hosted Headscale servers support TLS verification bypass via the `--insecure-skip-tls-verify=true` setting.
+6. **Zero Dummy URL Fallbacks & Live Session Discovery:** The client introspects live daemon preferences (`/localapi/v0/prefs` and `tailscale debug prefs`) to query active Headscale or Tailscale connection parameters (`ControlURL`, `AuthURL`, `User`, `CurrentTailnet`). Zero hardcoded SaaS control URLs (`controlplane.tailscale.com`) exist in profile models, SQLite persistence, or diagnostic views, guaranteeing that custom Headscale deployments and Web/SSO logins are captured and displayed accurately without masking.
+7. **Cross-Platform IPC & LocalAPI Sockets:** Communication with the local daemon automatically adapts per operating system: on Linux and macOS, it reaches `/var/run/tailscale/tailscaled.sock` (with `/run/tailscale/tailscaled.sock` fallback) with the required `Host: local-tailscaled.sock` header over Unix domain sockets; on Windows, it communicates over the administrator-restricted named pipe `\\.\pipe\ProtectedPrefix\administrators\Tailscale\tailscaled`.
+8. **Cross-Platform Emergency DNS Fallback:** When DNS resolution fails, the client supports emergency pinning via platform-native hosts file resolution: `/etc/hosts` on Linux and macOS (with non-blocking safety and `pkexec`/`osascript` elevation) and `C:\Windows\System32\drivers\etc\hosts` on Windows.
 
 ---
 
@@ -184,7 +187,7 @@ The application communicates natively with platform accessibility trees without 
 | Operating System | Supported Architecture | Minimum Version | Service Manager | Privilege Model |
 | :--- | :--- | :--- | :--- | :--- |
 | **Windows** | x86_64, ARM64 | Windows 10 (Build 19041+) / Windows 11 | Windows Service (`Tailscale`) | Standard User (Service elevated) |
-| **Linux** | x86_64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+ | `systemd` (`tailscaled.service`) | Group `tailscale` / Socket ACL |
+| **Linux** | x86_64, aarch64 | Ubuntu 20.04+, Debian 11+, Fedora 36+, Arch Linux | `systemd` (`tailscaled.service`) | Group `tailscale` / Socket ACL / Polkit |
 | **macOS** | x86_64, Apple Silicon | macOS 11.0 (Big Sur) or higher | `launchd` / `launchctl` | Keychain Sandbox |
 
 ---
@@ -209,6 +212,12 @@ pip install -r requirements.txt
 
 # 4. Launch development client
 python main.py
+
+# 5. Run test suite & quality verification gates
+pytest                              # Run all 155 unit tests
+python main.py --self-test          # Validate packaging assets, translations, and DB round-trip
+ruff check main.py src/ tests/      # Static code analysis & linting
+mypy src/                           # Strict static type checking
 ```
 
 ---

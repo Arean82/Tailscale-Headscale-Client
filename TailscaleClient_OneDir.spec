@@ -54,6 +54,13 @@ a = Analysis(
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+if sys.platform == 'win32':
+    icon_file = 'assets/icon.ico' if os.path.exists('assets/icon.ico') else None
+elif sys.platform == 'darwin':
+    icon_file = 'assets/icon.icns' if os.path.exists('assets/icon.icns') else ('assets/icon.png' if os.path.exists('assets/icon.png') else None)
+else:
+    icon_file = 'assets/icon.png' if os.path.exists('assets/icon.png') else None
+
 exe = EXE(
     pyz,
     a.scripts,
@@ -70,7 +77,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='assets/icon.ico' if os.path.exists('assets/icon.ico') else None,
+    icon=icon_file,
     version='version_info.txt' if sys.platform == 'win32' else None,
 )
 coll = COLLECT(

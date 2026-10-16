@@ -116,14 +116,14 @@ Communication between the desktop client and the background `tailscaled` service
 | **CWE-391** | Empty Exception Handling | Converted all bare and empty `except:` handlers to explicit exception subclasses (`OSError`, `KeyringError`, `ValueError`, `subprocess.SubprocessError`, ...) with deterministic control flow; `ruff` (BLE001/S110/S112) now fails the build if a blind handler is reintroduced. | **PASSED (Zero Risk)** |
 | **CWE-456** | Uninitialized Variable Lifecycle | Verified variable scoping across GUI poller callbacks (e.g., `is_running`). Pre-initialized variables and safe decoding ensure immunity to `UnboundLocalError`. | **PASSED (Zero Risk)** |
 | **CWE-404 / CWE-775** | Resource / File Handle Leakage | Refactored Windows Named Pipe and Unix socket communication to deterministic Python context managers (`with open(...) as f:`, `with socket.socket(...) as s:`). | **PASSED (Zero Risk)** |
-| **Supply Chain** | Vulnerable Third-Party Components | Full Software Bill of Materials (SBOM) verified via CycloneDX 1.5 format ([`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json)) conforming to NIST SP 800-218 and US Executive Order 14028. | **PASSED (Zero Risk)** |
+| **Supply Chain** | Vulnerable Third-Party Components | Full Software Bill of Materials (SBOM) verified via CycloneDX 1.5 format ([`Docs/SBOM.json`](SBOM.json)) conforming to NIST SP 800-218 and US Executive Order 14028. | **PASSED (Zero Risk)** |
 
 ---
 
 ## 7. GitHub CodeQL Continuous Static Analysis (SAST)
 
 The project enforces continuous static application security testing via GitHub CodeQL (Action v4):
-* **Workflow**: [`.github/workflows/codeql.yml`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/.github/workflows/codeql.yml) (`github/codeql-action/init@v4`, `analyze@v4`)
+* **Workflow**: [`.github/workflows/codeql.yml`](../.github/workflows/codeql.yml) (`github/codeql-action/init@v4`, `analyze@v4`)
 * **Query Suites**: `security-extended`, `security-and-quality`
 * **Trigger Cadence**: Automated on every `push` and `pull_request` targeting `main`, alongside recurring weekly automated scans.
 * **Audit Result**: **0 open alerts** across all severity levels (Critical, High, Medium, Low, and Quality Notes).
@@ -143,5 +143,5 @@ Every applicable test, linter, type check, dependency audit, and cryptographic v
 | **Code Test Coverage** | `pytest-cov` / `coverage` | `src/core`, `src/utils` |  **PASSED** | Code coverage tracking active across core models, caching layers, encryption vaults, and accessibility bridges. |
 | **Python Dependency Scan** | PyPI Advisory Vulnerability API | `requirements.txt` |  **PASSED** | Verified all production packages (`PySide6`, `cryptography`, `keyring`, `psutil`, `requests`, `markdown`, `pygments`, `beautifulsoup4`, `PyInstaller`). 0 active production CVEs. |
 | **Security Tests (CWE Matrix)** | AST & Regex Static Scan | Entire repository |  **PASSED** | Zero command injections, zero dynamic eval calls, zero leaked secrets or auth tokens. |
-| **Generate CycloneDX SBOM** | CycloneDX 1.5 Spec | [`Docs/SBOM.json`](file:///c:/Users/user/Documents/GitHub/Tailscale-Headscale-Client/Docs/SBOM.json) |  **PASSED** | Machine-readable bill of materials compliant with US EO 14028 and NIST SP 800-218. |
+| **Generate CycloneDX SBOM** | CycloneDX 1.5 Spec | [`Docs/SBOM.json`](SBOM.json) |  **PASSED** | Machine-readable bill of materials compliant with US EO 14028 and NIST SP 800-218. |
 | **Quality Gate Summary** | Enterprise Gate Engine | All applicable stages |  **PASSED** | **100% Pass Rate / Platinum Enterprise Quality Certified**. |
